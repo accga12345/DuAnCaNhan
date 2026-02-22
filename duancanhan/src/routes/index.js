@@ -1,0 +1,71 @@
+import HomePage from "../pages/HomePage/HomePage";
+import OrderPage from "../pages/OrderPage/OrderPage";
+import NotFoundPage from "../pages/NotFoundPage/NotFoundPage";
+import TypeProductPage from "../pages/TypeProductPage/TypeProductPage";
+import ProductDetailPage from "../pages/ProductDetailPage/ProductDetailPage";
+import SignInPage from "../pages/SignInPage/SignInPage";
+import SignUpPage from "../pages/SignUpPage/SignUpPage";
+import ProfilePage from "../pages/ProfilePage/ProfilePage";
+import AdminPage from "../pages/AdminPage/AdminPage";
+import OrderSuccessPage from "../pages/OrderSuccessPage/OrderSuccessPage";
+import MyOrderPage from "../pages/MyOrderPage/MyOrderPage";
+const routes = [
+    {
+        path: "/",
+        page: HomePage,
+        isShowHeader: true
+    },
+    {
+        path: "/order",
+        page: OrderPage,
+        isShowHeader: true
+    },
+    {
+        path: "/my-order",
+        page: MyOrderPage,
+        isShowHeader: true
+    },
+    {
+        path: "/orderSuccess",
+        page: OrderSuccessPage,
+        isShowHeader: true
+    },
+    {
+        path: "/typeproduct/:type",
+        page: TypeProductPage,
+        isShowHeader: true
+    },
+    {
+        path: "/productdetail/:id",
+        page: ProductDetailPage,
+        isShowHeader: true
+    },
+    {
+        path: "/signin",
+        page: SignInPage,
+        isShowHeader: false
+    },
+    {
+        path: "/signup",
+        page: SignUpPage,
+        isShowHeader: false
+    },
+    {
+        path: "/profile",
+        page: ProfilePage,
+        isShowHeader: true
+    },
+    {
+        path: "/admin",
+        page: AdminPage,
+        isShowHeader: true,
+        isPrivate: true,
+        isHiddenSearch: true,
+        isCart: true,
+    },
+    {
+        path: "*",
+        page: NotFoundPage
+    }
+];
+export default routes

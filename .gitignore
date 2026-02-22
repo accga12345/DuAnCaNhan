@@ -1,0 +1,16 @@
+# Node modules
+node_modules/
+Backend/node_modules/
+duancanhan/node_modules/
+
+# Environment variables
+.env
+Backend/.env
+duancanhan/.env
+
+# Build folder
+build/
+dist/
+
+# Logs
+npm-debug.log*

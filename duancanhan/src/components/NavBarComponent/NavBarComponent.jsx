@@ -1,0 +1,66 @@
+import React from "react";
+import { WrapperLabel, WrapperText, WrapperContent } from "./style";
+import { Checkbox, Rate } from 'antd';
+import { useNavigate } from "react-router-dom";
+import { convertToSlug } from "../../ultil";
+
+const NavBarComponent = ({ types, onChange }) => {
+    const navigate = useNavigate();
+
+    const handleNavigate = (type) => {
+        const formattedType = convertToSlug(type);
+        navigate(`/typeproduct/${formattedType}`, { state: { name: type } });
+    };
+
+    const handleFilterClick = (type, value) => {
+        if (onChange) {
+            onChange({ type, value });
+        }
+    };
+
+    const renderContent = (type, data) => {
+        switch (type) {
+            case 'category':
+                return data?.map(item => {
+                    return (
+                        <WrapperText key={item} onClick={() => handleNavigate(item)} style={{ cursor: 'pointer' }}>
+                            {item}
+                        </WrapperText>
+                    )
+                })
+            case 'checkbox':
+                return data?.map(item => {
+                    return (
+                        <Checkbox key={item.value} value={item.value}>{item.label}</Checkbox>
+                    )
+                })
+            case 'rate':
+                return data?.map(item => {
+                    return (
+                        <div key={item} onClick={() => handleFilterClick('rating', item)} style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
+                            <Rate style={{ fontSize: '16px' }} disabled defaultValue={item} />
+                            <span>từ {item} sao</span>
+                        </div>
+                    )
+                })
+            default:
+                return {}
+        }
+    }
+
+    return (
+        <div>
+            <WrapperLabel>Danh mục</WrapperLabel>
+            <WrapperContent>
+                {renderContent('category', types)}
+            </WrapperContent>
+
+            <WrapperLabel style={{ marginTop: '20px' }}> Đánh giá</WrapperLabel>
+            <WrapperContent>
+                {renderContent('rate', [2, 3, 4, 5])}
+            </WrapperContent>
+        </div>
+    )
+}
+
+export default NavBarComponent
