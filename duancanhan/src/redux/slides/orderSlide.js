@@ -6,7 +6,6 @@ const initialState = {
     paymentMethod: '',
     itemsPrice: 0,
     shippingPrice: 0,
-    taxPrice: 0,
     totalPrice: 0,
     user: '',
     isPaid: false,
@@ -24,8 +23,8 @@ export const orderSlide = createSlice({
             const itemOrder = state?.orderItems?.find((item) => item?.product === orderItem.product);
             if (itemOrder) {
                 itemOrder.amount += orderItem?.amount;
-                if (itemOrder.amount > itemOrder.countInstock) {
-                    itemOrder.amount = itemOrder.countInstock;
+                if (itemOrder.amount > itemOrder.countInStock) {
+                    itemOrder.amount = itemOrder.countInStock;
                 }
             } else {
                 state.orderItems.push(orderItem);
@@ -61,7 +60,6 @@ export const orderSlide = createSlice({
             state.paymentMethod = '';
             state.itemsPrice = 0;
             state.shippingPrice = 0;
-            state.taxPrice = 0;
             state.totalPrice = 0;
             state.user = '';
             state.isPaid = false;

@@ -13,7 +13,7 @@ router.get('/get-all', authMiddleware, OrderController.getAllOrder);
 router.put('/update/:id', authMiddleware, OrderController.updateOrder);
 router.get('/get-details/:id', authUserMiddleware, OrderController.getDetailsOrder);
 router.get('/get-all-order/:id', authUserMiddleware, OrderController.getAllOrderDetails);
-router.post('/payment/momo', OrderController.paymentMoMo);
-router.post('/payment/momo-callback', OrderController.callbackMoMo);
+router.post('/payment/vnpay', OrderController.createVNPayPayment);
+router.get('/payment/vnpay-return', OrderController.vnpayReturn);
 
 module.exports = router;

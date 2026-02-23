@@ -45,7 +45,7 @@ export const getOrderByUserId = async (id, access_token) => {
     return res.data;
 };
 
-export const paymentMoMo = async (data) => {
-    const res = await axiosJwt.post(`${process.env.REACT_APP_API_URL}/order/payment/momo`, data);
+export const paymentVnPay = async (data) => {
+    const res = await axiosJwt.post(`${process.env.REACT_APP_API_URL}/order/payment/vnpay`, data);
     return res.data;
 };

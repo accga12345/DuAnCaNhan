@@ -67,7 +67,7 @@ const MyOrderPage = () => {
                                         Ngày đặt: {new Date(order.createdAt).toLocaleString('vi-VN')}
                                     </div>
                                     <div style={{ width: '100%', height: '1px', background: '#f0f0f0' }} />
-                                    {(order?.oderItem || order?.orderItems)?.map((item) => {
+                                    {order?.oderItems?.map((item) => {
                                         return (
                                             <div key={item?._id} style={{ display: 'flex', width: '100%', gap: '15px' }}>
                                                 <img src={item?.image} alt="product" style={{ width: '80px', height: '80px', objectFit: 'cover', border: '1px solid #eee' }} />

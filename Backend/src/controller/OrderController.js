@@ -1,5 +1,5 @@
 const orderService = require('../services/OrderService');
-const momoService = require('../services/MoMoService');
+const vnPayService = require('../services/VNPayService');
 
 const createOrder = async (req, res) => {
     try {
@@ -85,7 +85,7 @@ const getAllOrderDetails = async (req, res) => {
     }
 }
 
-const paymentMoMo = async (req, res) => {
+const createVNPayPayment = async (req, res) => {
     try {
         const { amount, orderId, orderInfo } = req.body;
 
@@ -96,13 +96,26 @@ const paymentMoMo = async (req, res) => {
             });
         }
 
-        const response = await momoService.createPaymentMoMo(
-            String(amount),
-            orderId,
-            orderInfo
-        );
+        let ipAddr = req.headers['x-forwarded-for'] ||
+            req.connection?.remoteAddress ||
+            req.socket?.remoteAddress ||
+            req.ip || '127.0.0.1';
 
-        return res.status(200).json(response);
+        // Clean IP to prevent IPv6 or multiple IPs breaking VNPay signature
+        if (ipAddr.includes(',')) {
+            ipAddr = ipAddr.split(',')[0];
+        }
+        if (ipAddr === '::1' || ipAddr.includes('::ffff:')) {
+            ipAddr = '127.0.0.1';
+        }
+
+        const paymentUrl = vnPayService.createPaymentUrl(amount, orderId, orderInfo, ipAddr);
+        console.log("Generated VNPay URL:", paymentUrl);
+
+        return res.status(200).json({
+            status: 'OK',
+            payUrl: paymentUrl
+        });
 
     } catch (e) {
         return res.status(500).json({
@@ -111,62 +124,31 @@ const paymentMoMo = async (req, res) => {
     }
 };
 
-
-const callbackMoMo = async (req, res) => {
+const vnpayReturn = async (req, res) => {
     try {
-        const secretKey = process.env.MOMO_SECRET_KEY;
-        const {
-            partnerCode,
-            orderId,
-            requestId,
-            amount,
-            orderInfo,
-            orderType,
-            transId,
-            resultCode,
-            message,
-            payType,
-            responseTime,
-            extraData,
-            signature
-        } = req.body;
+        let vnpParams = req.query;
+        let secureHash = vnpParams['vnp_SecureHash'];
 
-        const rawSignature =
-            `accessKey=${process.env.MOMO_ACCESS_KEY}` +
-            `&amount=${amount}` +
-            `&extraData=${extraData}` +
-            `&message=${message}` +
-            `&orderId=${orderId}` +
-            `&orderInfo=${orderInfo}` +
-            `&orderType=${orderType}` +
-            `&partnerCode=${partnerCode}` +
-            `&payType=${payType}` +
-            `&requestId=${requestId}` +
-            `&responseTime=${responseTime}` +
-            `&resultCode=${resultCode}` +
-            `&transId=${transId}`;
+        let orderId = vnpParams['vnp_TxnRef'];
+        let rspCode = vnpParams['vnp_ResponseCode'];
 
-        const checkSignature = crypto
-            .createHmac("sha256", secretKey)
-            .update(rawSignature)
-            .digest("hex");
+        const isValid = vnPayService.verifyReturnUrl(vnpParams);
 
-        if (checkSignature !== signature) {
-            return res.status(400).json({
-                status: "ERR",
-                message: "Invalid signature"
-            });
+        if (isValid) {
+            if (rspCode === '00') {
+                // Thanh toán thành công
+                await orderService.updateOrder(orderId, {
+                    isPaid: true,
+                    paidAt: new Date()
+                });
+                return res.redirect(`${process.env.CLIENT_URL || 'http://localhost:3000'}/orderSuccess?id=${orderId}`);
+            } else {
+                // Thanh toán thất bại hoặc hủy
+                return res.redirect(`${process.env.CLIENT_URL || 'http://localhost:3000'}/order?payment=failed`);
+            }
+        } else {
+            return res.status(400).json({ status: 'ERR', message: 'Invalid signature' });
         }
-
-        // Nếu thanh toán thành công
-        if (resultCode == 0) {
-            await orderService.updateOrder(orderId, {
-                isPaid: true,
-                paidAt: new Date()
-            });
-        }
-
-        return res.status(200).json({ message: "OK" });
 
     } catch (e) {
         return res.status(500).json({
@@ -174,7 +156,6 @@ const callbackMoMo = async (req, res) => {
         });
     }
 };
-
 
 module.exports = {
     createOrder,
@@ -182,7 +163,6 @@ module.exports = {
     updateOrder,
     getDetailsOrder,
     getAllOrderDetails,
-    paymentMoMo,
-    callbackMoMo
-
+    createVNPayPayment,
+    vnpayReturn
 };

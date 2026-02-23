@@ -17,7 +17,7 @@ const OrderSuccessPage = () => {
     const { state } = location;
     const user = useSelector((state) => state.user);
 
-    const { data: orderDetails, isPending: isLoadingDetail, refetch } = useQuery({
+    const { data: orderDetails, isFetching: isLoadingDetail, refetch } = useQuery({
         queryKey: ['order-details', state?.id],
         queryFn: () => getDetailsOrder(state?.id, user?.accessToken),
         enabled: !!state?.id && !!user?.accessToken,
@@ -25,8 +25,8 @@ const OrderSuccessPage = () => {
 
     const mutationUpdate = useMutationHook(
         (data) => {
-            const { id, token, ...rests } = data;
-            const res = updateOrder(id, rests, token);
+            const { _id, token, ...rests } = data;
+            const res = updateOrder(_id, rests, token);
             return res;
         }
     );
@@ -77,7 +77,7 @@ const OrderSuccessPage = () => {
                                     />
                                 </WrapperInfo>
                                 <WrapperListOrder>
-                                    {(orderData?.orderItems || orderData?.oderItem)?.map((order) => {
+                                    {orderData?.oderItems?.map((order) => {
                                         return (
                                             <WrapperItemOrder key={order?.product}>
                                                 <div style={{ width: '390px', display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -119,7 +119,7 @@ const OrderSuccessPage = () => {
                                 <WrapperInfo>
                                     <div>
                                         <span style={{ fontWeight: 'bold' }}>Phương thức thanh toán: </span>
-                                        <span>{orderData?.paymentMethod === 'later_money' ? 'Thanh toán tiền mặt khi nhận hàng' : 'Thanh toán bằng MoMo'}</span>
+                                        <span>{orderData?.paymentMethod === 'later_money' ? 'Thanh toán tiền mặt khi nhận hàng' : 'Thanh toán bằng VNPay'}</span>
                                     </div>
                                 </WrapperInfo>
                                 <WrapperTotal>

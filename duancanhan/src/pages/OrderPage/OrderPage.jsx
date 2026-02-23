@@ -6,9 +6,9 @@ import { WrapperContainer, WrapperLeft, WrapperRight, WrapperInfo, WrapperTotal,
 import ButtonComponents from '../../components/ButtonComponents/ButtonComponents';
 import { increaseAmount, decreaseAmount, removeOrderProduct, removeAllOrderProduct } from '../../redux/slides/orderSlide';
 import { useMemo, useState, useEffect } from 'react';
-import { Modal, Form, Input, message } from 'antd';
+import { Modal, Form, Input } from 'antd';
 import { useMutationHook } from '../../hooks/useMutationHook';
-import { createOrder, paymentMoMo } from '../../services/OrderService';
+import { createOrder, paymentVnPay } from '../../services/OrderService';
 import { showSuccess, showError } from '../../components/MessageComponent/MessageComponent';
 import { updateUserInfo } from '../../services/UserServices';
 import { updateUser } from '../../redux/slides/userSlide';
@@ -74,16 +74,16 @@ const OrderPage = () => {
     }
   );
 
-  const mutationMoMo = useMutationHook(
+  const mutationVnPay = useMutationHook(
     (data) => {
-      const res = paymentMoMo(data);
+      const res = paymentVnPay(data);
       return res;
     }
   );
 
   const { isPending: isPendingUpdate, data: dataUpdate } = mutationUpdate;
   const { data: dataAdd, isPending: isPendingAddOrder, isSuccess: isSuccessAddOrder, isError: isErrorAddOrder } = mutationAddOrder;
-  const { data: dataMoMo, isPending: isPendingMoMo, isSuccess: isSuccessMoMo } = mutationMoMo;
+  const { data: dataVnPay, isPending: isPendingVnPay, isSuccess: isSuccessVnPay } = mutationVnPay;
 
   useEffect(() => {
     if (isSuccessAddOrder && dataAdd?.status === 'OK') {
@@ -96,13 +96,15 @@ const OrderPage = () => {
       showSuccess('Đặt hàng thành công');
       queryClient.invalidateQueries({ queryKey: ['my-orders', user?._id] })
 
-      if (payment === 'momo') {
-        mutationMoMo.mutate({
+      if (payment === 'vnpay') {
+        mutationVnPay.mutate({
           amount: totalPriceMemo,
           orderId: dataAdd?.data?._id,
-          orderInfo: `Thanh toán đơn hàng ${dataAdd?.data?._id}`
+          orderInfo: `${dataAdd?.data?._id}`
         })
       } else {
+        dispatch(removeAllOrderProduct({ listChecked: arrayOrdered }))
+        showSuccess('Đặt hàng thành công');
         navigate('/orderSuccess', {
           state: {
             id: dataAdd?.data?._id,
@@ -119,12 +121,14 @@ const OrderPage = () => {
   }, [isSuccessAddOrder, isErrorAddOrder]);
 
   useEffect(() => {
-    if (isSuccessMoMo && dataMoMo?.payUrl) {
-      window.location.href = dataMoMo.payUrl;
-    } else if (isSuccessMoMo && dataMoMo?.status !== 0) {
-      showError('Có lỗi khi tạo thanh toán MoMo');
+    if (isSuccessVnPay && dataVnPay?.status === 'OK') {
+      if (dataVnPay?.payUrl) {
+        window.location.href = dataVnPay.payUrl;
+      }
+    } else if (isSuccessVnPay) {
+      showError(dataVnPay?.message || 'Có lỗi khi tạo thanh toán VNPay');
     }
-  }, [isSuccessMoMo, dataMoMo]);
+  }, [isSuccessVnPay, dataVnPay]);
 
   const handleUpdateInformation = () => {
     const { name, address, phone } = stateUserDetails;
@@ -289,7 +293,7 @@ const OrderPage = () => {
                         <WrapperQuantityBuy>
                           <ButtonComponents textButton="-" size="middle" styleButton={{ width: "35px", padding: "4px" }} disabled={order?.amount === 1} onClick={() => handleOnChangeCount('decrease', order?.product)} />
                           <WrapperInputQuantityBuy size="middle" defaultValue={order?.amount} value={order?.amount} controls={false} />
-                          <ButtonComponents textButton="+" size="middle" styleButton={{ width: "35px", padding: "4px" }} disabled={order?.amount === order?.countInstock} onClick={() => handleOnChangeCount('increase', order?.product)} />
+                          <ButtonComponents textButton="+" size="middle" styleButton={{ width: "35px", padding: "4px" }} disabled={order?.amount === order?.countInStock} onClick={() => handleOnChangeCount('increase', order?.product)} />
                         </WrapperQuantityBuy>
                         <span style={{ color: 'rgb(255, 66, 78)', fontSize: '13px', fontWeight: 500 }}>{(order?.price * order?.amount).toLocaleString()}đ</span>
                         <DeleteOutlined style={{ cursor: 'pointer' }} onClick={() => handleDeleteOrder(order?.product)} />
@@ -332,7 +336,7 @@ const OrderPage = () => {
                   <span>Chọn phương thức thanh toán</span>
                   <Radio.Group onChange={handlePayment} value={payment} style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '10px' }}>
                     <Radio value="later_money">Thanh toán tiền mặt khi nhận hàng (COD)</Radio>
-                    <Radio value="momo">Thanh toán bằng MoMo</Radio>
+                    <Radio value="vnpay">Thanh toán bằng VNPay</Radio>
                   </Radio.Group>
                 </div>
               </WrapperInfo>

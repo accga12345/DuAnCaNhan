@@ -44,7 +44,7 @@ const createOrder = async (newOrder) => {
         }
 
         const createdOrder = await Order.create({
-            oderItem: orderItems,
+            oderItems: orderItems,
             shippingAddress: {
                 fullName,
                 address,

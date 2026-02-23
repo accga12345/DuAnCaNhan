@@ -68,7 +68,7 @@ const OrderAdmin = () => {
             render: (text, record) => record.shippingAddress.address,
         },
         {
-            title: 'Ngày đặt',
+            title: 'Ngày/Giờ',
             dataIndex: 'createdAt',
             key: 'createdAt',
             render: (text) => new Date(text).toLocaleString('vi-VN'),
