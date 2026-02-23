@@ -45,20 +45,16 @@ function AdminPage() {
 
     const onOpenChange = openKeys => {
         const currentOpenKey = openKeys.find(key => !stateOpenKeys.includes(key));
-        // open
         if (currentOpenKey !== undefined) {
             const repeatIndex = openKeys
                 .filter(key => key !== currentOpenKey)
                 .findIndex(key => levelKeys[key] === levelKeys[currentOpenKey]);
             setStateOpenKeys(
                 openKeys
-                    // remove repeat key
                     .filter((_, index) => index !== repeatIndex)
-                    // remove current level all child
                     .filter(key => levelKeys[key] <= levelKeys[currentOpenKey]),
             );
         } else {
-            // close
             setStateOpenKeys(openKeys);
         }
     };

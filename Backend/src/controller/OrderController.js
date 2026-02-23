@@ -1,4 +1,5 @@
 const orderService = require('../services/OrderService');
+const momoService = require('../services/MoMoService');
 
 const createOrder = async (req, res) => {
     try {
@@ -84,10 +85,104 @@ const getAllOrderDetails = async (req, res) => {
     }
 }
 
+const paymentMoMo = async (req, res) => {
+    try {
+        const { amount, orderId, orderInfo } = req.body;
+
+        if (!amount || !orderId || !orderInfo) {
+            return res.status(400).json({
+                status: 'ERR',
+                message: 'amount, orderId, and orderInfo are required'
+            });
+        }
+
+        const response = await momoService.createPaymentMoMo(
+            String(amount),
+            orderId,
+            orderInfo
+        );
+
+        return res.status(200).json(response);
+
+    } catch (e) {
+        return res.status(500).json({
+            message: e.message
+        });
+    }
+};
+
+
+const callbackMoMo = async (req, res) => {
+    try {
+        const secretKey = process.env.MOMO_SECRET_KEY;
+        const {
+            partnerCode,
+            orderId,
+            requestId,
+            amount,
+            orderInfo,
+            orderType,
+            transId,
+            resultCode,
+            message,
+            payType,
+            responseTime,
+            extraData,
+            signature
+        } = req.body;
+
+        const rawSignature =
+            `accessKey=${process.env.MOMO_ACCESS_KEY}` +
+            `&amount=${amount}` +
+            `&extraData=${extraData}` +
+            `&message=${message}` +
+            `&orderId=${orderId}` +
+            `&orderInfo=${orderInfo}` +
+            `&orderType=${orderType}` +
+            `&partnerCode=${partnerCode}` +
+            `&payType=${payType}` +
+            `&requestId=${requestId}` +
+            `&responseTime=${responseTime}` +
+            `&resultCode=${resultCode}` +
+            `&transId=${transId}`;
+
+        const checkSignature = crypto
+            .createHmac("sha256", secretKey)
+            .update(rawSignature)
+            .digest("hex");
+
+        if (checkSignature !== signature) {
+            return res.status(400).json({
+                status: "ERR",
+                message: "Invalid signature"
+            });
+        }
+
+        // Nếu thanh toán thành công
+        if (resultCode == 0) {
+            await orderService.updateOrder(orderId, {
+                isPaid: true,
+                paidAt: new Date()
+            });
+        }
+
+        return res.status(200).json({ message: "OK" });
+
+    } catch (e) {
+        return res.status(500).json({
+            message: e.message
+        });
+    }
+};
+
+
 module.exports = {
     createOrder,
     getAllOrder,
     updateOrder,
     getDetailsOrder,
-    getAllOrderDetails
+    getAllOrderDetails,
+    paymentMoMo,
+    callbackMoMo
+
 };

@@ -11,6 +11,7 @@ import { logoutUser } from "../../services/UserServices";
 import { resetUser } from "../../redux/slides/userSlide";
 import LoadingComponent from "../../components/Loading/LoadingComponent";
 import { searchProduct } from "../../redux/slides/productSlide"
+import { resetOrder } from "../../redux/slides/orderSlide";
 
 
 const HeaderComponent = ({ isHiddenSearch, isCart }) => {
@@ -28,6 +29,7 @@ const HeaderComponent = ({ isHiddenSearch, isCart }) => {
     await logoutUser();
     localStorage.removeItem("access_token");
     dispatch(resetUser());
+    dispatch(resetOrder());
     setTimeout(() => {
       setPending(false);
     }, 2000);

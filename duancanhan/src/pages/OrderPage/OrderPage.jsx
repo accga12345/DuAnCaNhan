@@ -8,7 +8,7 @@ import { increaseAmount, decreaseAmount, removeOrderProduct, removeAllOrderProdu
 import { useMemo, useState, useEffect } from 'react';
 import { Modal, Form, Input, message } from 'antd';
 import { useMutationHook } from '../../hooks/useMutationHook';
-import { createOrder } from '../../services/OrderService';
+import { createOrder, paymentMoMo } from '../../services/OrderService';
 import { showSuccess, showError } from '../../components/MessageComponent/MessageComponent';
 import { updateUserInfo } from '../../services/UserServices';
 import { updateUser } from '../../redux/slides/userSlide';
@@ -74,8 +74,16 @@ const OrderPage = () => {
     }
   );
 
+  const mutationMoMo = useMutationHook(
+    (data) => {
+      const res = paymentMoMo(data);
+      return res;
+    }
+  );
+
   const { isPending: isPendingUpdate, data: dataUpdate } = mutationUpdate;
   const { data: dataAdd, isPending: isPendingAddOrder, isSuccess: isSuccessAddOrder, isError: isErrorAddOrder } = mutationAddOrder;
+  const { data: dataMoMo, isPending: isPendingMoMo, isSuccess: isSuccessMoMo } = mutationMoMo;
 
   useEffect(() => {
     if (isSuccessAddOrder && dataAdd?.status === 'OK') {
@@ -87,19 +95,36 @@ const OrderPage = () => {
       dispatch(removeAllOrderProduct({ listChecked: arrayOrdered }))
       showSuccess('Đặt hàng thành công');
       queryClient.invalidateQueries({ queryKey: ['my-orders', user?._id] })
-      navigate('/orderSuccess', {
-        state: {
-          id: dataAdd?.data?._id,
-          delivery: deliveryPriceMemo,
-          paymentMethod: payment,
-          totalPrice: totalPriceMemo,
-          orderItems: orderItemsOrdered,
-        }
-      })
+
+      if (payment === 'momo') {
+        mutationMoMo.mutate({
+          amount: totalPriceMemo,
+          orderId: dataAdd?.data?._id,
+          orderInfo: `Thanh toán đơn hàng ${dataAdd?.data?._id}`
+        })
+      } else {
+        navigate('/orderSuccess', {
+          state: {
+            id: dataAdd?.data?._id,
+            delivery: deliveryPriceMemo,
+            paymentMethod: payment,
+            totalPrice: totalPriceMemo,
+            orderItems: orderItemsOrdered,
+          }
+        })
+      }
     } else if (isErrorAddOrder) {
       showError();
     }
   }, [isSuccessAddOrder, isErrorAddOrder]);
+
+  useEffect(() => {
+    if (isSuccessMoMo && dataMoMo?.payUrl) {
+      window.location.href = dataMoMo.payUrl;
+    } else if (isSuccessMoMo && dataMoMo?.status !== 0) {
+      showError('Có lỗi khi tạo thanh toán MoMo');
+    }
+  }, [isSuccessMoMo, dataMoMo]);
 
   const handleUpdateInformation = () => {
     const { name, address, phone } = stateUserDetails;
