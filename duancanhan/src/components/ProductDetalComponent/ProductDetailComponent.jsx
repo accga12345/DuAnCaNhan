@@ -19,7 +19,7 @@ const ProductDetailComponent = (props) => {
     const order = useSelector((state) => state.order);
 
     const handleAddOrderProduct = (isBuyNow = false) => {
-        const orderItem = order?.orderItems?.find((item) => item?.product === (product?.data?._id || id));
+        const orderItem = order?.oderItems?.find((item) => item?.product === (product?.data?._id || id));
         if (orderItem && (orderItem.amount + value > product?.data?.countInStock)) {
             showError(`Sản phẩm đã đạt giới hạn số lượng trong giỏ hàng!`);
         } else {

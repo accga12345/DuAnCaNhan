@@ -1,10 +1,9 @@
 const orderService = require('../services/OrderService');
-const { createPaymentUrl } = require('../services/VNPayService');
 
 const createOrder = async (req, res) => {
     try {
-        const { orderItems, paymentMethod, itemsPrice, shippingPrice, totalPrice, fullName, address, phone } = req.body;
-        if (!orderItems || !paymentMethod || itemsPrice === undefined || shippingPrice === undefined || totalPrice === undefined || !fullName || !address || !phone) {
+        const { oderItems, paymentMethod, itemsPrice, shippingPrice, totalPrice, fullName, address, phone } = req.body;
+        if (!oderItems || !paymentMethod || itemsPrice === undefined || shippingPrice === undefined || totalPrice === undefined || !fullName || !address || !phone) {
             return res.status(400).json({
                 status: 'ERR',
                 message: 'The input is required'
@@ -85,80 +84,10 @@ const getAllOrderDetails = async (req, res) => {
     }
 }
 
-const createVNPayPayment = async (req, res) => {
-    try {
-        const { amount, orderId } = req.body;
-
-        if (!amount || !orderId) {
-            return res.status(400).json({
-                status: "error",
-                message: "Missing amount or orderId"
-            });
-        }
-
-        const ipAddr = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
-
-        const paymentUrl = createPaymentUrl(amount, orderId, ipAddr);
-
-        return res.status(200).json({
-            status: "success",
-            paymentUrl
-        });
-
-    } catch (error) {
-        console.log("VNPay error:", error);
-        return res.status(500).json({
-            status: "error",
-            message: "Server error"
-        });
-    }
-};
-
-
-const vnpayReturn = async (req, res) => {
-    let vnpParams = req.query;
-
-    const secureHash = vnpParams['vnp_SecureHash'];
-
-    delete vnpParams['vnp_SecureHash'];
-    delete vnpParams['vnp_SecureHashType'];
-
-    vnpParams = sortObject(vnpParams);
-
-    const signData = qs.stringify(vnpParams, { encode: false });
-
-    const signed = crypto
-        .createHmac("sha512", process.env.VNPAY_SECRET_KEY)
-        .update(signData, "utf-8")
-        .digest("hex");
-
-    if (secureHash === signed) {
-
-        const orderId = vnpParams['vnp_TxnRef'];
-        const responseCode = vnpParams['vnp_ResponseCode'];
-
-        if (responseCode === "00") {
-            await orderService.updateOrder(orderId, {
-                isPaid: true,
-                paidAt: new Date()
-            });
-
-            return res.redirect(`http://localhost:3000/orderSuccess?id=${orderId}`);
-        } else {
-            return res.redirect(`http://localhost:3000/order?payment=failed`);
-        }
-
-    } else {
-        return res.redirect(`http://localhost:3000/order?payment=invalid-signature`);
-    }
-};
-
 module.exports = {
     createOrder,
     getAllOrder,
     updateOrder,
     getDetailsOrder,
     getAllOrderDetails,
-    createVNPayPayment,
-    vnpayReturn
 };

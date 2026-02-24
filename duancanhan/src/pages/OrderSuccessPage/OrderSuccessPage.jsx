@@ -23,10 +23,11 @@ const OrderSuccessPage = () => {
         enabled: !!state?.id && !!user?.accessToken,
     });
 
+
     const mutationUpdate = useMutationHook(
         (data) => {
-            const { _id, token, ...rests } = data;
-            const res = updateOrder(_id, rests, token);
+            const { id, token, ...rests } = data;
+            const res = updateOrder(id, rests, token);
             return res;
         }
     );
@@ -43,7 +44,11 @@ const OrderSuccessPage = () => {
     }, [isSuccessUpdate, isErrorUpdate]);
 
     const handleReceivedOrder = () => {
-        mutationUpdate.mutate({ id: state?.id, status: 4, token: user?.accessToken });
+        mutationUpdate.mutate({ id: orderDetails?.data?._id, status: 4, token: user?.accessToken });
+    };
+
+    const handleCancelOrder = () => {
+        mutationUpdate.mutate({ id: orderDetails?.data?._id, status: 3, token: user?.accessToken });
     };
 
     const orderData = orderDetails?.data || state;
@@ -99,6 +104,23 @@ const OrderSuccessPage = () => {
                         </Col>
                         <Col span={7}>
                             <WrapperRight>
+                                {orderData?.status === 0 && (
+                                    <WrapperInfo style={{ marginBottom: '10px' }}>
+                                        <ButtonComponents
+                                            onClick={handleCancelOrder}
+                                            size={40}
+                                            styleButton={{
+                                                background: 'rgb(255, 57, 69)',
+                                                height: '48px',
+                                                width: '100%',
+                                                border: 'none',
+                                                borderRadius: '4px'
+                                            }}
+                                            textButton={'Hủy đơn hàng'}
+                                            styleTextButton={{ color: '#fff', fontSize: '15px', fontWeight: '700' }}
+                                        />
+                                    </WrapperInfo>
+                                )}
                                 {orderData?.status === 2 && (
                                     <WrapperInfo style={{ marginBottom: '10px' }}>
                                         <ButtonComponents
@@ -120,6 +142,10 @@ const OrderSuccessPage = () => {
                                     <div>
                                         <span style={{ fontWeight: 'bold' }}>Phương thức thanh toán: </span>
                                         <span>{orderData?.paymentMethod === 'later_money' ? 'Thanh toán tiền mặt khi nhận hàng' : 'Thanh toán bằng VNPay'}</span>
+                                    </div>
+                                    <div style={{ marginTop: '10px' }}>
+                                        <span style={{ fontWeight: 'bold' }}>Trạng thái thanh toán: </span>
+                                        <span>{orderData?.isPaid ? 'Đã thanh toán' : 'Chưa thanh toán'}</span>
                                     </div>
                                 </WrapperInfo>
                                 <WrapperTotal>

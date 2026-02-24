@@ -1,7 +1,7 @@
 import { createSlice } from '@reduxjs/toolkit'
 
 const initialState = {
-    orderItems: [],
+    oderItems: [],
     shippingAddress: {},
     paymentMethod: '',
     itemsPrice: 0,
@@ -21,7 +21,7 @@ export const orderSlide = createSlice({
         addOrderProduct: (state, action) => {
             const { orderItem } = action.payload;
 
-            const itemOrder = state.orderItems.find(
+            const itemOrder = state.oderItems.find(
                 item => item.product === orderItem.product
             );
 
@@ -32,14 +32,14 @@ export const orderSlide = createSlice({
                     itemOrder.amount = itemOrder.countInStock;
                 }
             } else {
-                state.orderItems.push(orderItem);
+                state.oderItems.push(orderItem);
             }
         },
 
         increaseAmount: (state, action) => {
             const { idProduct } = action.payload;
 
-            const item = state.orderItems.find(
+            const item = state.oderItems.find(
                 item => item.product === idProduct
             );
 
@@ -51,7 +51,7 @@ export const orderSlide = createSlice({
         decreaseAmount: (state, action) => {
             const { idProduct } = action.payload;
 
-            const item = state.orderItems.find(
+            const item = state.oderItems.find(
                 item => item.product === idProduct
             );
 
@@ -63,7 +63,7 @@ export const orderSlide = createSlice({
         removeOrderProduct: (state, action) => {
             const { idProduct } = action.payload;
 
-            state.orderItems = state.orderItems.filter(
+            state.oderItems = state.oderItems.filter(
                 item => item.product !== idProduct
             );
         },
@@ -71,7 +71,7 @@ export const orderSlide = createSlice({
         removeAllOrderProduct: (state, action) => {
             const { listChecked } = action.payload;
 
-            state.orderItems = state.orderItems.filter(
+            state.oderItems = state.oderItems.filter(
                 item => !listChecked.includes(item.product)
             );
         },

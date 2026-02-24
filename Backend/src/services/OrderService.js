@@ -3,9 +3,9 @@ const Product = require("../models/ProductModel");
 
 const createOrder = async (newOrder) => {
     try {
-        const { orderItems, paymentMethod, itemsPrice, shippingPrice, totalPrice, fullName, address, phone, user } = newOrder;
+        const { oderItems, paymentMethod, itemsPrice, shippingPrice, totalPrice, fullName, address, phone, user, isPaid, paidAt } = newOrder;
 
-        const promises = orderItems.map(async (order) => {
+        const promises = oderItems.map(async (order) => {
             const productData = await Product.findOneAndUpdate(
                 {
                     _id: order.product,
@@ -44,7 +44,7 @@ const createOrder = async (newOrder) => {
         }
 
         const createdOrder = await Order.create({
-            oderItems: orderItems,
+            oderItems: oderItems,
             shippingAddress: {
                 fullName,
                 address,
@@ -55,6 +55,8 @@ const createOrder = async (newOrder) => {
             shippingPrice,
             totalPrice,
             user: user,
+            isPaid,
+            paidAt
         });
 
         if (createdOrder) {
@@ -94,7 +96,38 @@ const updateOrder = async (id, data) => {
             }
         }
 
-        const updatedOrder = await Order.findByIdAndUpdate(id, data, { new: true })
+        if (data.status !== undefined) {
+            checkOrder.status = data.status
+        }
+
+        if (data.status === 3) {
+            if (checkOrder.status === 2 || checkOrder.status === 4) {
+                return {
+                    status: 'ERR',
+                    message: 'Không thể hủy đơn khi đang giao hoặc đã giao'
+                }
+            }
+            for (const order of checkOrder.oderItems) {
+                await Product.updateOne(
+                    { _id: order.product },
+                    {
+                        $inc: {
+                            countInStock: order.amount,
+                            selled: -order.amount
+                        }
+                    }
+                )
+            }
+            checkOrder.status = 3
+        }
+
+        if (data.status === 4) {
+            checkOrder.isDelivered = true
+            checkOrder.deliveredAt = new Date()
+        }
+
+
+        const updatedOrder = await Order.findByIdAndUpdate(id, checkOrder, { new: true })
         return {
             status: 'OK',
             message: 'SUCCESS',

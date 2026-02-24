@@ -87,6 +87,12 @@ const OrderAdmin = () => {
             },
         },
         {
+            title: 'Trạng thái thanh toán',
+            dataIndex: 'isPaid',
+            key: 'isPaid',
+            render: (text) => text ? 'Đã thanh toán' : 'Chưa thanh toán',
+        },
+        {
             title: 'Tổng tiền',
             dataIndex: 'totalPrice',
             key: 'totalPrice',

@@ -8,12 +8,14 @@ import { increaseAmount, decreaseAmount, removeOrderProduct, removeAllOrderProdu
 import { useMemo, useState, useEffect } from 'react';
 import { Modal, Form, Input } from 'antd';
 import { useMutationHook } from '../../hooks/useMutationHook';
-import { createOrder, paymentVnPay } from '../../services/OrderService';
+import { createOrder } from '../../services/OrderService';
 import { showSuccess, showError } from '../../components/MessageComponent/MessageComponent';
 import { updateUserInfo } from '../../services/UserServices';
 import { updateUser } from '../../redux/slides/userSlide';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
+import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
+import { getClientConfig } from '../../services/PaymentService';
 
 const OrderPage = () => {
   const order = useSelector((state) => state.order);
@@ -28,6 +30,7 @@ const OrderPage = () => {
   const [payment, setPayment] = useState('later_money');
   const [form] = Form.useForm();
   const dispatch = useDispatch();
+  const [sdk, setSdk] = useState(false);
 
   useEffect(() => {
     form.setFieldsValue(stateUserDetails);
@@ -74,20 +77,12 @@ const OrderPage = () => {
     }
   );
 
-  const mutationVnPay = useMutationHook(
-    (data) => {
-      const res = paymentVnPay(data);
-      return res;
-    }
-  );
-
   const { isPending: isPendingUpdate, data: dataUpdate } = mutationUpdate;
   const { data: dataAdd, isPending: isPendingAddOrder, isSuccess: isSuccessAddOrder, isError: isErrorAddOrder } = mutationAddOrder;
-  const { data: dataVnPay, isPending: isPendingVnPay, isSuccess: isSuccessVnPay } = mutationVnPay;
 
   useEffect(() => {
     if (isSuccessAddOrder && dataAdd?.status === 'OK') {
-      const orderItemsOrdered = order?.orderItems?.filter(item =>
+      const orderItemsOrdered = order?.oderItems?.filter(item =>
         listChecked.includes(item.product)
       )
 
@@ -95,49 +90,26 @@ const OrderPage = () => {
 
       queryClient.invalidateQueries({ queryKey: ['my-orders', user?._id] })
 
-      if (payment === 'vnpay') {
-        mutationVnPay.mutate({
-          amount: totalPriceMemo,
-          orderId: dataAdd?.data?._id,
-        })
-      } else {
-        dispatch(removeAllOrderProduct({ listChecked: arrayOrdered }))
-        showSuccess('Đặt hàng thành công')
+      dispatch(removeAllOrderProduct({ listChecked: arrayOrdered }))
+      showSuccess('Đặt hàng thành công')
 
-        navigate('/orderSuccess', {
-          state: {
-            id: dataAdd?.data?._id,
-            delivery: deliveryPriceMemo,
-            paymentMethod: payment,
-            totalPrice: totalPriceMemo,
-            orderItems: orderItemsOrdered,
-          }
-        })
-      }
+      navigate('/orderSuccess', {
+        state: {
+          id: dataAdd?.data?._id,
+          delivery: deliveryPriceMemo,
+          paymentMethod: payment,
+          totalPrice: totalPriceMemo,
+          oderItems: orderItemsOrdered,
+        }
+      })
     }
 
     if (isErrorAddOrder) {
       showError('Đặt hàng thất bại')
     }
 
-  }, [isSuccessAddOrder, isErrorAddOrder, dataAdd, payment])
+  }, [isSuccessAddOrder, isErrorAddOrder, dataAdd])
 
-  useEffect(() => {
-    if (isSuccessVnPay && dataVnPay?.status === 'success') {
-
-      if (dataVnPay?.paymentUrl) {
-
-        dispatch(removeAllOrderProduct({ listChecked }))
-
-        window.location.href = dataVnPay.paymentUrl
-      }
-    }
-
-    if (isSuccessVnPay && dataVnPay?.status !== 'success') {
-      showError(dataVnPay?.message || 'Có lỗi khi tạo thanh toán VNPay')
-    }
-
-  }, [isSuccessVnPay, dataVnPay])
 
   const handleUpdateInformation = () => {
     const { name, address, phone } = stateUserDetails;
@@ -151,21 +123,21 @@ const OrderPage = () => {
     }
   };
 
-  const handleAddOrder = () => {
+  const handleAddOrder = (isPaid = false) => {
     if (!user?.accessToken) {
-      showError('Vui lòng đăng nhập để đặt hàng');
+      navigate('/signin');
       return;
     }
     if (!user?.name || !user?.address || !user?.phone) {
       setIsOpenModalUpdateInfo(true);
-    } else if (!order?.orderItems?.length) {
+    } else if (!order?.oderItems?.length) {
       showError('Vui lòng chọn sản phẩm');
     } else if (!listChecked.length) {
       showError('Vui lòng chọn sản phẩm để thanh toán');
     } else {
       mutationAddOrder.mutate({
         token: user?.accessToken,
-        orderItems: order?.orderItems?.filter(item => listChecked.includes(item.product)),
+        oderItems: order?.oderItems?.filter(item => listChecked.includes(item.product)),
         fullName: user?.name,
         address: user?.address,
         phone: user?.phone,
@@ -173,7 +145,9 @@ const OrderPage = () => {
         itemsPrice: priceMemo,
         shippingPrice: deliveryPriceMemo,
         totalPrice: totalPriceMemo,
-        user: user?._id
+        user: user?._id,
+        isPaid: isPaid,
+        paidAt: isPaid ? new Date().toISOString() : null
       });
     }
   };
@@ -186,6 +160,12 @@ const OrderPage = () => {
   };
 
   const handlePayment = (e) => {
+    const checkStock = order?.oderItems?.every((item) => item.amount <= item.countInStock);
+    if (!checkStock) {
+      showError('Số lượng sản phẩm không đủ');
+      return;
+    }
+
     setPayment(e.target.value);
   };
 
@@ -201,7 +181,7 @@ const OrderPage = () => {
   const handleOnchangeCheckAll = (e) => {
     if (e.target.checked) {
       const newListChecked = [];
-      order?.orderItems?.forEach((item) => {
+      order?.oderItems?.forEach((item) => {
         newListChecked.push(item.product);
       });
       setListChecked(newListChecked);
@@ -229,7 +209,7 @@ const OrderPage = () => {
   };
 
   const priceMemo = useMemo(() => {
-    const result = order?.orderItems?.reduce((total, cur) => {
+    const result = order?.oderItems?.reduce((total, cur) => {
       if (listChecked.includes(cur.product)) {
         return total + (cur.price * cur.amount);
       }
@@ -239,7 +219,7 @@ const OrderPage = () => {
   }, [order, listChecked]);
 
   const priceDiscountMemo = useMemo(() => {
-    return order?.orderItems?.reduce((total, cur) => {
+    return order?.oderItems?.reduce((total, cur) => {
       if (listChecked.includes(cur.product)) {
         const discount = cur.discount || 0
         const discountMoney =
@@ -267,6 +247,26 @@ const OrderPage = () => {
     return Number(priceMemo) - Number(priceDiscountMemo) + Number(deliveryPriceMemo);
   }, [priceMemo, priceDiscountMemo, deliveryPriceMemo]);
 
+  const dataConfig = async () => {
+    const { data } = await getClientConfig();
+    console.log(data);
+    const script = document.createElement('script');
+    script.type = 'text/javascript';
+    script.src = `https://www.paypal.com/sdk/js?client-id=${data}`;
+    script.onload = () => {
+      setSdk(true);
+    };
+    document.body.appendChild(script);
+  };
+
+  useEffect(() => {
+    if (!window.paypal) {
+      dataConfig();
+    } else {
+      setSdk(true);
+    }
+  }, []);
+
 
   return (
     <div style={{ background: '#f5f5fa', width: '100%', minHeight: '100vh' }}>
@@ -277,8 +277,8 @@ const OrderPage = () => {
             <WrapperLeft>
               <WrapperInfo style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderRadius: '4px', marginBottom: '10px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px', width: '390px' }}>
-                  <Checkbox onChange={handleOnchangeCheckAll} checked={listChecked?.length === order?.orderItems?.length && order?.orderItems?.length > 0} />
-                  <span>Tất cả ({order?.orderItems?.length} sản phẩm)</span>
+                  <Checkbox onChange={handleOnchangeCheckAll} checked={listChecked?.length === order?.oderItems?.length && order?.oderItems?.length > 0} />
+                  <span>Tất cả ({order?.oderItems?.length} sản phẩm)</span>
                 </div>
                 <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <span>Đơn giá</span>
@@ -288,7 +288,7 @@ const OrderPage = () => {
                 </div>
               </WrapperInfo>
               <WrapperListOrder>
-                {order?.orderItems?.map((order) => {
+                {order?.oderItems?.map((order) => {
                   return (
                     <WrapperItemOrder key={order?.product}>
                       <div style={{ width: '390px', display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -347,7 +347,7 @@ const OrderPage = () => {
                   <span>Chọn phương thức thanh toán</span>
                   <Radio.Group onChange={handlePayment} value={payment} style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '10px' }}>
                     <Radio value="later_money">Thanh toán tiền mặt khi nhận hàng (COD)</Radio>
-                    <Radio value="vnpay">Thanh toán bằng VNPay</Radio>
+                    <Radio value="paypal">Thanh toán bằng PayPal</Radio>
                   </Radio.Group>
                 </div>
               </WrapperInfo>
@@ -358,19 +358,50 @@ const OrderPage = () => {
                   <span style={{ color: '#000', fontSize: '11px' }}>(Đã bao gồm VAT nếu có)</span>
                 </span>
               </WrapperTotal>
-              <ButtonComponents
-                onClick={() => handleAddOrder()}
-                size={40}
-                styleButton={{
-                  background: 'rgb(255, 57, 69)',
-                  height: '48px',
-                  width: '100%',
-                  border: 'none',
-                  borderRadius: '4px'
-                }}
-                textButton={'Mua hàng'}
-                styleTextButton={{ color: '#fff', fontSize: '15px', fontWeight: '700' }}
-              ></ButtonComponents>
+              {payment === 'paypal' && sdk ? (
+                <div style={{ width: '100%' }}>
+                  <PayPalScriptProvider
+                    options={{
+                      "client-id": "AR58Ggn2424Inh_411TdLu65ceGnrfaFyp-zAYhpC9VCzAIu8GKanfZTPuwAmuuNxcnCBJ73ZqbANeio",
+                      currency: "USD"
+                    }}
+                  >
+                    <PayPalButtons
+                      createOrder={(data, actions) => {
+                        return actions.order.create({
+                          purchase_units: [
+                            {
+                              amount: {
+                                currency_code: "USD",
+                                value: (totalPriceMemo / 24000).toFixed(2)
+                              }
+                            }
+                          ]
+                        });
+                      }}
+                      onApprove={(data, actions) => {
+                        return actions.order.capture().then((details) => {
+                          handleAddOrder(true);
+                        });
+                      }}
+                    />
+                  </PayPalScriptProvider>
+                </div>
+              ) : (
+                <ButtonComponents
+                  onClick={() => handleAddOrder()}
+                  size={40}
+                  styleButton={{
+                    background: 'rgb(255, 57, 69)',
+                    height: '48px',
+                    width: '100%',
+                    border: 'none',
+                    borderRadius: '4px'
+                  }}
+                  textButton={'Mua hàng'}
+                  styleTextButton={{ color: '#fff', fontSize: '15px', fontWeight: '700' }}
+                ></ButtonComponents>
+              )}
             </WrapperRight>
           </Col>
         </Row>
