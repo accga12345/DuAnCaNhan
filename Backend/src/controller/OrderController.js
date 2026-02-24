@@ -87,33 +87,45 @@ const getAllOrderDetails = async (req, res) => {
 
 const createVNPayPayment = async (req, res) => {
     try {
-        const { amount, orderId, orderInfo } = req.body;
+        const { amount, orderId } = req.body;
 
-        if (!amount || !orderId || !orderInfo) {
+        if (!amount || !orderId) {
             return res.status(400).json({
-                status: 'ERR',
-                message: 'amount, orderId, and orderInfo are required'
+                status: "ERR",
+                message: "amount and orderId are required"
             });
         }
 
-        let ipAddr = req.headers['x-forwarded-for'] ||
-            req.connection?.remoteAddress ||
+        // ===== LẤY IP CHUẨN =====
+        let ipAddr =
+            req.headers["x-forwarded-for"] ||
             req.socket?.remoteAddress ||
-            req.ip || '127.0.0.1';
+            req.ip ||
+            "127.0.0.1";
 
-        // Clean IP to prevent IPv6 or multiple IPs breaking VNPay signature
-        if (ipAddr.includes(',')) {
-            ipAddr = ipAddr.split(',')[0];
-        }
-        if (ipAddr === '::1' || ipAddr.includes('::ffff:')) {
-            ipAddr = '127.0.0.1';
+        if (ipAddr.includes(",")) {
+            ipAddr = ipAddr.split(",")[0].trim();
         }
 
-        const paymentUrl = vnPayService.createPaymentUrl(amount, orderId, orderInfo, ipAddr);
+        if (ipAddr === "::1") ipAddr = "127.0.0.1";
+        if (ipAddr.startsWith("::ffff:")) {
+            ipAddr = ipAddr.replace("::ffff:", "");
+        }
+
+        if (ipAddr.includes(":")) ipAddr = "127.0.0.1";
+
+        console.log("IP Used:", ipAddr);
+
+        const paymentUrl = vnPayService.createPaymentUrl(
+            amount,
+            orderId,
+            ipAddr
+        );
+
         console.log("Generated VNPay URL:", paymentUrl);
 
         return res.status(200).json({
-            status: 'OK',
+            status: "OK",
             payUrl: paymentUrl
         });
 

@@ -1,82 +1,88 @@
 const crypto = require("crypto");
 const qs = require("qs");
+const moment = require("moment");
 
+// SORT CHUẨN
 function sortObject(obj) {
-    let sorted = {};
-    let keys = Object.keys(obj).sort();
-
-    for (let key of keys) {
-        sorted[key] = encodeURIComponent(obj[key]).replace(/%20/g, "+");
-    }
-
+    const sorted = {};
+    const keys = Object.keys(obj).sort();
+    keys.forEach((key) => {
+        sorted[key] = obj[key];
+    });
     return sorted;
 }
 
-const createPaymentUrl = (amount, orderId, orderInfo, ipAddr) => {
-    const tmnCode = process.env.VNPAY_TMN_CODE;
-    const secretKey = process.env.VNPAY_HASH_SECRET;
-    const vnpUrl = process.env.VNPAY_URL;
-    const returnUrl = process.env.VNPAY_RETURN_URL;
+// ================== CREATE PAYMENT ==================
+const createPaymentUrl = (amount, orderId, ipAddr) => {
+    const tmnCode = "0MF54NP8";
+    const secretKey = "4HHTZ20QK3E36PKSY7QBEK65R0VJL293";
+    const vnpUrl = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html";
+    const returnUrl = "http://localhost:3001/api/order/payment/vnpay-return";
 
-    const date = new Date();
-    const createDate =
-        date.getFullYear().toString() +
-        ("0" + (date.getMonth() + 1)).slice(-2) +
-        ("0" + date.getDate()).slice(-2) +
-        ("0" + date.getHours()).slice(-2) +
-        ("0" + date.getMinutes()).slice(-2) +
-        ("0" + date.getSeconds()).slice(-2);
+    const createDate = moment().utcOffset(7).format("YYYYMMDDHHmmss");
+    const expireDate = moment().utcOffset(7).add(15, "minutes").format("YYYYMMDDHHmmss");
+
+    amount = Number(amount) * 100;
 
     let vnpParams = {
         vnp_Version: "2.1.0",
         vnp_Command: "pay",
         vnp_TmnCode: tmnCode,
-        vnp_Locale: "vn",
+        vnp_Amount: amount,
         vnp_CurrCode: "VND",
         vnp_TxnRef: orderId,
-        vnp_OrderInfo: orderInfo,
+        vnp_OrderInfo: `Thanh toan don hang ${orderId}`,
         vnp_OrderType: "other",
-        vnp_Amount: amount * 100,
+        vnp_Locale: "vn",
         vnp_ReturnUrl: returnUrl,
         vnp_IpAddr: ipAddr || "127.0.0.1",
         vnp_CreateDate: createDate,
+        vnp_ExpireDate: expireDate
     };
 
     vnpParams = sortObject(vnpParams);
 
+    // 🔥 KHÔNG ENCODE khi ký
     const signData = qs.stringify(vnpParams, { encode: false });
 
-    const hmac = crypto.createHmac("sha512", secretKey);
-    const signed = hmac.update(Buffer.from(signData, "utf-8")).digest("hex");
+    const signed = crypto
+        .createHmac("sha512", secretKey)
+        .update(signData, "utf-8")
+        .digest("hex");
 
     return (
         vnpUrl +
         "?" +
-        signData +
+        qs.stringify(vnpParams, { encode: true }) +
         "&vnp_SecureHash=" +
         signed
     );
 };
 
+// ================== VERIFY RETURN ==================
 const verifyReturnUrl = (vnpParams) => {
-    const secretKey = process.env.VNPAY_HASH_SECRET;
+    const secretKey = "4HHTZ20QK3E36PKSY7QBEK65R0VJL293";
 
-    const secureHash = vnpParams.vnp_SecureHash;
+    const secureHash = vnpParams["vnp_SecureHash"];
 
-    delete vnpParams.vnp_SecureHash;
-    delete vnpParams.vnp_SecureHashType;
+    // Xoá hash trước khi ký lại
+    delete vnpParams["vnp_SecureHash"];
+    delete vnpParams["vnp_SecureHashType"];
 
     vnpParams = sortObject(vnpParams);
 
+    // 🔥 PHẢI GIỐNG create → encode false
     const signData = qs.stringify(vnpParams, { encode: false });
 
-    const hmac = crypto.createHmac("sha512", secretKey);
-    const signed = hmac.update(Buffer.from(signData, "utf-8")).digest("hex");
+    const signed = crypto
+        .createHmac("sha512", secretKey)
+        .update(signData, "utf-8")
+        .digest("hex");
 
     return secureHash === signed;
 };
 
 module.exports = {
     createPaymentUrl,
-    verifyReturnUrl,
+    verifyReturnUrl
 };
