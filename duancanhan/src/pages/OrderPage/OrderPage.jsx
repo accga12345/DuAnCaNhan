@@ -87,24 +87,23 @@ const OrderPage = () => {
 
   useEffect(() => {
     if (isSuccessAddOrder && dataAdd?.status === 'OK') {
-      const arrayOrdered = []
-      const orderItemsOrdered = order?.orderItems?.filter(item => listChecked.includes(item.product))
-      orderItemsOrdered?.forEach(element => {
-        arrayOrdered.push(element.product)
-      });
-      dispatch(removeAllOrderProduct({ listChecked: arrayOrdered }))
-      showSuccess('Đặt hàng thành công');
+      const orderItemsOrdered = order?.orderItems?.filter(item =>
+        listChecked.includes(item.product)
+      )
+
+      const arrayOrdered = orderItemsOrdered.map(item => item.product)
+
       queryClient.invalidateQueries({ queryKey: ['my-orders', user?._id] })
 
       if (payment === 'vnpay') {
         mutationVnPay.mutate({
           amount: totalPriceMemo,
           orderId: dataAdd?.data?._id,
-          orderInfo: `${dataAdd?.data?._id}`
         })
       } else {
         dispatch(removeAllOrderProduct({ listChecked: arrayOrdered }))
-        showSuccess('Đặt hàng thành công');
+        showSuccess('Đặt hàng thành công')
+
         navigate('/orderSuccess', {
           state: {
             id: dataAdd?.data?._id,
@@ -115,20 +114,30 @@ const OrderPage = () => {
           }
         })
       }
-    } else if (isErrorAddOrder) {
-      showError();
     }
-  }, [isSuccessAddOrder, isErrorAddOrder]);
+
+    if (isErrorAddOrder) {
+      showError('Đặt hàng thất bại')
+    }
+
+  }, [isSuccessAddOrder, isErrorAddOrder, dataAdd, payment])
 
   useEffect(() => {
-    if (isSuccessVnPay && dataVnPay?.status === 'OK') {
-      if (dataVnPay?.payUrl) {
-        window.location.href = dataVnPay.payUrl;
+    if (isSuccessVnPay && dataVnPay?.status === 'success') {
+
+      if (dataVnPay?.paymentUrl) {
+
+        dispatch(removeAllOrderProduct({ listChecked }))
+
+        window.location.href = dataVnPay.paymentUrl
       }
-    } else if (isSuccessVnPay) {
-      showError(dataVnPay?.message || 'Có lỗi khi tạo thanh toán VNPay');
     }
-  }, [isSuccessVnPay, dataVnPay]);
+
+    if (isSuccessVnPay && dataVnPay?.status !== 'success') {
+      showError(dataVnPay?.message || 'Có lỗi khi tạo thanh toán VNPay')
+    }
+
+  }, [isSuccessVnPay, dataVnPay])
 
   const handleUpdateInformation = () => {
     const { name, address, phone } = stateUserDetails;
@@ -230,15 +239,17 @@ const OrderPage = () => {
   }, [order, listChecked]);
 
   const priceDiscountMemo = useMemo(() => {
-    const result = order?.orderItems?.reduce((total, cur) => {
+    return order?.orderItems?.reduce((total, cur) => {
       if (listChecked.includes(cur.product)) {
-        const discount = cur.discount ? cur.discount : 0;
-        return total + ((cur.price * discount / 100) * cur.amount);
+        const discount = cur.discount || 0
+        const discountMoney =
+          (cur.price * discount / 100) * cur.amount
+
+        return total + discountMoney
       }
-      return total;
-    }, 0);
-    return result;
-  }, [order, listChecked]);
+      return total
+    }, 0)
+  }, [order, listChecked])
 
   const deliveryPriceMemo = useMemo(() => {
     if (priceMemo === 0) {

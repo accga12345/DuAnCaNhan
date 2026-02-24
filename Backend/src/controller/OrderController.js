@@ -1,5 +1,5 @@
 const orderService = require('../services/OrderService');
-const vnPayService = require('../services/VNPayService');
+const { createPaymentUrl } = require('../services/VNPayService');
 
 const createOrder = async (req, res) => {
     try {
@@ -91,81 +91,65 @@ const createVNPayPayment = async (req, res) => {
 
         if (!amount || !orderId) {
             return res.status(400).json({
-                status: "ERR",
-                message: "amount and orderId are required"
+                status: "error",
+                message: "Missing amount or orderId"
             });
         }
 
-        // ===== LẤY IP CHUẨN =====
-        let ipAddr =
-            req.headers["x-forwarded-for"] ||
-            req.socket?.remoteAddress ||
-            req.ip ||
-            "127.0.0.1";
+        const ipAddr = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
 
-        if (ipAddr.includes(",")) {
-            ipAddr = ipAddr.split(",")[0].trim();
-        }
-
-        if (ipAddr === "::1") ipAddr = "127.0.0.1";
-        if (ipAddr.startsWith("::ffff:")) {
-            ipAddr = ipAddr.replace("::ffff:", "");
-        }
-
-        if (ipAddr.includes(":")) ipAddr = "127.0.0.1";
-
-        console.log("IP Used:", ipAddr);
-
-        const paymentUrl = vnPayService.createPaymentUrl(
-            amount,
-            orderId,
-            ipAddr
-        );
-
-        console.log("Generated VNPay URL:", paymentUrl);
+        const paymentUrl = createPaymentUrl(amount, orderId, ipAddr);
 
         return res.status(200).json({
-            status: "OK",
-            payUrl: paymentUrl
+            status: "success",
+            paymentUrl
         });
 
-    } catch (e) {
+    } catch (error) {
+        console.log("VNPay error:", error);
         return res.status(500).json({
-            message: e.message
+            status: "error",
+            message: "Server error"
         });
     }
 };
 
+
 const vnpayReturn = async (req, res) => {
-    try {
-        let vnpParams = req.query;
-        let secureHash = vnpParams['vnp_SecureHash'];
+    let vnpParams = req.query;
 
-        let orderId = vnpParams['vnp_TxnRef'];
-        let rspCode = vnpParams['vnp_ResponseCode'];
+    const secureHash = vnpParams['vnp_SecureHash'];
 
-        const isValid = vnPayService.verifyReturnUrl(vnpParams);
+    delete vnpParams['vnp_SecureHash'];
+    delete vnpParams['vnp_SecureHashType'];
 
-        if (isValid) {
-            if (rspCode === '00') {
-                // Thanh toán thành công
-                await orderService.updateOrder(orderId, {
-                    isPaid: true,
-                    paidAt: new Date()
-                });
-                return res.redirect(`${process.env.CLIENT_URL || 'http://localhost:3000'}/orderSuccess?id=${orderId}`);
-            } else {
-                // Thanh toán thất bại hoặc hủy
-                return res.redirect(`${process.env.CLIENT_URL || 'http://localhost:3000'}/order?payment=failed`);
-            }
+    vnpParams = sortObject(vnpParams);
+
+    const signData = qs.stringify(vnpParams, { encode: false });
+
+    const signed = crypto
+        .createHmac("sha512", process.env.VNPAY_SECRET_KEY)
+        .update(signData, "utf-8")
+        .digest("hex");
+
+    if (secureHash === signed) {
+
+        const orderId = vnpParams['vnp_TxnRef'];
+        const responseCode = vnpParams['vnp_ResponseCode'];
+
+        if (responseCode === "00") {
+            await orderService.updateOrder(orderId, {
+                isPaid: true,
+                paidAt: new Date()
+            });
+
+            return res.redirect(`http://localhost:3000/orderSuccess?id=${orderId}`);
         } else {
-            return res.status(400).json({ status: 'ERR', message: 'Invalid signature' });
+            return res.redirect(`http://localhost:3000/order?payment=failed`);
         }
 
-    } catch (e) {
-        return res.status(500).json({
-            message: e.message
-        });
+    } else {
+        return res.redirect(`http://localhost:3000/order?payment=invalid-signature`);
     }
 };
 
