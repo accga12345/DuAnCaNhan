@@ -1,15 +1,24 @@
-import { Button, Checkbox, Form, Input, Upload } from 'antd';
+import { Button, Form, Input, Upload, Select } from 'antd';
 import { useMutationHook } from "../../hooks/useMutationHook";
 import { showSuccess, showError } from "../../components/MessageComponent/MessageComponent";
-import { registerUser } from "../../services/UserServices";
+import { registerUser, registerEmployee } from "../../services/UserServices";
 import { useState, useEffect } from 'react';
 import { getBase64 } from '../../ultil';
 import { PlusOutlined } from '@ant-design/icons';
+import { useSelector } from 'react-redux';
 
 function UserAddPage() {
+    const user = useSelector((state) => state.user);
     const [form] = Form.useForm();
     const mutation = useMutationHook(
-        data => registerUser(data)
+        data => {
+            const { type, ...rest } = data;
+            if (type === '1') {
+                return registerEmployee(rest, user?.accessToken);
+            } else {
+                return registerUser(rest);
+            }
+        }
     );
 
     const { isSuccess, isError, isPending, data } = mutation;
@@ -20,10 +29,10 @@ function UserAddPage() {
             email: values.email,
             password: values.password,
             confirmPassword: values.confirmPassword,
-            isAdmin: values.isAdmin || false,
             phone: values.phone,
             address: values.address,
             avatar: form.getFieldValue("avatar"),
+            type: values.type,
         });
     };
 
@@ -83,7 +92,7 @@ function UserAddPage() {
                 labelCol={{ span: 6 }}
                 wrapperCol={{ span: 18 }}
                 style={{ maxWidth: 600 }}
-                initialValues={{ remember: true, isAdmin: false }}
+                initialValues={{ remember: true, type: '2' }}
                 onFinish={onFinish}
                 form={form}
                 autoComplete="off"
@@ -170,11 +179,14 @@ function UserAddPage() {
                 )}
 
                 <Form.Item
-                    name="isAdmin"
-                    valuePropName="checked"
-                    wrapperCol={{ offset: 6, span: 18 }}
+                    label="Loại tài khoản"
+                    name="type"
+                    rules={[{ required: true, message: 'Please select user type!' }]}
                 >
-                    <Checkbox>Is Admin</Checkbox>
+                    <Select placeholder="Chọn loại tài khoản">
+                        <Select.Option value="1">Nhân viên</Select.Option>
+                        <Select.Option value="2">Khách hàng</Select.Option>
+                    </Select>
                 </Form.Item>
 
                 <Form.Item wrapperCol={{ offset: 6, span: 18 }}>

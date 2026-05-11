@@ -2,7 +2,7 @@ const ProductService = require('../services/ProductService');
 
 const createProduct = async (req, res) => {
     try {
-        const { name, image, type, price, countInStock, description } = req.body;
+        const { name, image, images, type, price, countInStock, description, discount } = req.body;
         if (!name || !image || !type || !price || !countInStock || !description) {
             return res.status(400).json({
                 status: "error",

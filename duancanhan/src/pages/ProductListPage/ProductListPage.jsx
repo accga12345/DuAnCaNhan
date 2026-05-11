@@ -1,14 +1,15 @@
 import React, { useRef } from 'react';
-import { Button, Space, Modal, Form, Input, Upload, Image, Popconfirm } from 'antd';
+import { Button, Space, Modal, Form, Input, Upload, Image, Popconfirm, Select, InputNumber } from 'antd';
 import { useQuery } from '@tanstack/react-query';
 import { getAllProduct, deleteProduct, updateProduct, deleteManyProduct } from '../../services/ProductService';
+import { getAllCategories } from '../../services/CategoryService';
 import { useState, useEffect } from 'react';
 import TableComponent from '../../components/TableComponent/TableComponent';
 import { getDetailProduct } from '../../services/ProductService';
 import { useMutationHook } from '../../hooks/useMutationHook';
 import { useSelector } from 'react-redux';
 import { getBase64, exportExcel } from '../../ultil';
-import { PlusOutlined } from '@ant-design/icons';
+import { PlusOutlined, MinusCircleOutlined } from '@ant-design/icons';
 import { showSuccess } from "../../components/MessageComponent/MessageComponent";
 import LoadingComponent from '../../components/Loading/LoadingComponent';
 import { SearchOutlined } from '@ant-design/icons';
@@ -28,6 +29,12 @@ function ProductListPage() {
     const [searchedColumn, setSearchedColumn] = useState('');
     const searchInput = useRef(null);
 
+    const { data: categoriesData } = useQuery({
+        queryKey: ['categories'],
+        queryFn: () => getAllCategories(),
+        refetchOnWindowFocus: false,
+    });
+
     const { data: products, isPending: productsLoading, refetch } = useQuery({
         queryKey: ['products', page],
         queryFn: () => getAllProduct(limit, page),
@@ -38,9 +45,13 @@ function ProductListPage() {
         name: false,
         image: false,
         type: false,
+        category: false,
         price: false,
         countInStock: false,
         selled: false,
+        images: false,
+        discount: false,
+        specifications: false,
     });
     const mutation = useMutationHook(
         (data) => updateProduct(product._id, data, user.access_token)
@@ -91,11 +102,40 @@ function ProductListPage() {
             form.setFieldsValue({
                 name: product.name,
                 image: product.image,
+                images: product.images,
                 type: product.type,
+                category: product.category,
                 price: product.price,
                 countInStock: product.countInStock,
+                discount: product.discount,
                 selled: product.selled,
+                specifications: product.specifications,
             });
+        }
+    }, [product, form]);
+
+    const [fileListImages, setFileListImages] = useState([]);
+    const handleChangeImages = async ({ fileList: newFileList }) => {
+        setFileListImages(newFileList);
+        const imagesBase64 = await Promise.all(
+            newFileList.map(async (file) => {
+                if (file.url) return file.url;
+                return await getBase64(file.originFileObj || file);
+            })
+        );
+        form.setFieldsValue({ images: imagesBase64 });
+    };
+
+    useEffect(() => {
+        if (product?.images) {
+            setFileListImages(product.images.map((img, index) => ({
+                uid: index,
+                name: `image-${index}.png`,
+                status: 'done',
+                url: img,
+            })));
+        } else {
+            setFileListImages([]);
         }
     }, [product]);
 
@@ -367,15 +407,49 @@ function ProductListPage() {
                         </Button>
                     </div>
                     <div style={{ display: "flex", gap: 8, alignItems: "flex-end", marginBottom: 16 }}>
-                        <Form.Item label="Loại" name="type" style={{ flex: 1, marginBottom: 0 }}>
-                            <Input disabled={!editing.type} />
+                        <Form.Item label="Danh mục" name="category" style={{ flex: 1, marginBottom: 0 }}>
+                            <Select
+                                disabled={!editing.category}
+                                options={categoriesData?.data?.map((item) => ({
+                                    value: item._id,
+                                    label: item.name,
+                                }))}
+                                onChange={(value, option) => {
+                                    form.setFieldsValue({ type: option.label });
+                                }}
+                            />
                         </Form.Item>
                         <Button onClick={() =>
-                            editing.type
-                                ? updateField("type")
-                                : setEditing({ ...editing, type: true })
+                            editing.category
+                                ? updateField("category")
+                                : setEditing({ ...editing, category: true })
                         }>
-                            {editing.type ? "Lưu" : "Cập nhật"}
+                            {editing.category ? "Lưu" : "Cập nhật"}
+                        </Button>
+                    </div>
+                    <Form.Item name="type" hidden>
+                        <Input />
+                    </Form.Item>
+                    <div style={{ display: "flex", alignItems: "center", marginBottom: 16, flexDirection: 'column', width: '100%' }}>
+                        <Form.Item label="Hình ảnh chi tiết" name="images" style={{ width: '100%', marginBottom: 0 }}>
+                            <Upload
+                                disabled={!editing.images}
+                                listType="picture-card"
+                                onPreview={handlePreview}
+                                onChange={handleChangeImages}
+                                beforeUpload={() => false}
+                                fileList={fileListImages}
+                                multiple
+                            >
+                                {fileListImages.length >= 8 ? null : uploadButton}
+                            </Upload>
+                        </Form.Item>
+                        <Button style={{ marginTop: "8px", alignSelf: 'flex-start' }} onClick={() =>
+                            editing.images
+                                ? updateField("images")
+                                : setEditing({ ...editing, images: true })
+                        }>
+                            {editing.images ? "Lưu" : "Cập nhật"}
                         </Button>
                     </div>
                     <div style={{ display: "flex", gap: 8, alignItems: "flex-end", marginBottom: 16 }}>
@@ -388,6 +462,64 @@ function ProductListPage() {
                                 : setEditing({ ...editing, countInStock: true })
                         }>
                             {editing.countInStock ? "Lưu" : "Cập nhật"}
+                        </Button>
+                    </div>
+                    <div style={{ display: "flex", gap: 8, alignItems: "flex-end", marginBottom: 16 }}>
+                        <Form.Item label="Giảm giá (%)" name="discount" style={{ flex: 1, marginBottom: 0 }}>
+                            <InputNumber min={0} max={100} disabled={!editing.discount} style={{ width: '100%' }} />
+                        </Form.Item>
+                        <Button onClick={() =>
+                            editing.discount
+                                ? updateField("discount")
+                                : setEditing({ ...editing, discount: true })
+                        }>
+                            {editing.discount ? "Lưu" : "Cập nhật"}
+                        </Button>
+                    </div>
+
+                    <div style={{ display: "flex", gap: 8, alignItems: "flex-start", marginBottom: 16, flexDirection: 'column' }}>
+                        <Form.Item label="Thông số kỹ thuật" name="specifications" style={{ width: '100%', marginBottom: 0 }}>
+                            <Form.List name="specifications">
+                                {(fields, { add, remove }) => (
+                                    <>
+                                        {fields.map(({ key, name, ...restField }) => (
+                                            <Space key={key} style={{ display: 'flex', marginBottom: 8 }} align="baseline">
+                                                <Form.Item
+                                                    {...restField}
+                                                    name={[name, 'key']}
+                                                    rules={[{ required: true, message: 'Tên thông số' }]}
+                                                >
+                                                    <Input placeholder="Tên thông số" disabled={!editing.specifications} />
+                                                </Form.Item>
+                                                <Form.Item
+                                                    {...restField}
+                                                    name={[name, 'value']}
+                                                    rules={[{ required: true, message: 'Giá trị' }]}
+                                                >
+                                                    <Input placeholder="Giá trị" disabled={!editing.specifications} />
+                                                </Form.Item>
+                                                {editing.specifications && (
+                                                    <MinusCircleOutlined onClick={() => remove(name)} />
+                                                )}
+                                            </Space>
+                                        ))}
+                                        {editing.specifications && (
+                                            <Form.Item>
+                                                <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />}>
+                                                    Thêm thông số
+                                                </Button>
+                                            </Form.Item>
+                                        )}
+                                    </>
+                                )}
+                            </Form.List>
+                        </Form.Item>
+                        <Button style={{ marginTop: '10px' }} onClick={() =>
+                            editing.specifications
+                                ? updateField("specifications")
+                                : setEditing({ ...editing, specifications: true })
+                        }>
+                            {editing.specifications ? "Lưu" : "Cập nhật"}
                         </Button>
                     </div>
                 </Form>

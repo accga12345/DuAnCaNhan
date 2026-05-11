@@ -8,6 +8,22 @@ const authMiddleware = async (req, res, next) => {
         jwt.verify(token, process.env.ACCESS_TOKEN, (err, user) => {
             if (err) return res.status(401).json({ message: 'Unauthorized' });
 
+            if (!user.isAdmin && !user.isEmployee) {
+                return res.status(403).json({ message: 'Bạn không có quyền truy cập' });
+            }
+            next();
+        });
+    } catch (error) {
+        return res.status(500).json({ message: error.message });
+    }
+};
+
+const authAdminMiddleware = async (req, res, next) => {
+    try {
+        const token = req.headers.token.split(' ')[1];
+        jwt.verify(token, process.env.ACCESS_TOKEN, (err, user) => {
+            if (err) return res.status(401).json({ message: 'Unauthorized' });
+
             if (!user.isAdmin) {
                 return res.status(403).json({ message: 'Bạn không có quyền admin' });
             }
@@ -41,5 +57,6 @@ const authUserMiddleware = async (req, res, next) => {
 
 module.exports = {
     authMiddleware,
-    authUserMiddleware
+    authUserMiddleware,
+    authAdminMiddleware
 }

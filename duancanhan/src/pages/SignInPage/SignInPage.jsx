@@ -4,7 +4,7 @@ import { Image } from 'antd';
 import SignInImg from "../../assets/images/SignIn.png"
 import { Button, Checkbox, Form, Input } from 'antd';
 import { useNavigate } from "react-router-dom";
-import { loginUser, getDetailUser } from "../../services/UserServices";
+import { loginUser, getDetailUser, loginEmployee, getDetailEmployee } from "../../services/UserServices";
 import { useMutationHook } from "../../hooks/useMutationHook";
 import LoadingComponent from "../../components/Loading/LoadingComponent";
 import { useEffect } from "react";
@@ -18,7 +18,17 @@ function SignInPage() {
     const dispatch = useDispatch();
 
     const mutation = useMutationHook(
-        data => loginUser(data)
+        async data => {
+            try {
+                return await loginUser(data);
+            } catch (err) {
+                try {
+                    return await loginEmployee(data);
+                } catch (err2) {
+                    throw err;
+                }
+            }
+        }
     );
 
     const { isSuccess, isError, isPending, data } = mutation;
@@ -31,7 +41,11 @@ function SignInPage() {
             if (data?.accessToken) {
                 const decodedToken = jwtDecode(data.accessToken);
                 if (decodedToken.id) {
-                    handlegetDetailUser(decodedToken.id, data.accessToken);
+                    if (decodedToken.isEmployee) {
+                        handlegetDetailEmployee(decodedToken.id, data.accessToken);
+                    } else {
+                        handlegetDetailUser(decodedToken.id, data.accessToken);
+                    }
                 }
             }
             setTimeout(() => {
@@ -51,6 +65,12 @@ function SignInPage() {
     const handlegetDetailUser = async (id, accessToken) => {
         const res = await getDetailUser(id, accessToken);
         console.log("res", res);
+        dispatch(updateUser({ ...res.data, accessToken }));
+    }
+
+    const handlegetDetailEmployee = async (id, accessToken) => {
+        const res = await getDetailEmployee(id, accessToken);
+        console.log("res emp", res);
         dispatch(updateUser({ ...res.data, accessToken }));
     }
 

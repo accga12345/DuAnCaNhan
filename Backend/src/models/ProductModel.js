@@ -10,9 +10,20 @@ const productSchema = new mongoose.Schema({
         type: String,
         default: "",
     },
+    images: [{
+        type: String,
+    }],
     type: {
         type: String,
         required: true,
+    },
+    category: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Category',
+    },
+    brand: {
+        type: String,
+        default: "",
     },
     price: {
         type: Number,
@@ -38,6 +49,10 @@ const productSchema = new mongoose.Schema({
         type: Number,
         default: 0,
     },
+    specifications: [{
+        key: { type: String },
+        value: { type: String }
+    }],
 }, { timestamps: true });
 
 const Product = mongoose.model('Product', productSchema);

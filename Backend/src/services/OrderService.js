@@ -60,6 +60,21 @@ const createOrder = async (newOrder) => {
         });
 
         if (createdOrder) {
+            try {
+                const socketIO = require('../socket').getIO();
+                const Notification = require('../models/NotificationModel');
+                
+                const newNotification = await Notification.create({
+                    title: 'Đơn hàng mới',
+                    body: `Khách hàng ${fullName} vừa đặt một đơn hàng mới trị giá ${totalPrice}đ`,
+                    orderId: createdOrder._id
+                });
+                
+                socketIO.emit('new_order', newNotification);
+            } catch (err) {
+                console.error("Lỗi khi gửi thông báo socket:", err);
+            }
+
             return {
                 status: 'OK',
                 message: 'SUCCESS',
@@ -128,6 +143,24 @@ const updateOrder = async (id, data) => {
 
 
         const updatedOrder = await Order.findByIdAndUpdate(id, checkOrder, { new: true })
+
+        try {
+            const socketIO = require('../socket').getIO();
+            const Notification = require('../models/NotificationModel');
+            
+            const statusText = data.status === 3 ? 'đã bị hủy' : (data.status === 4 ? 'đã được giao thành công' : 'đã được cập nhật trạng thái');
+            const newNotification = await Notification.create({
+                title: 'Cập nhật đơn hàng',
+                body: `Đơn hàng của bạn ${statusText}`,
+                orderId: updatedOrder._id,
+                userId: updatedOrder.user
+            });
+            
+            socketIO.emit('user_notification', newNotification);
+        } catch (err) {
+            console.error("Lỗi khi gửi thông báo socket cho user:", err);
+        }
+
         return {
             status: 'OK',
             message: 'SUCCESS',

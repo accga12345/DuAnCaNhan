@@ -5,7 +5,7 @@ import DefaultComponent from './components/DefaultComponent/DefaultComponent'
 import { isJsonString } from './ultil'
 import { useEffect } from 'react'
 import { jwtDecode } from 'jwt-decode'
-import { getDetailUser, axiosJwt, refreshToken } from './services/UserServices'
+import { getDetailUser, getDetailEmployee, axiosJwt, refreshToken, refreshEmployeeToken } from './services/UserServices'
 import { useDispatch } from 'react-redux'
 import { updateUser } from './redux/slides/userSlide'
 import { useState } from 'react'
@@ -22,7 +22,11 @@ function App() {
     setLoading(true)
     const { storageData, decode } = handleDecode();
     if (storageData && decode) {
-      handlegetDetailUser(decode.id, storageData);
+      if (decode.isEmployee) {
+        handlegetDetailEmployee(decode.id, storageData);
+      } else {
+        handlegetDetailUser(decode.id, storageData);
+      }
     }
     setLoading(false)
   }, [])
@@ -47,7 +51,12 @@ function App() {
 
         if (decode.exp * 1000 < Date.now()) {
           try {
-            const data = await refreshToken();
+            let data;
+            if (decode.isEmployee) {
+                data = await refreshEmployeeToken();
+            } else {
+                data = await refreshToken();
+            }
             token = data.accessToken;
             localStorage.setItem("access_token", JSON.stringify(token));
           } catch (err) {
@@ -69,9 +78,21 @@ function App() {
 
 
   const handlegetDetailUser = async (id, accessToken) => {
-    const res = await getDetailUser(id, accessToken);
-    console.log("res", res);
-    dispatch(updateUser({ ...res.data, accessToken }));
+    try {
+      const res = await getDetailUser(id, accessToken);
+      dispatch(updateUser({ ...res.data, accessToken }));
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  const handlegetDetailEmployee = async (id, accessToken) => {
+    try {
+        const res = await getDetailEmployee(id, accessToken);
+        dispatch(updateUser({ ...res.data, accessToken }));
+    } catch (error) {
+        console.error(error);
+    }
   }
 
   return (
@@ -80,7 +101,7 @@ function App() {
         <Routes>
           {routes.map((route) => {
             const Page = route.page
-            const isCheckAuth = !route.isPrivate || user.isAdmin
+            const isCheckAuth = !route.isPrivate || user.isAdmin || user.isEmployee
             const Layout = route.isShowHeader ? DefaultComponent : React.Fragment
 
             return (

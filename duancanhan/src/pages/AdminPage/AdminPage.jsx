@@ -2,21 +2,26 @@ import React, { useState } from 'react';
 import { AppstoreOutlined, MailOutlined } from '@ant-design/icons';
 import { getLevelKeys } from '../../ultil';
 import { Menu } from 'antd';
+import { useSelector } from 'react-redux';
 import UserListPage from '../UserListPage/UserListPage';
 import UserAddPage from '../UserAddPage/UserAddPage';
 import ProductListPage from '../ProductListPage/ProductListPage';
 import ProductAddPage from '../ProductAddPage/ProductAddPage';
 import OrderAdmin from '../OrderAdmin/OrderAdmin';
+import CategoryListPage from '../CategoryListPage/CategoryListPage';
+import CategoryAddPage from '../CategoryAddPage/CategoryAddPage';
 
 function AdminPage() {
-    const [stateOpenKeys, setStateOpenKeys] = useState(['1']);
-    const [stateCurrentKey, setStateCurrentKey] = useState('1');
+    const user = useSelector((state) => state.user);
+    const [stateOpenKeys, setStateOpenKeys] = useState(user?.isEmployee ? ['2'] : ['1']);
+    const [stateCurrentKey, setStateCurrentKey] = useState(user?.isEmployee ? '21' : '11');
 
     const items = [
         {
             key: '1',
             icon: <MailOutlined />,
             label: 'Người dùng',
+            disabled: user?.isEmployee,
             children: [
                 { key: '11', label: 'Danh sách người dùng' },
                 { key: '12', label: 'Thêm người dùng' },
@@ -37,6 +42,15 @@ function AdminPage() {
             label: 'Đơn hàng',
             children: [
                 { key: '31', label: 'Danh sách đơn hàng' },
+            ],
+        },
+        {
+            key: '4',
+            icon: <AppstoreOutlined />,
+            label: 'Danh mục',
+            children: [
+                { key: '41', label: 'Danh sách danh mục' },
+                { key: '42', label: 'Thêm danh mục' },
             ],
         }
     ];
@@ -75,6 +89,10 @@ function AdminPage() {
                 return <ProductAddPage />;
             case '31':
                 return <OrderAdmin />;
+            case '41':
+                return <CategoryListPage />;
+            case '42':
+                return <CategoryAddPage />;
             default:
                 return <UserListPage />;
         }

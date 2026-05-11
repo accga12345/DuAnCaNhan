@@ -1,0 +1,315 @@
+import React, { useRef, useState, useEffect } from 'react';
+import { Space, Button, Modal, Form, Input, Popconfirm, Select, Upload } from 'antd';
+import { getAllCategories, deleteCategory, getDetailCategory, updateCategory } from '../../services/CategoryService';
+import { useQuery } from '@tanstack/react-query';
+import TableComponent from '../../components/TableComponent/TableComponent';
+import { showSuccess, showError } from '../../components/MessageComponent/MessageComponent';
+import { useMutationHook } from '../../hooks/useMutationHook';
+import { useSelector } from 'react-redux';
+import LoadingComponent from '../../components/Loading/LoadingComponent';
+import { SearchOutlined, PlusOutlined } from '@ant-design/icons';
+import Highlighter from 'react-highlight-words';
+import { getBase64 } from '../../ultil';
+
+function CategoryListPage() {
+    const [form] = Form.useForm();
+    const [categoryDetail, setCategoryDetail] = useState({});
+    const user = useSelector((state) => state.user);
+    const [openModal, setOpenModal] = useState(false);
+    const [searchText, setSearchText] = useState('');
+    const [searchedColumn, setSearchedColumn] = useState('');
+    const searchInput = useRef(null);
+    const [previewOpen, setPreviewOpen] = useState(false);
+    const [previewImage, setPreviewImage] = useState('');
+    const [fileList, setFileList] = useState([]);
+
+    const { data: categories, isPending: categoriesLoading, refetch } = useQuery({
+        queryKey: ['categories'],
+        queryFn: () => getAllCategories(),
+    });
+
+    const [editing, setEditing] = useState({
+        name: false,
+        image: false,
+        brands: false,
+    });
+
+    const handleGetDetailCategory = async (id) => {
+        const res = await getDetailCategory(id);
+        setCategoryDetail(res.data);
+    };
+
+    useEffect(() => {
+        if (categoryDetail && Object.keys(categoryDetail).length > 0) {
+            form.setFieldsValue({
+                name: categoryDetail.name,
+                image: categoryDetail.image,
+                brands: categoryDetail.brands,
+            });
+            if (categoryDetail.image) {
+                setFileList([{
+                    uid: '-1',
+                    name: 'image.png',
+                    status: 'done',
+                    url: categoryDetail.image,
+                }]);
+            } else {
+                setFileList([]);
+            }
+        }
+    }, [categoryDetail, form]);
+
+    const handlePreview = async file => {
+        if (!file.url && !file.preview) {
+            file.preview = await getBase64(file.originFileObj);
+        }
+        setPreviewImage(file.url || file.preview);
+        setPreviewOpen(true);
+    };
+
+    const handleChangeImage = async ({ file, fileList: newFileList }) => {
+        const realFile = file.originFileObj || file;
+        if (!(realFile instanceof Blob)) {
+             setFileList(newFileList.slice(-1));
+             return;
+        }
+        const base64 = await getBase64(realFile);
+        form.setFieldsValue({ image: base64 });
+        setFileList(newFileList.slice(-1));
+    };
+
+    const mutationUpdate = useMutationHook(
+        (data) => updateCategory(categoryDetail._id, data, user.access_token)
+    );
+
+    const { data: updateData, isSuccess: updateSuccess, isPending: updateLoading, isError: updateError } = mutationUpdate;
+
+    const updateField = (field) => {
+        const value = form.getFieldValue(field);
+        mutationUpdate.mutate({ [field]: value });
+        setEditing({ ...editing, [field]: false });
+    };
+
+    useEffect(() => {
+        if (updateSuccess && updateData?.status === "success") {
+            showSuccess(updateData?.message || "Cập nhật thành công");
+            setOpenModal(false);
+            refetch();
+        } else if (updateData?.status === "error") {
+            showError(updateData?.message || "Cập nhật thất bại");
+        }
+    }, [updateSuccess, updateData, refetch]);
+
+    const mutationDelete = useMutationHook(
+        (id) => deleteCategory(id, user.access_token)
+    );
+
+    const handleDelete = (id) => {
+        mutationDelete.mutate(id);
+    };
+
+    const { data: deleteData, isSuccess: deleteSuccess, isPending: deleteLoading } = mutationDelete;
+
+    useEffect(() => {
+        if (deleteSuccess && deleteData?.status === "success") {
+            showSuccess(deleteData?.message || "Xóa thành công");
+            setOpenModal(false);
+            refetch();
+        } else if (deleteData?.status === "error") {
+             showError(deleteData?.message || "Xóa thất bại");
+        }
+    }, [deleteSuccess, deleteData, refetch]);
+
+    const showModal = (id) => {
+        setOpenModal(true);
+        form.resetFields();
+        handleGetDetailCategory(id);
+    };
+
+    const handleCancel = () => {
+        setOpenModal(false);
+    };
+
+    const handleSearch = (selectedKeys, confirm, dataIndex) => {
+        confirm();
+        setSearchText(selectedKeys[0]);
+        setSearchedColumn(dataIndex);
+    };
+
+    const handleReset = clearFilters => {
+        clearFilters();
+        setSearchText('');
+    };
+
+    const getColumnSearchProps = dataIndex => ({
+        filterDropdown: ({ setSelectedKeys, selectedKeys, confirm, clearFilters }) => (
+            <div style={{ padding: 8 }} onKeyDown={e => e.stopPropagation()}>
+                <Input
+                    ref={searchInput}
+                    placeholder={`Search ${dataIndex}`}
+                    value={selectedKeys[0]}
+                    onChange={e => setSelectedKeys(e.target.value ? [e.target.value] : [])}
+                    onPressEnter={() => handleSearch(selectedKeys, confirm, dataIndex)}
+                    style={{ marginBottom: 8, display: 'block' }}
+                />
+                <Space>
+                    <Button
+                        type="primary"
+                        onClick={() => handleSearch(selectedKeys, confirm, dataIndex)}
+                        icon={<SearchOutlined />}
+                        size="small"
+                        style={{ width: 90 }}
+                    >
+                        Search
+                    </Button>
+                    <Button
+                        onClick={() => clearFilters && handleReset(clearFilters)}
+                        size="small"
+                        style={{ width: 90 }}
+                    >
+                        Reset
+                    </Button>
+                </Space>
+            </div>
+        ),
+        filterIcon: filtered => <SearchOutlined style={{ color: filtered ? '#1677ff' : undefined }} />,
+        onFilter: (value, record) =>
+            record[dataIndex]?.toString().toLowerCase().includes(value?.toLowerCase() || ''),
+        onFilterDropdownOpenChange: visible => {
+            if (visible) {
+                setTimeout(() => searchInput.current?.select(), 100);
+            }
+        },
+        render: text =>
+            searchedColumn === dataIndex ? (
+                <Highlighter
+                    highlightStyle={{ backgroundColor: '#ffc069', padding: 0 }}
+                    searchWords={[searchText]}
+                    autoEscape
+                    textToHighlight={text ? text.toString() : ''}
+                />
+            ) : (
+                text
+            ),
+    });
+
+    const columns = [
+        {
+            title: 'Tên danh mục',
+            dataIndex: 'name',
+            key: 'name',
+            ...getColumnSearchProps('name'),
+            sorter: (a, b) => a.name?.localeCompare(b.name),
+        },
+        {
+            title: 'Action',
+            key: 'action',
+            render: (_, record) => (
+                <Space size="middle">
+                    <Button type="primary" onClick={() => showModal(record._id)}>Sửa</Button>
+                    <Popconfirm
+                        title="Bạn có chắc chắn muốn xóa danh mục này?"
+                        onConfirm={() => handleDelete(record._id)}
+                        okText="Xóa"
+                        cancelText="Hủy"
+                    >
+                        <Button type="primary" danger>Xóa</Button>
+                    </Popconfirm>
+                </Space>
+            ),
+        },
+    ];
+
+    return (
+        <div>
+            <h2 style={{ marginTop: '20px' }}>Danh sách danh mục</h2>
+            <LoadingComponent isPending={categoriesLoading || updateLoading || deleteLoading}>
+                <TableComponent
+                    columns={columns}
+                    data={categories?.data}
+                    rowKey="_id"
+                    pagination={{ pageSize: 8 }}
+                />
+            </LoadingComponent>
+            <Modal
+                title="Sửa thông tin danh mục"
+                open={openModal}
+                onCancel={handleCancel}
+                footer={null}
+            >
+                <Form
+                    form={form}
+                    layout="vertical"
+                >
+                    <div style={{ display: "flex", gap: 8, alignItems: "flex-end", marginBottom: 16 }}>
+                        <Form.Item label="Tên danh mục" name="name" style={{ flex: 1, marginBottom: 0 }}>
+                            <Input disabled={!editing.name} />
+                        </Form.Item>
+                        <Button type={editing.name ? "primary" : "default"} onClick={() =>
+                            editing.name
+                                ? updateField("name")
+                                : setEditing({ ...editing, name: true })
+                        }>
+                            {editing.name ? "Lưu" : "Cập nhật"}
+                        </Button>
+                    </div>
+
+                    <div style={{ display: "flex", gap: 8, alignItems: "flex-end", marginBottom: 16 }}>
+                        <Form.Item label="Hình ảnh" name="image" style={{ flex: 1, marginBottom: 0 }}>
+                            <Upload
+                                listType="picture-circle"
+                                onPreview={handlePreview}
+                                onChange={handleChangeImage}
+                                beforeUpload={() => false}
+                                onRemove={() => {
+                                    setFileList([]);
+                                    form.setFieldsValue({ image: "" });
+                                }}
+                                fileList={fileList}
+                                disabled={!editing.image}
+                            >
+                                {fileList.length >= 1 ? null : (
+                                    <button style={{ border: 0, background: 'none' }} type="button">
+                                        <PlusOutlined />
+                                        <div style={{ marginTop: 8 }}>Upload</div>
+                                    </button>
+                                )}
+                            </Upload>
+                        </Form.Item>
+                        <Button type={editing.image ? "primary" : "default"} onClick={() =>
+                            editing.image
+                                ? updateField("image")
+                                : setEditing({ ...editing, image: true })
+                        }>
+                            {editing.image ? "Lưu" : "Cập nhật"}
+                        </Button>
+                    </div>
+
+                    <div style={{ display: "flex", gap: 8, alignItems: "initial", marginBottom: 16 }}>
+                        <Form.Item label="Hãng" name="brands" style={{ flex: 1, marginBottom: 0 }}>
+                            <Select
+                                mode="tags"
+                                style={{ width: '100%' }}
+                                placeholder="Nhập hãng và nhấn Enter"
+                                tokenSeparators={[',']}
+                                disabled={!editing.brands}
+                            />
+                        </Form.Item>
+                        <Button style={{ marginTop: '30px' }} type={editing.brands ? "primary" : "default"} onClick={() =>
+                            editing.brands
+                                ? updateField("brands")
+                                : setEditing({ ...editing, brands: true })
+                        }>
+                            {editing.brands ? "Lưu" : "Cập nhật"}
+                        </Button>
+                    </div>
+                </Form>
+            </Modal>
+            <Modal open={previewOpen} title="Xem hình ảnh" footer={null} onCancel={() => setPreviewOpen(false)}>
+                <img alt="preview" style={{ width: '100%' }} src={previewImage} />
+            </Modal>
+        </div>
+    );
+}
+
+export default CategoryListPage;

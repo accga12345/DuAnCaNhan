@@ -7,7 +7,8 @@ import slider2 from "../../assets/images/gearvn-build-pc.png"
 import slider3 from "../../assets/images/gearvn-build-pc.png"
 import CardComponent from "../../components/CardComponent/CardComponent"
 import { useQuery } from "@tanstack/react-query"
-import { getAllProduct, getAllTypeProduct } from "../../services/ProductService";
+import { getAllProduct } from "../../services/ProductService";
+import { getAllCategories } from "../../services/CategoryService";
 import { useSelector } from "react-redux"
 import { useState, useRef, useEffect } from "react"
 import { useDebounce } from "../../hooks/useDebounce"
@@ -28,9 +29,9 @@ const HomePage = () => {
     placeholderData: (previousData) => previousData,
   });
 
-  const { data: typeProducts } = useQuery({
-    queryKey: ["typeProducts"],
-    queryFn: () => getAllTypeProduct(),
+  const { data: categories } = useQuery({
+    queryKey: ["categories"],
+    queryFn: () => getAllCategories(),
     retry: 3,
     retryDelay: 1000,
     placeholderData: (previousData) => previousData,
@@ -50,8 +51,8 @@ const HomePage = () => {
     <>
       <div style={{ width: "1440px", margin: "0 auto", padding: "0 24px", borderBottom: '1px solid #f0f0f0' }}>
         <WapperHomePage>
-          {typeProducts?.data?.map((item) => (
-            <TypeProduct name={item} key={item} />
+          {categories?.data?.map((item) => (
+            <TypeProduct name={item.name} key={item._id} />
           ))}
         </WapperHomePage>
       </div>

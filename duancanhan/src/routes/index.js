@@ -56,7 +56,7 @@ const routes = [
         isShowHeader: true
     },
     {
-        path: "/admin",
+        path: "/system",
         page: AdminPage,
         isShowHeader: true,
         isPrivate: true,

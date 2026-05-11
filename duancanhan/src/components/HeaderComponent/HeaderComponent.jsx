@@ -12,8 +12,10 @@ import { resetUser } from "../../redux/slides/userSlide";
 import LoadingComponent from "../../components/Loading/LoadingComponent";
 import { searchProduct } from "../../redux/slides/productSlide"
 import { resetOrder } from "../../redux/slides/orderSlide";
-
-
+import { io } from "socket.io-client";
+import { BellOutlined } from "@ant-design/icons";
+import { notification as antdNotification, Popover, List } from "antd";
+import axios from "axios";
 const HeaderComponent = ({ isHiddenSearch, isCart }) => {
   const [pending, setPending] = useState(false);
   const dispatch = useDispatch();
@@ -22,7 +24,92 @@ const HeaderComponent = ({ isHiddenSearch, isCart }) => {
   const [search, setSearch] = useState('');
   const product = useSelector((state) => state.product);
   const order = useSelector((state) => state.order);
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
 
+  React.useEffect(() => {
+    let socket;
+    if (user.accessToken) {
+      const backendUrl = process.env.REACT_APP_API_URL ? process.env.REACT_APP_API_URL.replace('/api', '') : "http://localhost:3001";
+      socket = io(backendUrl);
+      
+      if (user.isAdmin || user.isEmployee) {
+        socket.on("new_order", (newNoti) => {
+          antdNotification.success({
+            message: newNoti.title,
+            description: newNoti.body,
+            placement: "topRight"
+          });
+          setNotifications((prev) => [newNoti, ...prev]);
+          setUnreadCount((prev) => prev + 1);
+        });
+      }
+
+      socket.on("user_notification", (newNoti) => {
+        if (newNoti.userId === user._id) {
+          antdNotification.info({
+            message: newNoti.title,
+            description: newNoti.body,
+            placement: "topRight"
+          });
+          setNotifications((prev) => [newNoti, ...prev]);
+          setUnreadCount((prev) => prev + 1);
+        }
+      });
+
+      // Fetch old notifications
+      const fetchNotifications = async () => {
+        try {
+          const baseUrl = process.env.REACT_APP_API_URL || "http://localhost:3001/api";
+          const url = (user.isAdmin || user.isEmployee)
+            ? `${baseUrl}/notification/get-all`
+            : `${baseUrl}/notification/get-all?userId=${user._id}`;
+          
+          const res = await axios.get(url);
+          if (res.data && res.data.data) {
+            setNotifications(res.data.data);
+            setUnreadCount(res.data.data.filter(n => !n.isRead).length);
+          }
+        } catch (e) {
+          console.error("Fetch notifications error: ", e);
+        }
+      };
+      fetchNotifications();
+    }
+    return () => {
+      if (socket) socket.disconnect();
+    };
+  }, [user.accessToken, user.isAdmin, user.isEmployee, user._id]);
+
+  const handleReadNotification = async (id) => {
+    try {
+      const baseUrl = process.env.REACT_APP_API_URL || "http://localhost:3001/api";
+      await axios.put(`${baseUrl}/notification/mark-as-read/${id}`);
+      setNotifications(notifications.map(n => n._id === id ? { ...n, isRead: true } : n));
+      setUnreadCount(prev => Math.max(0, prev - 1));
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const notificationContent = (
+    <List
+      itemLayout="horizontal"
+      dataSource={notifications}
+      renderItem={(item) => (
+        <List.Item
+          style={{ cursor: "pointer", background: item.isRead ? "transparent" : "#f0f2f5", padding: "10px" }}
+          onClick={() => handleReadNotification(item._id)}
+        >
+          <List.Item.Meta
+            title={item.title}
+            description={item.body}
+          />
+        </List.Item>
+      )}
+      style={{ width: "300px", maxHeight: "400px", overflowY: "auto" }}
+    />
+  );
 
   const handleNavigateLogout = async () => {
     setPending(true);
@@ -33,6 +120,7 @@ const HeaderComponent = ({ isHiddenSearch, isCart }) => {
     setTimeout(() => {
       setPending(false);
     }, 2000);
+    navigate("/");
   };
 
   const handleNavigateLogin = () => {
@@ -71,11 +159,11 @@ const HeaderComponent = ({ isHiddenSearch, isCart }) => {
     },
   ];
 
-  if (user.isAdmin) {
+  if (user.isAdmin || user.isEmployee) {
     items.push({
       key: '4',
       label: (
-        <span onClick={() => navigate("/admin")}>
+        <span onClick={() => navigate("/system")}>
           Quản lý hệ thống
         </span>
       ),
@@ -140,6 +228,19 @@ const HeaderComponent = ({ isHiddenSearch, isCart }) => {
                   <ShoppingCartOutlined style={{ fontSize: '16px' }} />
                 </Badge>
               </div>
+            )}
+
+            {user.accessToken && (
+              <>
+                <div className="divider"></div>
+                <Popover content={notificationContent} title="Thông báo" trigger="click" placement="bottomRight">
+                  <div className="item" style={{ cursor: 'pointer' }}>
+                    <Badge count={unreadCount} size="small">
+                      <BellOutlined style={{ fontSize: '16px' }} />
+                    </Badge>
+                  </div>
+                </Popover>
+              </>
             )}
           </WapperHeaderAction>
         </Col>

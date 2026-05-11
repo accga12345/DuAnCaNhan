@@ -2,7 +2,7 @@ const Product = require("../models/ProductModel");
 
 const createProduct = async (newProduct) => {
     try {
-        const { name, image, type, price, countInStock, rating, description } = newProduct;
+        const { name, image, images, type, price, countInStock, rating, description, discount } = newProduct;
         const checkProduct = await Product.findOne({ name });
         if (checkProduct) {
             return {

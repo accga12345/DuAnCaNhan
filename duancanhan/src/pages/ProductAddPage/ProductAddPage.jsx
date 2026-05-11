@@ -1,24 +1,24 @@
-import { Button, Checkbox, Form, Input, InputNumber } from 'antd';
+import { Button, Checkbox, Form, Input, InputNumber, Space } from 'antd';
 import { useMutationHook } from "../../hooks/useMutationHook";
 import { showSuccess, showError } from "../../components/MessageComponent/MessageComponent";
-import { createProduct, getAllTypeProduct } from "../../services/ProductService";
+import { createProduct } from "../../services/ProductService";
+import { getAllCategories } from "../../services/CategoryService";
 import { useSelector } from 'react-redux';
 import { useState, useEffect } from 'react';
 import { getBase64 } from '../../ultil';
-import { PlusOutlined } from '@ant-design/icons';
-import { Upload } from 'antd';
-import { Select } from 'antd';
+import { PlusOutlined, MinusCircleOutlined } from '@ant-design/icons';
+import { Upload, Select, Modal } from 'antd';
 import { useQuery } from '@tanstack/react-query';
-import { Modal } from 'antd';
 
 function ProductAddPage() {
     const [form] = Form.useForm();
     const [newType, setNewType] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [selectedCategoryBrands, setSelectedCategoryBrands] = useState([]);
     const user = useSelector((state) => state.user);
-    const { data: typeProductsData, isPending: typeProductsLoading } = useQuery({
-        queryKey: ['typeProducts'],
-        queryFn: () => getAllTypeProduct(),
+    const { data: categoriesData } = useQuery({
+        queryKey: ['categories'],
+        queryFn: () => getAllCategories(),
         refetchOnWindowFocus: false,
     });
     const mutation = useMutationHook(
@@ -31,11 +31,15 @@ function ProductAddPage() {
         mutation.mutate({
             name: values.name,
             image: form.getFieldValue("image"),
+            images: form.getFieldValue("images"),
             type: values.type,
+            category: values.category,
+            brand: values.brand,
             price: values.price,
             description: values.description,
             countInStock: values.countInStock,
             discount: values.discount,
+            specifications: values.specifications,
         });
     };
 
@@ -75,6 +79,18 @@ function ProductAddPage() {
         const base64 = await getBase64(realFile);
         form.setFieldsValue({ image: base64 });
         setFileList(newFileList.slice(-1));
+    };
+
+    const [fileListImages, setFileListImages] = useState([]);
+    const handleChangeImages = async ({ fileList: newFileList }) => {
+        setFileListImages(newFileList);
+        const imagesBase64 = await Promise.all(
+            newFileList.map(async (file) => {
+                if (file.url) return file.url;
+                return await getBase64(file.originFileObj || file);
+            })
+        );
+        form.setFieldsValue({ images: imagesBase64 });
     };
 
 
@@ -120,6 +136,53 @@ function ProductAddPage() {
                     <Input />
                 </Form.Item>
 
+                <Form.Item
+                    label="Danh mục"
+                    name="category"
+                    rules={[
+                        {
+                            required: true,
+                            message: 'Danh mục không được để trống',
+                        },
+                    ]}
+                >
+                    <Select
+                        placeholder="Chọn danh mục"
+                        options={categoriesData?.data?.map((item) => ({
+                            value: item._id,
+                            label: item.name,
+                        }))}
+                        onChange={(value, option) => {
+                            form.setFieldsValue({ type: option.label, brand: undefined });
+                            const category = categoriesData?.data?.find(item => item._id === value);
+                            setSelectedCategoryBrands(category?.brands || []);
+                        }}
+                    />
+                </Form.Item>
+
+                <Form.Item
+                    label="Hãng"
+                    name="brand"
+                    rules={[
+                        {
+                            required: true,
+                            message: 'Hãng không được để trống',
+                        },
+                    ]}
+                >
+                    <Select
+                        placeholder="Chọn hãng"
+                        options={selectedCategoryBrands.map((brand) => ({
+                            value: brand,
+                            label: brand,
+                        }))}
+                        disabled={!selectedCategoryBrands.length}
+                    />
+                </Form.Item>
+
+                <Form.Item name="type" hidden>
+                    <Input />
+                </Form.Item>
 
                 <Form.Item
                     label="Hình ảnh"
@@ -141,35 +204,20 @@ function ProductAddPage() {
                 </Form.Item>
 
                 <Form.Item
-                    label="Loại"
-                    name="type"
-                    rules={[
-                        {
-                            required: true,
-                            message: 'Loại sản phẩm không được để trống',
-                        },
-                    ]}
+                    label="Hình ảnh chi tiết"
+                    name="images"
+                    wrapperCol={{ span: 16 }}
                 >
-                    <Select
-                        showSearch
-                        placeholder="Chọn loại"
-                        options={[
-                            ...(typeProductsData?.data?.map((item) => ({
-                                value: item,
-                                label: item,
-                            })) || []),
-                            {
-                                value: "ADD_NEW",
-                                label: "+ Thêm loại mới",
-                            },
-                        ]}
-                        onChange={(value) => {
-                            if (value === "ADD_NEW") {
-                                setIsModalOpen(true);
-                                form.setFieldsValue({ type: undefined });
-                            }
-                        }}
-                    />
+                    <Upload
+                        listType="picture-card"
+                        onPreview={handlePreview}
+                        onChange={handleChangeImages}
+                        beforeUpload={() => false}
+                        fileList={fileListImages}
+                        multiple
+                    >
+                        {fileListImages.length >= 8 ? null : uploadButton}
+                    </Upload>
                 </Form.Item>
 
 
@@ -230,6 +278,39 @@ function ProductAddPage() {
                     ]}
                 >
                     <InputNumber min={0} max={100} addonAfter="%" style={{ width: '100%' }} />
+                </Form.Item>
+
+                <Form.Item label="Thông số kỹ thuật" wrapperCol={{ span: 16 }}>
+                    <Form.List name="specifications">
+                        {(fields, { add, remove }) => (
+                            <>
+                                {fields.map(({ key, name, ...restField }) => (
+                                    <Space key={key} style={{ display: 'flex', marginBottom: 8 }} align="baseline">
+                                        <Form.Item
+                                            {...restField}
+                                            name={[name, 'key']}
+                                            rules={[{ required: true, message: 'Nhập tên thông số' }]}
+                                        >
+                                            <Input placeholder="Tên thông số (VD: RAM)" />
+                                        </Form.Item>
+                                        <Form.Item
+                                            {...restField}
+                                            name={[name, 'value']}
+                                            rules={[{ required: true, message: 'Nhập giá trị' }]}
+                                        >
+                                            <Input placeholder="Giá trị (VD: 8GB)" />
+                                        </Form.Item>
+                                        <MinusCircleOutlined onClick={() => remove(name)} />
+                                    </Space>
+                                ))}
+                                <Form.Item>
+                                    <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />}>
+                                        Thêm thông số
+                                    </Button>
+                                </Form.Item>
+                            </>
+                        )}
+                    </Form.List>
                 </Form.Item>
 
                 <Form.Item
