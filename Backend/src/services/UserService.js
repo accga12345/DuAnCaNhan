@@ -54,7 +54,8 @@ const loginUser = async (user) => {
         const accessToken = await generateToken(
             {
                 id: checkUser._id,
-                isAdmin: checkUser.isAdmin
+                isAdmin: checkUser.isAdmin,
+                isEmployee: checkUser.isEmployee
             }
         )
 
@@ -62,6 +63,7 @@ const loginUser = async (user) => {
             {
                 id: checkUser._id,
                 isAdmin: checkUser.isAdmin,
+                isEmployee: checkUser.isEmployee
             }
         )
         return {
@@ -150,7 +152,8 @@ const refreshTokenService = async (token) => {
         const data = await jwt.verify(token, process.env.REFRESH_TOKEN);
         const accessToken = await generateToken({
             id: data.id,
-            isAdmin: data.isAdmin
+            isAdmin: data.isAdmin,
+            isEmployee: data.isEmployee
         });
         return {
             status: "success",

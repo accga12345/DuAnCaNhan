@@ -38,7 +38,7 @@ const ProductDetailComponent = (props) => {
     const order = useSelector((state) => state.order);
 
     const handleAddOrderProduct = (isBuyNow = false) => {
-        const orderItem = order?.oderItems?.find((item) => item?.product === (product?.data?._id || id));
+        const orderItem = order?.orderItems?.find((item) => item?.product === (product?.data?._id || id));
         if (orderItem && (orderItem.amount + value > product?.data?.countInStock)) {
             showError(`Sản phẩm đã đạt giới hạn số lượng trong giỏ hàng!`);
         } else {
@@ -50,7 +50,7 @@ const ProductDetailComponent = (props) => {
                     price: product?.data?.price,
                     product: product?.data?._id,
                     discount: product?.data?.discount || 0,
-                    countInstock: product?.data?.countInStock
+                    countInStock: product?.data?.countInStock
                 }
             }))
             if (isBuyNow) {
@@ -191,7 +191,6 @@ const ProductDetailComponent = (props) => {
                                     rating={item.rating}
                                     selled={item.selled}
                                     discount={item.discount}
-                                    type={item.type}
                                 />
                             </Col>
                         ))}

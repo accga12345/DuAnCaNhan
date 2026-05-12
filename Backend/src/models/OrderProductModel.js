@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
-const oderProductSchema = new mongoose.Schema({
-    oderItems: [
+const orderProductSchema = new mongoose.Schema({
+    orderItems: [
         {
             name: {
                 type: String,
@@ -82,5 +82,5 @@ const oderProductSchema = new mongoose.Schema({
     }
 }, { timestamps: true });
 
-const oderProduct = mongoose.model('oderProduct', oderProductSchema);
-module.exports = oderProduct;
+const OrderProduct = mongoose.model('OrderProduct', orderProductSchema);
+module.exports = OrderProduct;

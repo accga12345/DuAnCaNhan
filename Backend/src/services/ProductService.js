@@ -1,8 +1,11 @@
 const Product = require("../models/ProductModel");
+const Warehouse = require("../models/WarehouseModel");
+const Category = require("../models/CategoryModel");
+const mongoose = require('mongoose');
 
 const createProduct = async (newProduct) => {
     try {
-        const { name, image, images, type, price, countInStock, rating, description, discount } = newProduct;
+        const { name, warehouseItem, countInStock } = newProduct;
         const checkProduct = await Product.findOne({ name });
         if (checkProduct) {
             return {
@@ -10,13 +13,32 @@ const createProduct = async (newProduct) => {
                 message: "San pham da ton tai",
             };
         }
-        const product = await Product.create(newProduct);
+
+
+        if (warehouseItem) {
+            const warehouse = await Warehouse.findById(warehouseItem);
+            if (warehouse) {
+                const otherProducts = await Product.find({ warehouseItem });
+                const usedStock = otherProducts.reduce((sum, p) => sum + p.countInStock, 0);
+                const availableStock = warehouse.quantity - usedStock;
+
+                if (Number(countInStock) > availableStock) {
+                    return {
+                        status: "error",
+                        message: `So luong vuot qua gioi han kho. Kho con trong ${availableStock} (Tong ${warehouse.quantity}, da dung ${usedStock})`
+                    };
+                }
+            }
+        }
+
+        const product = await (await Product.create(newProduct)).populate(['supplier', 'warehouseItem', 'category']);
         return {
             status: "success",
             message: "Tao san pham moi thanh cong",
             data: product,
         };
     } catch (error) {
+        console.error("DEBUG: Error in createProduct:", error);
         throw error;
     }
 };
@@ -38,13 +60,38 @@ const updateProduct = async (id, data) => {
                 };
             }
         }
-        const product = await Product.findOneAndUpdate({ _id: id }, data, { new: true });
+
+
+        const warehouseItem = data.warehouseItem || checkProduct.warehouseItem;
+        const countInStock = data.countInStock !== undefined ? data.countInStock : checkProduct.countInStock;
+
+        if (warehouseItem) {
+            const warehouse = await Warehouse.findById(warehouseItem);
+            if (warehouse) {
+                const otherProducts = await Product.find({
+                    warehouseItem,
+                    _id: { $ne: id }
+                });
+                const usedStockByOthers = otherProducts.reduce((sum, p) => sum + p.countInStock, 0);
+                const availableStock = warehouse.quantity - usedStockByOthers;
+
+                if (Number(countInStock) > availableStock) {
+                    return {
+                        status: "error",
+                        message: `So luong vuot qua gioi han kho. Kho con trong ${availableStock} (Tong ${warehouse.quantity}, da dung ${usedStockByOthers})`
+                    };
+                }
+            }
+        }
+
+        const product = await Product.findOneAndUpdate({ _id: id }, data, { new: true }).populate(['supplier', 'warehouseItem', 'category']);
         return {
             status: "success",
             message: "Cap nhat san pham thanh cong",
             data: product,
         };
     } catch (error) {
+        console.error("DEBUG: Error in updateProduct:", error);
         throw error;
     }
 };
@@ -52,13 +99,14 @@ const updateProduct = async (id, data) => {
 
 const getDetailProduct = async (id) => {
     try {
-        const product = await Product.findOne({ _id: id });
+        const product = await Product.findOne({ _id: id }).populate(['supplier', 'warehouseItem', 'category']);
         return {
             status: "success",
             message: "Lay thong tin san pham thanh cong",
             data: product,
         };
     } catch (error) {
+        console.error("DEBUG: Error in getDetailProduct:", error);
         throw error;
     }
 };
@@ -70,7 +118,7 @@ const getAllProducts = async (limit, page, sort, filter) => {
         if (sort) {
             const objectSort = {};
             objectSort[sort[1]] = sort[0];
-            const productsSort = await Product.find({}).sort(objectSort).skip((page - 1) * limit).limit(limit);
+            const productsSort = await Product.find({}).sort(objectSort).skip((page - 1) * limit).limit(limit).populate(['supplier', 'warehouseItem', 'category']);
             return {
                 status: "success",
                 message: "Lay danh sach san pham thanh cong",
@@ -95,13 +143,17 @@ const getAllProducts = async (limit, page, sort, filter) => {
                                     objectFilter[filter[i]] = { $gte: numVal };
                                 }
                             }
+                        } else if (filter[i] === 'category') {
+                            if (val && val !== 'undefined' && mongoose.Types.ObjectId.isValid(val)) {
+                                objectFilter[filter[i]] = new mongoose.Types.ObjectId(val);
+                            }
                         } else {
                             objectFilter[filter[i]] = { $regex: val, $options: 'i' };
                         }
                     }
                 }
             }
-            const productsFilter = await Product.find(objectFilter).skip((page - 1) * limit).limit(limit);
+            const productsFilter = await Product.find(objectFilter).skip((page - 1) * limit).limit(limit).populate(['supplier', 'warehouseItem', 'category']);
             return {
                 status: "success",
                 message: "Lay danh sach san pham thanh cong",
@@ -111,7 +163,7 @@ const getAllProducts = async (limit, page, sort, filter) => {
                 pageCurrent: page
             };
         }
-        const products = await Product.find({}).skip((page - 1) * limit).limit(limit);
+        const products = await Product.find({}).skip((page - 1) * limit).limit(limit).populate(['supplier', 'warehouseItem', 'category']);
         return {
             status: "success",
             message: "Lay danh sach san pham thanh cong",
@@ -121,6 +173,7 @@ const getAllProducts = async (limit, page, sort, filter) => {
             pageCurrent: page
         };
     } catch (error) {
+        console.error("DEBUG: Error in getAllProducts:", error);
         throw error;
     }
 };
@@ -134,6 +187,7 @@ const deleteProduct = async (id) => {
             data: product,
         };
     } catch (error) {
+        console.error("DEBUG: Error in deleteProduct:", error);
         throw error;
     }
 };
@@ -152,23 +206,23 @@ const deleteManyProduct = async (ids) => {
             data: result,
         };
     } catch (error) {
+        console.error("DEBUG: Error in deleteManyProduct:", error);
         throw error;
     }
 };
 
-const getAllTypeProduct = async () => {
+const getAllCategoryProduct = async () => {
     try {
-        const typeProduct = await Product.find({}).distinct("type");
+        const allCategory = await Category.find();
         return {
-            status: "success",
-            message: "Lay danh sach loai san pham thanh cong",
-            data: typeProduct,
+            status: 'success',
+            message: 'SUCCESS',
+            data: allCategory
         };
-    } catch (error) {
-        throw error;
+    } catch (e) {
+        throw e;
     }
 };
-
 
 module.exports = {
     createProduct,
@@ -177,5 +231,5 @@ module.exports = {
     getAllProducts,
     deleteProduct,
     deleteManyProduct,
-    getAllTypeProduct
+    getAllCategoryProduct
 };

@@ -3,12 +3,10 @@ import { TextTypeProduct } from "./style"
 import { useNavigate } from "react-router-dom"
 import { convertToSlug } from "../../ultil"
 
-const TypeProduct = ({ name }) => {
+const TypeProduct = ({ name, id }) => {
     const navigate = useNavigate();
-    const handleNavigate = (type) => {
-        const formattedType = convertToSlug(type)
-
-        navigate(`/typeproduct/${formattedType}`, { state: { name: type } });
+    const handleNavigate = (name) => {
+        navigate(`/product/category/${convertToSlug(name)}`);
     };
     return (
         <TextTypeProduct onClick={() => handleNavigate(name)}>

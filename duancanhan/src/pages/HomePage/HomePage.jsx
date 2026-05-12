@@ -52,7 +52,7 @@ const HomePage = () => {
       <div style={{ width: "1440px", margin: "0 auto", padding: "0 24px", borderBottom: '1px solid #f0f0f0' }}>
         <WapperHomePage>
           {categories?.data?.map((item) => (
-            <TypeProduct name={item.name} key={item._id} />
+            <TypeProduct name={item.name} id={item._id} key={item._id} />
           ))}
         </WapperHomePage>
       </div>
@@ -69,18 +69,17 @@ const HomePage = () => {
               }
             })?.map((product) => (
               <CardComponent key={
-                product._id}
-                name={product.name}
-                image={product.image}
-                type={product.type}
-                price={product.price}
-                countInStock={product.countInStock}
-                rating={product.rating}
-                description={product.description}
-                selled={product.selled}
-                discount={product.discount}
-                id={product._id} />
-            ))}
+              product._id}
+              name={product.name}
+              image={product.image}
+              category={product.category}
+              price={product.price}
+              countInStock={product.countInStock}
+              rating={product.rating}
+              description={product.description}
+              selled={product.selled}
+              discount={product.discount}
+              id={product._id} />            ))}
           </WrapperProductGrid>
           <div style={{ display: "flex", justifyContent: "center", marginTop: "20px", marginBottom: "20px" }}>
             <WrapperButtonMore

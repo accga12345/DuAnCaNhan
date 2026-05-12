@@ -3,6 +3,8 @@ import { Button, Space, Modal, Form, Input, Upload, Image, Popconfirm, Select, I
 import { useQuery } from '@tanstack/react-query';
 import { getAllProduct, deleteProduct, updateProduct, deleteManyProduct } from '../../services/ProductService';
 import { getAllCategories } from '../../services/CategoryService';
+import { getAllSuppliers } from '../../services/SupplierService';
+import { getAllWarehouseItems } from '../../services/WarehouseService';
 import { useState, useEffect } from 'react';
 import TableComponent from '../../components/TableComponent/TableComponent';
 import { getDetailProduct } from '../../services/ProductService';
@@ -28,10 +30,21 @@ function ProductListPage() {
     const [searchText, setSearchText] = useState('');
     const [searchedColumn, setSearchedColumn] = useState('');
     const searchInput = useRef(null);
+    const [selectedCategoryBrands, setSelectedCategoryBrands] = useState([]);
 
     const { data: categoriesData } = useQuery({
         queryKey: ['categories'],
         queryFn: () => getAllCategories(),
+        refetchOnWindowFocus: false,
+    });
+    const { data: suppliersData } = useQuery({
+        queryKey: ['suppliers'],
+        queryFn: () => getAllSuppliers(),
+        refetchOnWindowFocus: false,
+    });
+    const { data: warehouseData } = useQuery({
+        queryKey: ['warehouseItems'],
+        queryFn: () => getAllWarehouseItems(),
         refetchOnWindowFocus: false,
     });
 
@@ -44,7 +57,6 @@ function ProductListPage() {
     const [editing, setEditing] = useState({
         name: false,
         image: false,
-        type: false,
         category: false,
         price: false,
         countInStock: false,
@@ -52,9 +64,12 @@ function ProductListPage() {
         images: false,
         discount: false,
         specifications: false,
+        brand: false,
+        supplier: false,
+        warehouseItem: false,
     });
     const mutation = useMutationHook(
-        (data) => updateProduct(product._id, data, user.access_token)
+        (data) => updateProduct(product._id, data, user.accessToken)
     );
 
     const { data: updateData, isSuccess: updateSuccess, isPending: updateLoading } = mutation
@@ -74,7 +89,7 @@ function ProductListPage() {
     }, [updateSuccess]);
 
     const mutationDelete = useMutationHook(
-        (id) => deleteProduct(id, user.access_token)
+        (id) => deleteProduct(id, user.accessToken)
     )
     const { data: deleteData, isSuccess: deleteSuccess, isPending: deleteLoading } = mutationDelete
     const handleDelete = (id) => {
@@ -103,14 +118,18 @@ function ProductListPage() {
                 name: product.name,
                 image: product.image,
                 images: product.images,
-                type: product.type,
                 category: product.category,
                 price: product.price,
                 countInStock: product.countInStock,
                 discount: product.discount,
                 selled: product.selled,
                 specifications: product.specifications,
+                brand: product.brand,
+                supplier: product.supplier?._id || product.supplier,
+                warehouseItem: product.warehouseItem?._id || product.warehouseItem,
             });
+            const category = categoriesData?.data?.find(item => item._id === product.category);
+            setSelectedCategoryBrands(category?.brands || []);
         }
     }, [product, form]);
 
@@ -144,7 +163,7 @@ function ProductListPage() {
         setOpenModal(false);
     };
     const mutationDeleteMany = useMutationHook(
-        (data) => deleteManyProduct(data, user.access_token)
+        (data) => deleteManyProduct(data, user.accessToken)
     )
     const { data: deleteManyData, isSuccess: deleteManySuccess, isPending: deleteManyLoading } = mutationDeleteMany
     const handleDeleteMany = (ids) => {
@@ -283,8 +302,19 @@ function ProductListPage() {
         },
         {
             title: 'Loại',
-            dataIndex: 'type',
             key: 'type',
+            render: (record) => record.category?.name || "N/A"
+        },
+        {
+            title: 'Hãng',
+            dataIndex: 'brand',
+            key: 'brand',
+        },
+        {
+            title: 'Nhà cung cấp',
+            dataIndex: 'supplier',
+            key: 'supplier',
+            render: (supplier) => supplier?.name || "N/A"
         },
         {
             title: 'Tồn kho',
@@ -320,7 +350,7 @@ function ProductListPage() {
             return {
                 "Tên sản phẩm": product.name,
                 "Giá": product.price,
-                "Loại": product.type,
+                "Loại": product.category?.name || product.type || "N/A",
                 "Tồn kho": product.countInStock,
                 "Đã bán": product.selled
             }
@@ -415,7 +445,8 @@ function ProductListPage() {
                                     label: item.name,
                                 }))}
                                 onChange={(value, option) => {
-                                    form.setFieldsValue({ type: option.label });
+                                    const category = categoriesData?.data?.find(item => item._id === value);
+                                    setSelectedCategoryBrands(category?.brands || []);
                                 }}
                             />
                         </Form.Item>
@@ -427,9 +458,66 @@ function ProductListPage() {
                             {editing.category ? "Lưu" : "Cập nhật"}
                         </Button>
                     </div>
-                    <Form.Item name="type" hidden>
-                        <Input />
-                    </Form.Item>
+
+                    <div style={{ display: "flex", gap: 8, alignItems: "flex-end", marginBottom: 16 }}>
+                        <Form.Item label="Hãng" name="brand" style={{ flex: 1, marginBottom: 0 }}>
+                            <Select
+                                disabled={!editing.brand}
+                                placeholder="Chọn hãng"
+                                options={selectedCategoryBrands.map((brand) => ({
+                                    value: typeof brand === 'string' ? brand : brand?.name,
+                                    label: typeof brand === 'string' ? brand : brand?.name,
+                                }))}
+                            />
+                        </Form.Item>
+                        <Button onClick={() =>
+                            editing.brand
+                                ? updateField("brand")
+                                : setEditing({ ...editing, brand: true })
+                        }>
+                            {editing.brand ? "Lưu" : "Cập nhật"}
+                        </Button>
+                    </div>
+
+                    <div style={{ display: "flex", gap: 8, alignItems: "flex-end", marginBottom: 16 }}>
+                        <Form.Item label="Nhà cung cấp" name="supplier" style={{ flex: 1, marginBottom: 0 }}>
+                            <Select
+                                disabled={!editing.supplier}
+                                placeholder="Chọn nhà cung cấp"
+                                options={suppliersData?.data?.map((item) => ({
+                                    value: item._id,
+                                    label: item.name,
+                                }))}
+                            />
+                        </Form.Item>
+                        <Button onClick={() =>
+                            editing.supplier
+                                ? updateField("supplier")
+                                : setEditing({ ...editing, supplier: true })
+                        }>
+                            {editing.supplier ? "Lưu" : "Cập nhật"}
+                        </Button>
+                    </div>
+
+                    <div style={{ display: "flex", gap: 8, alignItems: "flex-end", marginBottom: 16 }}>
+                        <Form.Item label="Liên kết Kho" name="warehouseItem" style={{ flex: 1, marginBottom: 0 }}>
+                            <Select
+                                disabled={!editing.warehouseItem}
+                                placeholder="Chọn hàng từ kho"
+                                options={warehouseData?.data?.map((item) => ({
+                                    value: item._id,
+                                    label: item.name,
+                                }))}
+                            />
+                        </Form.Item>
+                        <Button onClick={() =>
+                            editing.warehouseItem
+                                ? updateField("warehouseItem")
+                                : setEditing({ ...editing, warehouseItem: true })
+                        }>
+                            {editing.warehouseItem ? "Lưu" : "Cập nhật"}
+                        </Button>
+                    </div>
                     <div style={{ display: "flex", alignItems: "center", marginBottom: 16, flexDirection: 'column', width: '100%' }}>
                         <Form.Item label="Hình ảnh chi tiết" name="images" style={{ width: '100%', marginBottom: 0 }}>
                             <Upload

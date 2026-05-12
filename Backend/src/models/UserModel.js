@@ -17,6 +17,11 @@ const userSchema = new mongoose.Schema({
         default: false,
         required: true,
     },
+    isEmployee: {
+        type: Boolean,
+        default: false,
+        required: true,
+    },
     phone: {
         type: Number,
     },

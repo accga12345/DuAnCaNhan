@@ -1,7 +1,7 @@
 import { createSlice } from '@reduxjs/toolkit'
 
 const initialState = {
-    oderItems: [],
+    orderItems: [],
     shippingAddress: {},
     paymentMethod: '',
     itemsPrice: 0,
@@ -20,38 +20,47 @@ export const orderSlide = createSlice({
     reducers: {
         addOrderProduct: (state, action) => {
             const { orderItem } = action.payload;
-
-            const itemOrder = state.oderItems.find(
+            if (!state.orderItems) {
+                state.orderItems = [];
+            }
+            const itemOrder = state.orderItems.find(
                 item => item.product === orderItem.product
             );
 
             if (itemOrder) {
                 itemOrder.amount += orderItem.amount;
-
-                if (itemOrder.amount > itemOrder.countInStock) {
-                    itemOrder.amount = itemOrder.countInStock;
+                const maxStock = itemOrder.countInStock || itemOrder.countInstock || orderItem.countInStock || orderItem.countInstock;
+                if (itemOrder.amount > maxStock) {
+                    itemOrder.amount = maxStock;
                 }
             } else {
-                state.oderItems.push(orderItem);
+                state.orderItems.push(orderItem);
             }
         },
 
         increaseAmount: (state, action) => {
             const { idProduct } = action.payload;
-
-            const item = state.oderItems.find(
+            if (!state.orderItems) {
+                state.orderItems = [];
+            }
+            const item = state.orderItems.find(
                 item => item.product === idProduct
             );
 
-            if (item && item.amount < item.countInStock) {
-                item.amount += 1;
+            if (item) {
+                const maxStock = item.countInStock || item.countInstock;
+                if (item.amount < maxStock) {
+                    item.amount += 1;
+                }
             }
         },
 
         decreaseAmount: (state, action) => {
             const { idProduct } = action.payload;
-
-            const item = state.oderItems.find(
+            if (!state.orderItems) {
+                state.orderItems = [];
+            }
+            const item = state.orderItems.find(
                 item => item.product === idProduct
             );
 
@@ -62,16 +71,20 @@ export const orderSlide = createSlice({
 
         removeOrderProduct: (state, action) => {
             const { idProduct } = action.payload;
-
-            state.oderItems = state.oderItems.filter(
+            if (!state.orderItems) {
+                state.orderItems = [];
+            }
+            state.orderItems = state.orderItems.filter(
                 item => item.product !== idProduct
             );
         },
 
         removeAllOrderProduct: (state, action) => {
             const { listChecked } = action.payload;
-
-            state.oderItems = state.oderItems.filter(
+            if (!state.orderItems) {
+                state.orderItems = [];
+            }
+            state.orderItems = state.orderItems.filter(
                 item => !listChecked.includes(item.product)
             );
         },

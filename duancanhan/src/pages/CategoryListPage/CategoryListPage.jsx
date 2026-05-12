@@ -1,6 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Space, Button, Modal, Form, Input, Popconfirm, Select, Upload } from 'antd';
 import { getAllCategories, deleteCategory, getDetailCategory, updateCategory } from '../../services/CategoryService';
+import { getAllBrands } from '../../services/BrandService';
 import { useQuery } from '@tanstack/react-query';
 import TableComponent from '../../components/TableComponent/TableComponent';
 import { showSuccess, showError } from '../../components/MessageComponent/MessageComponent';
@@ -28,6 +29,11 @@ function CategoryListPage() {
         queryFn: () => getAllCategories(),
     });
 
+    const { data: brandsData } = useQuery({
+        queryKey: ['brands'],
+        queryFn: () => getAllBrands(),
+    });
+
     const [editing, setEditing] = useState({
         name: false,
         image: false,
@@ -44,7 +50,7 @@ function CategoryListPage() {
             form.setFieldsValue({
                 name: categoryDetail.name,
                 image: categoryDetail.image,
-                brands: categoryDetail.brands,
+                brands: categoryDetail.brands?.map(b => typeof b === 'string' ? b : b._id) || [],
             });
             if (categoryDetail.image) {
                 setFileList([{
@@ -79,7 +85,7 @@ function CategoryListPage() {
     };
 
     const mutationUpdate = useMutationHook(
-        (data) => updateCategory(categoryDetail._id, data, user.access_token)
+        (data) => updateCategory(categoryDetail._id, data, user.accessToken)
     );
 
     const { data: updateData, isSuccess: updateSuccess, isPending: updateLoading, isError: updateError } = mutationUpdate;
@@ -101,7 +107,7 @@ function CategoryListPage() {
     }, [updateSuccess, updateData, refetch]);
 
     const mutationDelete = useMutationHook(
-        (id) => deleteCategory(id, user.access_token)
+        (id) => deleteCategory(id, user.accessToken)
     );
 
     const handleDelete = (id) => {
@@ -202,6 +208,12 @@ function CategoryListPage() {
             sorter: (a, b) => a.name?.localeCompare(b.name),
         },
         {
+            title: 'Hãng',
+            dataIndex: 'brands',
+            key: 'brands',
+            render: (brands) => brands?.map(b => b.name).join(', ')
+        },
+        {
             title: 'Action',
             key: 'action',
             render: (_, record) => (
@@ -288,11 +300,14 @@ function CategoryListPage() {
                     <div style={{ display: "flex", gap: 8, alignItems: "initial", marginBottom: 16 }}>
                         <Form.Item label="Hãng" name="brands" style={{ flex: 1, marginBottom: 0 }}>
                             <Select
-                                mode="tags"
+                                mode="multiple"
                                 style={{ width: '100%' }}
-                                placeholder="Nhập hãng và nhấn Enter"
-                                tokenSeparators={[',']}
+                                placeholder="Chọn hãng sản xuất"
                                 disabled={!editing.brands}
+                                options={brandsData?.data?.map((brand) => ({
+                                    value: brand._id,
+                                    label: brand.name,
+                                }))}
                             />
                         </Form.Item>
                         <Button style={{ marginTop: '30px' }} type={editing.brands ? "primary" : "default"} onClick={() =>

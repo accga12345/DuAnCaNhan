@@ -5,12 +5,42 @@ import DefaultComponent from './components/DefaultComponent/DefaultComponent'
 import { isJsonString } from './ultil'
 import { useEffect } from 'react'
 import { jwtDecode } from 'jwt-decode'
-import { getDetailUser, getDetailEmployee, axiosJwt, refreshToken, refreshEmployeeToken } from './services/UserServices'
+import { getDetailUser, axiosJwt, refreshToken } from './services/UserServices'
 import { useDispatch } from 'react-redux'
 import { updateUser } from './redux/slides/userSlide'
 import { useState } from 'react'
 import { useSelector } from 'react-redux'
 import LoadingComponent from './components/Loading/LoadingComponent'
+
+
+axiosJwt.interceptors.request.use(
+  async (config) => {
+    let token = localStorage.getItem("access_token");
+
+    if (token && isJsonString(token)) {
+      token = JSON.parse(token);
+      const decode = jwtDecode(token);
+
+      if (decode.exp * 1000 < Date.now()) {
+        try {
+          let data = await refreshToken();
+          token = data.accessToken;
+          localStorage.setItem("access_token", JSON.stringify(token));
+        } catch (err) {
+          localStorage.removeItem("access_token");
+          window.location.href = "/";
+          return Promise.reject(err);
+        }
+      }
+
+      // Standardize on Authorization: Bearer header
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
 
 function App() {
   const dispatch = useDispatch()
@@ -22,11 +52,7 @@ function App() {
     setLoading(true)
     const { storageData, decode } = handleDecode();
     if (storageData && decode) {
-      if (decode.isEmployee) {
-        handlegetDetailEmployee(decode.id, storageData);
-      } else {
-        handlegetDetailUser(decode.id, storageData);
-      }
+      handlegetDetailUser(decode.id, storageData);
     }
     setLoading(false)
   }, [])
@@ -41,57 +67,12 @@ function App() {
     return { storageData, decode }
   }
 
-  axiosJwt.interceptors.request.use(
-    async (config) => {
-      let token = localStorage.getItem("access_token");
-
-      if (token && isJsonString(token)) {
-        token = JSON.parse(token);
-        const decode = jwtDecode(token);
-
-        if (decode.exp * 1000 < Date.now()) {
-          try {
-            let data;
-            if (decode.isEmployee) {
-                data = await refreshEmployeeToken();
-            } else {
-                data = await refreshToken();
-            }
-            token = data.accessToken;
-            localStorage.setItem("access_token", JSON.stringify(token));
-          } catch (err) {
-            // refresh token không tồn tại → user đã logout
-            localStorage.removeItem("access_token");
-            window.location.href = "/";
-            return Promise.reject(err);
-          }
-        }
-
-        config.headers.token = `Bearer ${token}`;
-      }
-
-      return config;
-    },
-    (error) => Promise.reject(error)
-  );
-
-
-
   const handlegetDetailUser = async (id, accessToken) => {
     try {
       const res = await getDetailUser(id, accessToken);
       dispatch(updateUser({ ...res.data, accessToken }));
     } catch (error) {
       console.error(error);
-    }
-  }
-
-  const handlegetDetailEmployee = async (id, accessToken) => {
-    try {
-        const res = await getDetailEmployee(id, accessToken);
-        dispatch(updateUser({ ...res.data, accessToken }));
-    } catch (error) {
-        console.error(error);
     }
   }
 

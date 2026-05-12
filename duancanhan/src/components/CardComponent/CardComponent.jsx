@@ -6,7 +6,7 @@ import certification from "../../assets/images/certification.png"
 import { useNavigate } from "react-router-dom";
 
 const CardComponent = (props) => {
-    const { name, image, type, price, countInStock, rating, description, selled, discount, id } = props;
+    const { name, image, category, price, countInStock, rating, description, selled, discount, id } = props;
     const navigate = useNavigate();
     const handleDetailProduct = (id) => {
         navigate(`/productdetail/${id}`)
@@ -41,6 +41,9 @@ const CardComponent = (props) => {
         >
 
             <WrapperNameText>{name}</WrapperNameText>
+            <div style={{ fontSize: '12px', color: '#888', marginTop: '5px' }}>
+                Danh mục: {category?.name || 'Chưa cập nhật'}
+            </div>
             <WrapperReportText>
                 <span>
                     <span>{rating}</span> <StarFilled style={{ color: "#fadb14", fontSize: "10px" }} />

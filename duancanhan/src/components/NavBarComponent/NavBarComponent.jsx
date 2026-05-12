@@ -7,9 +7,8 @@ import { convertToSlug } from "../../ultil";
 const NavBarComponent = ({ types, onChange }) => {
     const navigate = useNavigate();
 
-    const handleNavigate = (type) => {
-        const formattedType = convertToSlug(type);
-        navigate(`/typeproduct/${formattedType}`, { state: { name: type } });
+    const handleNavigate = (name) => {
+        navigate(`/product/category/${convertToSlug(name)}`);
     };
 
     const handleFilterClick = (type, value) => {
@@ -23,8 +22,8 @@ const NavBarComponent = ({ types, onChange }) => {
             case 'category':
                 return data?.map(item => {
                     return (
-                        <WrapperText key={item} onClick={() => handleNavigate(item)} style={{ cursor: 'pointer' }}>
-                            {item}
+                        <WrapperText key={item._id} onClick={() => handleNavigate(item.name)} style={{ cursor: 'pointer' }}>
+                            {item.name}
                         </WrapperText>
                     )
                 })

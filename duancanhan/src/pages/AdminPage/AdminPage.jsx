@@ -10,6 +10,12 @@ import ProductAddPage from '../ProductAddPage/ProductAddPage';
 import OrderAdmin from '../OrderAdmin/OrderAdmin';
 import CategoryListPage from '../CategoryListPage/CategoryListPage';
 import CategoryAddPage from '../CategoryAddPage/CategoryAddPage';
+import BrandListPage from '../BrandListPage/BrandListPage';
+import BrandAddPage from '../BrandAddPage/BrandAddPage';
+import SupplierListPage from '../SupplierListPage/SupplierListPage';
+import SupplierAddPage from '../SupplierAddPage/SupplierAddPage';
+import WarehouseListPage from '../WarehouseListPage/WarehouseListPage';
+import WarehouseAddPage from '../WarehouseAddPage/WarehouseAddPage';
 
 function AdminPage() {
     const user = useSelector((state) => state.user);
@@ -52,6 +58,33 @@ function AdminPage() {
                 { key: '41', label: 'Danh sách danh mục' },
                 { key: '42', label: 'Thêm danh mục' },
             ],
+        },
+        {
+            key: '5',
+            icon: <AppstoreOutlined />,
+            label: 'Thương hiệu',
+            children: [
+                { key: '51', label: 'Danh sách thương hiệu' },
+                { key: '52', label: 'Thêm thương hiệu' },
+            ],
+        },
+        {
+            key: '6',
+            icon: <AppstoreOutlined />,
+            label: 'Nhà cung cấp',
+            children: [
+                { key: '61', label: 'Danh sách nhà cung cấp' },
+                { key: '62', label: 'Thêm nhà cung cấp' },
+            ],
+        },
+        {
+            key: '7',
+            icon: <AppstoreOutlined />,
+            label: 'Quản lý Kho',
+            children: [
+                { key: '71', label: 'Tồn kho nội bộ' },
+                { key: '72', label: 'Nhập hàng vào kho' },
+            ],
         }
     ];
 
@@ -93,6 +126,18 @@ function AdminPage() {
                 return <CategoryListPage />;
             case '42':
                 return <CategoryAddPage />;
+            case '51':
+                return <BrandListPage />;
+            case '52':
+                return <BrandAddPage />;
+            case '61':
+                return <SupplierListPage />;
+            case '62':
+                return <SupplierAddPage />;
+            case '71':
+                return <WarehouseListPage />;
+            case '72':
+                return <WarehouseAddPage />;
             default:
                 return <UserListPage />;
         }

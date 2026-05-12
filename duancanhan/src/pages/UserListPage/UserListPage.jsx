@@ -40,7 +40,7 @@ function UserListPage() {
     });
 
     const handleGetDetailUser = async (id) => {
-        const res = await getDetailUser(id, user.access_token)
+        const res = await getDetailUser(id, user.accessToken)
         console.log(res.data);
         setUserDetail(res.data)
     }
@@ -57,7 +57,7 @@ function UserListPage() {
     }, [userDetail]);
 
     const mutationUpdate = useMutationHook(
-        (data) => updateUserInfo(userDetail._id, data, user.access_token)
+        (data) => updateUserInfo(userDetail._id, data, user.accessToken)
     )
 
     const { data: updateData, isSuccess: updateSuccess, isPending: updateLoading } = mutationUpdate
@@ -77,7 +77,7 @@ function UserListPage() {
 
 
     const mutationDelete = useMutationHook(
-        (id) => deleteUser(id, user.access_token)
+        (id) => deleteUser(id, user.accessToken)
     )
     const handleDelete = (id) => {
         mutationDelete.mutate(id)
@@ -93,7 +93,7 @@ function UserListPage() {
 
 
     const mutationDeleteMany = useMutationHook(
-        (ids) => deleteManyUser(ids, user.access_token)
+        (ids) => deleteManyUser(ids, user.accessToken)
     )
     const handleDeleteMany = (ids) => {
         mutationDeleteMany.mutate(ids)

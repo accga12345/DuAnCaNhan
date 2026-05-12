@@ -1,7 +1,7 @@
 import { Button, Form, Input, Upload, Select } from 'antd';
 import { useMutationHook } from "../../hooks/useMutationHook";
 import { showSuccess, showError } from "../../components/MessageComponent/MessageComponent";
-import { registerUser, registerEmployee } from "../../services/UserServices";
+import { registerUser } from "../../services/UserServices";
 import { useState, useEffect } from 'react';
 import { getBase64 } from '../../ultil';
 import { PlusOutlined } from '@ant-design/icons';
@@ -13,11 +13,12 @@ function UserAddPage() {
     const mutation = useMutationHook(
         data => {
             const { type, ...rest } = data;
-            if (type === '1') {
-                return registerEmployee(rest, user?.accessToken);
-            } else {
-                return registerUser(rest);
-            }
+            // Map type '1' (Nhân viên) to isEmployee: true
+            const userData = {
+                ...rest,
+                isEmployee: type === '1'
+            };
+            return registerUser(userData);
         }
     );
 

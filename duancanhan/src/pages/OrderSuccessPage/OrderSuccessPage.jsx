@@ -82,7 +82,7 @@ const OrderSuccessPage = () => {
                                     />
                                 </WrapperInfo>
                                 <WrapperListOrder>
-                                    {orderData?.oderItems?.map((order) => {
+                                    {orderData?.orderItems?.map((order) => {
                                         return (
                                             <WrapperItemOrder key={order?.product}>
                                                 <div style={{ width: '390px', display: 'flex', alignItems: 'center', gap: 4 }}>

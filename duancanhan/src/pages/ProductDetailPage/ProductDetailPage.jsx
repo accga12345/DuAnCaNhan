@@ -2,7 +2,7 @@ import React from "react";
 import ProductDetailComponent from "../../components/ProductDetalComponent/ProductDetailComponent";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { getDetailProduct, getProductType } from "../../services/ProductService";
+import { getDetailProduct } from "../../services/ProductService";
 
 const ProductDetailPage = () => {
   const navigate = useNavigate();
@@ -12,12 +12,6 @@ const ProductDetailPage = () => {
     queryKey: ["product-detail", id],
     queryFn: () => getDetailProduct(id),
     enabled: !!id,
-  });
-
-  const { data: similarProducts, isLoading: isLoadingSimilar } = useQuery({
-    queryKey: ["similar-products", product?.data?.type],
-    queryFn: () => getProductType(product?.data?.type),
-    enabled: !!product?.data?.type,
   });
 
   return (
@@ -30,8 +24,6 @@ const ProductDetailPage = () => {
           id={id} 
           product={product} 
           isLoading={isLoadingDetail} 
-          similarProducts={similarProducts?.data || []}
-          isLoadingSimilar={isLoadingSimilar}
         />
       </div>
     </div>

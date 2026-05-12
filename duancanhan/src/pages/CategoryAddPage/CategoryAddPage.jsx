@@ -3,7 +3,9 @@ import { Button, Form, Input, Select } from 'antd';
 import { useMutationHook } from "../../hooks/useMutationHook";
 import { showSuccess, showError } from "../../components/MessageComponent/MessageComponent";
 import { createCategory } from "../../services/CategoryService";
+import { getAllBrands } from "../../services/BrandService";
 import { useSelector } from 'react-redux';
+import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { getBase64 } from '../../ultil';
 import { PlusOutlined } from '@ant-design/icons';
@@ -13,8 +15,13 @@ function CategoryAddPage() {
     const user = useSelector((state) => state.user);
     const [form] = Form.useForm();
     
+    const { data: brandsData } = useQuery({
+        queryKey: ['brands'],
+        queryFn: () => getAllBrands(),
+    });
+    
     const mutation = useMutationHook(
-        (data) => createCategory(data, user?.access_token)
+        (data) => createCategory(data, user?.accessToken)
     );
 
     const { isSuccess, isError, isPending, data } = mutation;
@@ -109,10 +116,13 @@ function CategoryAddPage() {
                     name="brands"
                 >
                     <Select
-                        mode="tags"
+                        mode="multiple"
                         style={{ width: '100%' }}
-                        placeholder="Nhập tên hãng và nhấn Enter"
-                        tokenSeparators={[',']}
+                        placeholder="Chọn hãng sản xuất"
+                        options={brandsData?.data?.map((brand) => ({
+                            value: brand._id,
+                            label: brand.name,
+                        }))}
                     />
                 </Form.Item>
 

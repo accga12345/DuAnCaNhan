@@ -31,7 +31,7 @@ const routes = [
         isShowHeader: true
     },
     {
-        path: "/typeproduct/:type",
+        path: "/product/category/:slug",
         page: TypeProductPage,
         isShowHeader: true
     },

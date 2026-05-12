@@ -9,13 +9,32 @@ export const isJsonString = (str) => {
     return true;
 }
 
-export const getBase64 = file =>
-    new Promise((resolve, reject) => {
+export const getBase64 = async file => {
+    if (typeof file === 'string' && file.startsWith('http')) return file;
+    
+    try {
+        const formData = new FormData();
+        formData.append('image', file);
+        const baseUrl = process.env.REACT_APP_API_URL || "http://localhost:3001/api";
+        const response = await fetch(`${baseUrl}/upload`, {
+            method: 'POST',
+            body: formData,
+        });
+        const data = await response.json();
+        if (data.status === 'success') {
+            return data.url;
+        }
+    } catch (e) {
+        console.error("Image upload failed, falling back to base64", e);
+    }
+
+    return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.readAsDataURL(file);
         reader.onload = () => resolve(reader.result);
         reader.onerror = error => reject(error);
     });
+};
 
 export const getLevelKeys = items1 => {
     const key = {};

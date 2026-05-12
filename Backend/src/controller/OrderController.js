@@ -1,86 +1,80 @@
-const orderService = require('../services/OrderService');
+const OrderService = require('../services/OrderService');
 
 const createOrder = async (req, res) => {
     try {
-        const { oderItems, paymentMethod, itemsPrice, shippingPrice, totalPrice, fullName, address, phone } = req.body;
-        if (!oderItems || !paymentMethod || itemsPrice === undefined || shippingPrice === undefined || totalPrice === undefined || !fullName || !address || !phone) {
+        const { paymentMethod, itemsPrice, shippingPrice, totalPrice, fullName, address, phone } = req.body;
+        if (!paymentMethod || !itemsPrice || shippingPrice === undefined || !totalPrice || !fullName || !address || !phone) {
             return res.status(400).json({
-                status: 'ERR',
-                message: 'The input is required'
+                status: "error",
+                message: "Vui lòng nhập đầy đủ thông tin",
             });
         }
-        const response = await orderService.createOrder(req.body);
-        return res.status(200).json(response);
-    } catch (e) {
-        return res.status(500).json({
-            message: e.message
-        });
+        const order = await OrderService.createOrder(req.body);
+        if (order.status === "ERR") return res.status(400).json(order);
+        return res.status(201).json(order);
+    } catch (error) {
+        return res.status(500).json({ message: error.message });
     }
-};
+}
 
 const getAllOrder = async (req, res) => {
     try {
-        const data = await orderService.getAllOrder();
-        return res.status(200).json(data);
-    } catch (e) {
-        return res.status(500).json({
-            message: e.message
-        });
+        const order = await OrderService.getAllOrder();
+        return res.status(200).json(order);
+    } catch (error) {
+        return res.status(500).json({ message: error.message });
     }
-};
+}
 
 const updateOrder = async (req, res) => {
     try {
-        const orderId = req.params.id
-        const data = req.body
+        const orderId = req.params.id;
+        const data = req.body;
         if (!orderId) {
-            return res.status(200).json({
-                status: 'ERR',
-                message: 'The orderId is required'
-            })
+            return res.status(400).json({
+                status: "error",
+                message: "khong tim thay don hang",
+            });
         }
-        const response = await orderService.updateOrder(orderId, data)
-        return res.status(200).json(response)
-    } catch (e) {
-        return res.status(404).json({
-            message: e
-        })
+        const order = await OrderService.updateOrder(orderId, data);
+        if (order.status === "ERR") return res.status(404).json(order);
+        return res.status(200).json(order);
+    } catch (error) {
+        return res.status(500).json({ message: error.message });
     }
 }
 
 const getDetailsOrder = async (req, res) => {
     try {
-        const orderId = req.params.id
+        const orderId = req.params.id;
         if (!orderId) {
-            return res.status(200).json({
-                status: 'ERR',
-                message: 'The orderId is required'
-            })
+            return res.status(400).json({
+                status: "error",
+                message: "khong tim thay don hang",
+            });
         }
-        const response = await orderService.getDetailsOrder(orderId)
-        return res.status(200).json(response)
-    } catch (e) {
-        return res.status(404).json({
-            message: e
-        })
+        const order = await OrderService.getDetailsOrder(orderId);
+        if (order.status === "ERR") return res.status(404).json(order);
+        return res.status(200).json(order);
+    } catch (error) {
+        return res.status(500).json({ message: error.message });
     }
 }
 
 const getAllOrderDetails = async (req, res) => {
     try {
-        const userId = req.params.id
+        const userId = req.params.id;
         if (!userId) {
-            return res.status(200).json({
-                status: 'ERR',
-                message: 'The userId is required'
-            })
+            return res.status(400).json({
+                status: "error",
+                message: "khong tim thay nguoi dung",
+            });
         }
-        const response = await orderService.getAllOrderDetails(userId)
-        return res.status(200).json(response)
-    } catch (e) {
-        return res.status(404).json({
-            message: e
-        })
+        const order = await OrderService.getAllOrderDetails(userId);
+        if (order.status === "ERR") return res.status(404).json(order);
+        return res.status(200).json(order);
+    } catch (error) {
+        return res.status(500).json({ message: error.message });
     }
 }
 
@@ -89,5 +83,5 @@ module.exports = {
     getAllOrder,
     updateOrder,
     getDetailsOrder,
-    getAllOrderDetails,
+    getAllOrderDetails
 };

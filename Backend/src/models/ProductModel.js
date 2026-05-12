@@ -1,6 +1,11 @@
 const mongoose = require('mongoose');
 
 const productSchema = new mongoose.Schema({
+    warehouseItem: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Warehouse',
+        required: true,
+    },
     name: {
         type: String,
         required: true,
@@ -13,10 +18,6 @@ const productSchema = new mongoose.Schema({
     images: [{
         type: String,
     }],
-    type: {
-        type: String,
-        required: true,
-    },
     category: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Category',
@@ -24,6 +25,10 @@ const productSchema = new mongoose.Schema({
     brand: {
         type: String,
         default: "",
+    },
+    supplier: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Supplier',
     },
     price: {
         type: Number,
