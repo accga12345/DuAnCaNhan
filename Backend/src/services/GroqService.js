@@ -41,17 +41,17 @@ const generateNaturalReply = async (userMessage, productList = [], purpose = "un
     const productDetails = productList.map(p => `- ${p.name}: ${p.price.toLocaleString()}đ`).join("\n");
     const isOverBudget = actualTotal > budget;
 
-    let systemContent = `Bạn là nhân viên tư vấn PC chuyên nghiệp. Dữ liệu:
-DANH SÁCH:
-${productDetails}
-TỔNG CỘNG: ${actualTotal.toLocaleString()}đ
-NGÂN SÁCH KHÁCH: ${budget.toLocaleString()}đ
+    let systemContent = `Bạn là nhân viên tư vấn PC. Chỉ dùng dữ liệu sau, TUYỆT ĐỐI KHÔNG TỰ TÍNH TOÁN:
+    DANH SÁCH:
+    ${productDetails}
+    TỔNG CỘNG CHÍNH XÁC (DÙNG CON SỐ NÀY): ${actualTotal.toLocaleString()}đ
+    NGÂN SÁCH KHÁCH: ${budget.toLocaleString()}đ
 
-NHIỆM VỤ:
-1. Trả lời dưới 30 từ.
-2. NẾU TỔNG CỘNG <= NGÂN SÁCH: Báo giá tổng và xác nhận cấu hình ổn. TUYỆT ĐỐI KHÔNG HỎI TĂNG NGÂN SÁCH.
-3. NẾU TỔNG CỘNG > NGÂN SÁCH: Báo giá tổng và hỏi khách có muốn tăng ngân sách không.
-4. Trả về JSON: {"reply": "Nội dung"}`;
+    NHIỆM VỤ:
+    1. Trả lời dưới 30 từ, cực kỳ ngắn gọn.
+    2. Dùng đúng con số "TỔNG CỘNG CHÍNH XÁC" ở trên.
+    3. NẾU Tổng cộng <= Ngân sách: Báo giá tổng và xác nhận cấu hình ổn. TUYỆT ĐỐI KHÔNG HỎI TĂNG NGÂN SÁCH.
+    4. Trả về JSON: {"reply": "Nội dung"}`;
 
     const completion = await groqClient.chat.completions.create({
         messages: [{ role: "system", content: systemContent }, { role: "user", content: userMessage }],

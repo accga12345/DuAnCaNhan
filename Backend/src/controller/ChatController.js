@@ -20,6 +20,13 @@ const handleChat = async (req, res) => {
         let reqMonitor = false;
         if (msgLower.includes('man') || msgLower.includes('monitor') || msgLower.includes('man hinh')) reqMonitor = true;
 
+        // Trích xuất budget TỪ TIN NHẮN HIỆN TẠI - không lấy từ lịch sử
+        const budgetMatch = message.match(/(\d+)\s*(tr|trieu|cu|m|k|triệu|củ)/i);
+        if (budgetMatch) {
+            let val = parseInt(budgetMatch[1]);
+            budget = budgetMatch[2].toLowerCase() === 'k' ? val * 1000 : val * 1000000;
+        }
+
         if (purpose === 'unknown' && history?.length > 0) {
             for (let i = history.length - 1; i >= 0; i--) {
                 const prevMsg = history[i].parts[0].text.toLowerCase();
@@ -40,11 +47,14 @@ const handleChat = async (req, res) => {
                 const allCategories = await CategoryModel.find({});
                 const dbPurpose = (purpose === 'gaming') ? 'chơi game' : (purpose === 'work' ? 'đồ họa' : 'văn phòng');
                 
+                let currentTotalSpent = 0;
+                const absoluteMaxTotal = budget + 1000000;
+                
                 const getBestProduct = async (cat, targetPrice, constraints = {}, isMandatory = true) => {
                     let query = { category: cat._id };
                     for (const [key, value] of Object.entries(constraints)) {
                         if (!value) continue;
-                        const keyMap = { 'ramType': 'Loại RAM', 'socket': 'Socket' };
+                        const keyMap = { 'ramType': 'Loại RAM', 'socket': 'Socket', 'purpose': 'Mục đích' };
                         const specKey = keyMap[key] || key;
                         query["$or"] = [
                             { "specifications": { $elemMatch: { key: specKey, value: { $regex: new RegExp(value, 'i') } } } },
@@ -57,8 +67,15 @@ const handleChat = async (req, res) => {
                             { "specifications": { $not: { $elemMatch: { key: "Mục đích" } } } }
                         ];
                     }
-                    let p = await ProductModel.findOne({ ...query, price: { $lte: targetPrice * 1.5 } }).sort({ price: -1 });
+                    let maxPriceForThis = Math.min(targetPrice * 1.5, absoluteMaxTotal - currentTotalSpent);
+                    let p = await ProductModel.findOne({ ...query, price: { $lte: maxPriceForThis } }).sort({ price: -1 });
                     if (!p) p = await ProductModel.findOne(query).sort({ price: 1 });
+
+                    if (p) {
+                        p = p.toObject();
+                        p.categoryName = cat.name;
+                        currentTotalSpent += p.price;
+                    }
                     return p;
                 };
 
@@ -92,8 +109,14 @@ const handleChat = async (req, res) => {
 
                 if (success) {
                     const actualTotal = suggestedProducts.reduce((sum, p) => sum + p.price, 0);
-                    botReply = await GroqService.generateNaturalReply(message, suggestedProducts, purpose, budget, actualTotal);
-                    botReply += `\n\n[Đã tối ưu: ${actualTotal.toLocaleString()}đ / ${budget.toLocaleString()}đ]`;
+                    
+                    if (actualTotal > absoluteMaxTotal) {
+                        botReply = `Cấu hình này có giá ${actualTotal.toLocaleString()}đ, vượt quá ngân sách cho phép (${budget.toLocaleString()}đ + 1tr dự phòng). Bạn có muốn tăng ngân sách hoặc bỏ bớt linh kiện (ví dụ: màn hình) không?`;
+                        suggestedProducts = [];
+                    } else {
+                        botReply = `Cấu hình đã sẵn sàng. Tổng giá: ${actualTotal.toLocaleString()}đ (Ngân sách: ${budget.toLocaleString()}đ).`;
+                        suggestedProducts.forEach(p => { botReply += `\n- ${p.name}: ${p.price.toLocaleString()}đ`; });
+                    }
                 } else {
                     botReply = `Ngân sách ${formatMoneyText(budget)} không đủ linh kiện cần thiết. Bạn có thể cân nhắc tăng ngân sách hoặc điều chỉnh cấu hình không?`;
                 }
