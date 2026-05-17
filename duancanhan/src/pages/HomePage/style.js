@@ -2,10 +2,11 @@ import styled from "styled-components";
 import ButtonComponents from "../../components/ButtonComponents/ButtonComponents";
 export const WapperHomePage = styled.div`
     display: flex;
-    gap: 30px;
+    gap: 12px;
     align-items: center;
     cursor: pointer;
-    padding: 20px 0;
+    padding: 12px 0;
+    flex-wrap: wrap;
 `;
 
 export const WrapperButtonMore = styled(ButtonComponents)`
@@ -30,10 +31,11 @@ export const WrapperButtonMore = styled(ButtonComponents)`
 `;
 
 export const WrapperProductGrid = styled.div`
-    display: flex;
-    gap: 25.5px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 20px;
     margin-top: 20px;
-    flex-wrap: wrap;
+    width: 100%;
 `;
 
 

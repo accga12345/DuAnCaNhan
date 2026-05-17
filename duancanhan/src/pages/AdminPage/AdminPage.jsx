@@ -1,8 +1,23 @@
 import React, { useState } from 'react';
-import { AppstoreOutlined, MailOutlined } from '@ant-design/icons';
-import { getLevelKeys } from '../../ultil';
-import { Menu } from 'antd';
+import {
+    UserOutlined,
+    AppstoreOutlined,
+    FileTextOutlined,
+    TagsOutlined,
+    CrownOutlined,
+    SolutionOutlined,
+    DatabaseOutlined,
+    MenuUnfoldOutlined,
+    MenuFoldOutlined,
+    DashboardOutlined,
+    DollarCircleOutlined,
+} from '@ant-design/icons';
+import { Layout, Menu, Button, theme } from 'antd';
 import { useSelector } from 'react-redux';
+import { useQuery } from '@tanstack/react-query';
+import styled from 'styled-components';
+
+import DashboardStats from '../../components/DashboardStats/DashboardStats';
 import UserListPage from '../UserListPage/UserListPage';
 import UserAddPage from '../UserAddPage/UserAddPage';
 import ProductListPage from '../ProductListPage/ProductListPage';
@@ -16,23 +31,56 @@ import SupplierListPage from '../SupplierListPage/SupplierListPage';
 import SupplierAddPage from '../SupplierAddPage/SupplierAddPage';
 import WarehouseListPage from '../WarehouseListPage/WarehouseListPage';
 import WarehouseAddPage from '../WarehouseAddPage/WarehouseAddPage';
+import OperatingCostPage from '../OperatingCostPage/OperatingCostPage';
+import { getAllUser } from '../../services/UserServices';
+import { getAllProduct } from '../../services/ProductService';
+import { getAllOrder } from '../../services/OrderService';
+
+const { Header, Sider, Content } = Layout;
+
+const StyledLayout = styled(Layout)`
+    min-height: 100vh;
+`;
+
+const LogoContainer = styled.div`
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    background: #001529;
+    color: white;
+    font-size: 18px;
+    font-weight: bold;
+    overflow: hidden;
+    white-space: nowrap;
+`;
 
 function AdminPage() {
     const user = useSelector((state) => state.user);
-    const [stateOpenKeys, setStateOpenKeys] = useState(user?.isEmployee ? ['2'] : ['1']);
-    const [stateCurrentKey, setStateCurrentKey] = useState(user?.isEmployee ? '21' : '11');
+    const [collapsed, setCollapsed] = useState(false);
+    const [stateCurrentKey, setStateCurrentKey] = useState('dashboard');
+
+    const { data: users } = useQuery({ queryKey: ['users'], queryFn: () => getAllUser() });
+    const { data: products } = useQuery({ queryKey: ['products'], queryFn: () => getAllProduct(100, 1) });
+    const { data: orders } = useQuery({ queryKey: ['orders'], queryFn: () => getAllOrder(user?.accessToken), enabled: !!user?.accessToken });
+
+    const {
+        token: { colorBgContainer, borderRadiusLG },
+    } = theme.useToken();
 
     const items = [
-        {
-            key: '1',
-            icon: <MailOutlined />,
-            label: 'Người dùng',
-            disabled: user?.isEmployee,
-            children: [
-                { key: '11', label: 'Danh sách người dùng' },
-                { key: '12', label: 'Thêm người dùng' },
-            ],
-        },
+        { key: 'dashboard', icon: <DashboardOutlined />, label: 'Tổng quan' },
+        user?.isAdmin && (
+            {
+                key: '1',
+                icon: <UserOutlined />,
+                label: 'Người dùng',
+                children: [
+                    { key: '11', label: 'Danh sách người dùng' },
+                    { key: '12', label: 'Thêm người dùng' },
+                ],
+            }),
         {
             key: '2',
             icon: <AppstoreOutlined />,
@@ -44,73 +92,74 @@ function AdminPage() {
         },
         {
             key: '3',
-            icon: <AppstoreOutlined />,
+            icon: <FileTextOutlined />,
             label: 'Đơn hàng',
             children: [
                 { key: '31', label: 'Danh sách đơn hàng' },
             ],
         },
-        {
-            key: '4',
-            icon: <AppstoreOutlined />,
-            label: 'Danh mục',
-            children: [
-                { key: '41', label: 'Danh sách danh mục' },
-                { key: '42', label: 'Thêm danh mục' },
-            ],
-        },
-        {
-            key: '5',
-            icon: <AppstoreOutlined />,
-            label: 'Thương hiệu',
-            children: [
-                { key: '51', label: 'Danh sách thương hiệu' },
-                { key: '52', label: 'Thêm thương hiệu' },
-            ],
-        },
-        {
-            key: '6',
-            icon: <AppstoreOutlined />,
-            label: 'Nhà cung cấp',
-            children: [
-                { key: '61', label: 'Danh sách nhà cung cấp' },
-                { key: '62', label: 'Thêm nhà cung cấp' },
-            ],
-        },
-        {
-            key: '7',
-            icon: <AppstoreOutlined />,
-            label: 'Quản lý Kho',
-            children: [
-                { key: '71', label: 'Tồn kho nội bộ' },
-                { key: '72', label: 'Nhập hàng vào kho' },
-            ],
-        }
+        ...(user?.isEmployee ? [] : [
+            {
+                key: '4',
+                icon: <TagsOutlined />,
+                label: 'Danh mục',
+                children: [
+                    { key: '41', label: 'Danh sách danh mục' },
+                    { key: '42', label: 'Thêm danh mục' },
+                ],
+            },
+            {
+                key: '5',
+                icon: <CrownOutlined />,
+                label: 'Thương hiệu',
+                children: [
+                    { key: '51', label: 'Danh sách thương hiệu' },
+                    { key: '52', label: 'Thêm thương hiệu' },
+                ],
+            },
+            {
+                key: '6',
+                icon: <SolutionOutlined />,
+                label: 'Nhà cung cấp',
+                children: [
+                    { key: '61', label: 'Danh sách nhà cung cấp' },
+                    { key: '62', label: 'Thêm nhà cung cấp' },
+                ],
+            },
+            {
+                key: '7',
+                icon: <DatabaseOutlined />,
+                label: 'Quản lý Kho',
+                children: [
+                    { key: '71', label: 'Tồn kho nội bộ' },
+                    { key: '72', label: 'Nhập hàng vào kho' },
+                ],
+            },
+            { key: 'cost-management', icon: <DollarCircleOutlined />, label: 'Quản lý chi phí' }
+        ])
     ];
-
-    const levelKeys = getLevelKeys(items);
-
-    const onOpenChange = openKeys => {
-        const currentOpenKey = openKeys.find(key => !stateOpenKeys.includes(key));
-        if (currentOpenKey !== undefined) {
-            const repeatIndex = openKeys
-                .filter(key => key !== currentOpenKey)
-                .findIndex(key => levelKeys[key] === levelKeys[currentOpenKey]);
-            setStateOpenKeys(
-                openKeys
-                    .filter((_, index) => index !== repeatIndex)
-                    .filter(key => levelKeys[key] <= levelKeys[currentOpenKey]),
-            );
-        } else {
-            setStateOpenKeys(openKeys);
-        }
-    };
 
     const handleOnClick = (e) => {
         setStateCurrentKey(e.key);
     }
 
+    const getPageTitle = (key) => {
+        if (key === 'dashboard') return 'Tổng quan hệ thống';
+        if (key === 'cost-management') return 'Quản lý chi phí vận hành';
+        for (const item of items) {
+            if (item.children) {
+                const child = item.children.find(c => c.key === key);
+                if (child) return child.label;
+            } else if (item.key === key) {
+                return item.label;
+            }
+        }
+        return 'Admin Dashboard';
+    }
+
     const handleRenderPage = (key) => {
+        if (key === 'dashboard') return <DashboardStats orders={orders} products={products} users={users} />;
+        if (key === 'cost-management') return <OperatingCostPage />;
         switch (key) {
             case '11':
                 return <UserListPage />;
@@ -139,27 +188,53 @@ function AdminPage() {
             case '72':
                 return <WarehouseAddPage />;
             default:
-                return <UserListPage />;
+                return <DashboardStats orders={orders} products={products} users={users} />;
         }
     }
 
-
     return (
-        <div style={{ display: 'flex' }}>
-            <Menu
-                mode="inline"
-                openKeys={stateOpenKeys}
-                onOpenChange={onOpenChange}
-                onClick={handleOnClick}
-                style={{ width: 256, height: '100vh' }}
-                items={items}
-            />
-
-            <div style={{ flex: 1 }}>
-                {handleRenderPage(stateCurrentKey)}
-            </div>
-        </div>
-    )
+        <StyledLayout>
+            <Sider trigger={null} collapsible collapsed={collapsed} width={256} theme="dark">
+                <LogoContainer>
+                    {collapsed ? 'TS' : 'TECH SHOP ADMIN'}
+                </LogoContainer>
+                <Menu
+                    theme="dark"
+                    mode="inline"
+                    defaultSelectedKeys={[stateCurrentKey]}
+                    onClick={handleOnClick}
+                    items={items}
+                />
+            </Sider>
+            <Layout>
+                <Header style={{ padding: 0, background: colorBgContainer, display: 'flex', alignItems: 'center' }}>
+                    <Button
+                        type="text"
+                        icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+                        onClick={() => setCollapsed(!collapsed)}
+                        style={{
+                            fontSize: '16px',
+                            width: 64,
+                            height: 64,
+                        }}
+                    />
+                    <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 600 }}>{getPageTitle(stateCurrentKey)}</h2>
+                </Header>
+                <Content
+                    style={{
+                        margin: '16px',
+                        padding: '24px',
+                        minHeight: 280,
+                        background: colorBgContainer,
+                        borderRadius: borderRadiusLG,
+                        overflow: 'auto'
+                    }}
+                >
+                    {handleRenderPage(stateCurrentKey)}
+                </Content>
+            </Layout>
+        </StyledLayout>
+    );
 }
 
-export default AdminPage
+export default AdminPage;

@@ -8,7 +8,7 @@ const brandSchema = new mongoose.Schema({
     },
     image: {
         type: String,
-        default: "",
+        default: ""
     }
 }, { timestamps: true });
 

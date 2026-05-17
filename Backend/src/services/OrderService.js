@@ -2,6 +2,7 @@ const Order = require("../models/OrderProductModel");
 const Product = require("../models/ProductModel");
 const Warehouse = require("../models/WarehouseModel");
 const mongoose = require('mongoose');
+const socket = require("../socket");
 
 const createOrder = async (newOrder) => {
     const session = await mongoose.startSession();
@@ -78,7 +79,7 @@ const createOrder = async (newOrder) => {
         if (createdOrder && createdOrder.length > 0) {
             const orderId = createdOrder[0]._id;
             try {
-                const socketIO = require('../socket').getIO();
+                const socketIO = socket.getIO();
                 const Notification = require('../models/NotificationModel');
 
                 const newNotification = await Notification.create({
@@ -189,7 +190,7 @@ const updateOrder = async (id, data) => {
         session.endSession();
 
         try {
-            const socketIO = require('../socket').getIO();
+            const socketIO = socket.getIO();
             const Notification = require('../models/NotificationModel');
 
             const statusText = data.status === 3 ? 'đã bị hủy' : (data.status === 4 ? 'đã được giao thành công' : 'đã được cập nhật trạng thái');
@@ -261,10 +262,54 @@ const getAllOrderDetails = async (id) => {
     }
 }
 
+const updateOrderReview = (id, data) => {
+    return new Promise(async (resolve, reject) => {
+        try {
+            const order = await Order.findById(id).populate('orderItems.product');
+            const updatedOrder = await Order.findByIdAndUpdate(id, data, { new: true });
+
+            for (const item of order.orderItems) {
+                const product = await Product.findByIdAndUpdate(item.product, {
+                    $push: {
+                        reviews: {
+                            user: order.user,
+                            rating: data.rating,
+                            comment: data.comment
+                        }
+                    }
+                }, { new: true });
+
+                if (product && product.reviews && product.reviews.length > 0) {
+                    const totalRating = product.reviews.reduce((sum, r) => sum + (r.rating || 0), 0);
+                    const count = product.reviews.length;
+                    const averageRating = Math.round(totalRating / count);
+                    await Product.findByIdAndUpdate(item.product, { rating: averageRating });
+                }
+                
+                try {
+                    const socketIO = socket.getIO();
+                    socketIO.emit('new_review', { productId: item.product });
+                } catch (err) {
+                    console.error("Lỗi khi gửi thông báo socket review:", err);
+                }
+            }
+
+            resolve({
+                status: 'OK',
+                message: 'Đánh giá thành công',
+                data: updatedOrder
+            });
+        } catch (e) {
+            reject(e);
+        }
+    });
+};
+
 module.exports = {
     createOrder,
     getAllOrder,
     updateOrder,
     getDetailsOrder,
-    getAllOrderDetails
+    getAllOrderDetails,
+    updateOrderReview
 };;

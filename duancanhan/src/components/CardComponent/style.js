@@ -3,52 +3,78 @@ import styled from "styled-components";
 
 export const WrapperCardStyle = styled(Card)`
     border-radius: 8px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    width:200px;
+    border: 1px solid #ebebf0;
+    background: #fff;
+    width: 100%;
     cursor: pointer;
     overflow: hidden;
-    & img{
-        width: 100%;
-        height: 200px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+
+    &:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        border-color: rgba(26, 115, 232, 0.4);
+
+        img {
+            transform: scale(1.05);
+        }
     }
+
     .ant-card-body {
-        padding: 20px 10px;
+        padding: 16px;
         display: flex;
         flex-direction: column;
         flex: 1;
-        justify-content: space-between
+        gap: 8px;
+        justify-content: space-between;
     }
 `;
 
 export const WrapperNameText = styled.div`
-    line-height: 22px;
-    height: 66px;   
-    font-size: 16px;
+    line-height: 1.4;
+    height: 42px;   
+    font-size: 15px;
     font-weight: 600;
+    color: var(--text-main);
     overflow: hidden;
     text-overflow: ellipsis;
     display: -webkit-box;
-    -webkit-line-clamp: 3;
+    -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
+    transition: color 0.2s ease;
+    margin-bottom: 4px;
+
+    ${WrapperCardStyle}:hover & {
+        color: var(--primary-color);
+    }
 `;
+
 export const WrapperReportText = styled.div`
     font-size: 12px;
-    color: #666;
-    margin: 6px 0 0;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 4px;
 `;
 
 export const WrapperPriceText = styled.div`
-    font-size: 16px;
-    font-weight: 600;
-    color: rgb(169 21 21);
+    font-size: 18px;
+    font-weight: 700;
+    color: #e53935;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
 `;
+
 export const WrapperDiscountText = styled.span`
-    font-size: 12px;
-    background: var(--Alias-Theme-Variant, #f5f5fa);
-    color: var(--Alias-Primary---On-Theme, #27272a);
-    padding: 2px 6px;
-    border-radius: 4px;
-`;
+    font-size: 11px;
+    font-weight: 700;
+    background: #ffebee;
+    color: #e53935;
+    padding: 4px 8px;
+    border-radius: 6px;
+    text-transform: uppercase;
+`;

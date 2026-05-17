@@ -162,7 +162,7 @@ function ProductAddPage() {
                 </Form.Item>
 
                 <Form.Item label="Tên hiển thị web" name="name" rules={[{ required: true }]}>
-                    <Input />
+                    <Input disabled />
                 </Form.Item>
 
                 <Form.Item label="Số lượng đưa lên Page" name="countInStock" rules={[{ required: true }]}>
@@ -175,18 +175,15 @@ function ProductAddPage() {
 
                 <Form.Item label="Danh mục" name="category" rules={[{ required: true }]}>
                     <Select
+                        disabled
                         placeholder="Chọn danh mục"
                         options={categoriesData?.data?.map((item) => ({ value: item._id, label: item.name }))}
-                        onChange={(value) => {
-                            const category = categoriesData?.data?.find(item => item._id === value);
-                            setSelectedCategoryBrands(category?.brands || []);
-                            form.setFieldsValue({ brand: undefined });
-                        }}
                     />
                 </Form.Item>
 
                 <Form.Item label="Hãng" name="brand" rules={[{ required: true }]}>
                     <Select
+                        disabled
                         placeholder="Chọn hãng"
                         options={selectedCategoryBrands.map((brand) => ({
                             value: typeof brand === 'string' ? brand : brand?.name,
@@ -197,6 +194,7 @@ function ProductAddPage() {
 
                 <Form.Item label="Nhà cung cấp" name="supplier">
                     <Select
+                        disabled
                         placeholder="Chọn nhà cung cấp"
                         options={suppliersData?.data?.map((item) => ({ value: item._id, label: item.name }))}
                     />

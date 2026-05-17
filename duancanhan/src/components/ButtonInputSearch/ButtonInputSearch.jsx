@@ -11,32 +11,26 @@ const ButtonInputSearch = (props) => {
         <div style={{
             display: "flex",
             alignItems: "stretch",
-            borderRadius: 5,
-            border: "1px solid #d9d9d9",
-            overflow: "hidden"
+            borderRadius: 12,
+            backgroundColor: '#f5f5f7',
+            border: "1px solid transparent",
+            overflow: "hidden",
+            transition: 'all 0.3s ease',
+            width: '100%'
         }}>
             <InputComponent
                 size={size}
                 placeholder={placeholder}
                 variant={variant}
                 style={{
-                    backgroundColor: backgroundColorInput,
+                    backgroundColor: 'transparent',
                     flex: 1,
+                    border: 'none',
+                    padding: '8px 16px',
+                    fontSize: '14px'
                 }}
                 {...props}
             />
-            {/* Divider giữa Input và Button */}
-            <div style={{
-                display: "flex",
-                alignItems: "center",
-                padding: "0 1px"
-            }}>
-                <div style={{
-                    width: 1,
-                    height: "50%",
-                    backgroundColor: "#d9d9d9"
-                }}></div>
-            </div>
             <Button
                 size={size}
                 icon={<SearchOutlined />}
@@ -44,8 +38,14 @@ const ButtonInputSearch = (props) => {
                 onMouseEnter={() => setIsHovered(true)}
                 onMouseLeave={() => setIsHovered(false)}
                 style={{
-                    backgroundColor: isHovered ? "#f0f0f0" : backgroundColorButton,
-                    borderRadius: 0
+                    backgroundColor: isHovered ? "var(--primary-color)" : "transparent",
+                    color: isHovered ? "#fff" : "var(--primary-color)",
+                    borderRadius: 0,
+                    border: 'none',
+                    height: 'auto',
+                    padding: '0 20px',
+                    fontWeight: 600,
+                    transition: 'all 0.2s ease'
                 }}
                 {...props}
             > {textButton} </Button>

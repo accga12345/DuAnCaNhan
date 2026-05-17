@@ -1,12 +1,12 @@
 const express = require("express");
 const router = express.Router();
 const WarehouseController = require("../controller/WarehouseController");
-const { authMiddleware } = require("../middleware/authMiddleware");
+const { authAdminMiddleware } = require("../middleware/authMiddleware");
 
-router.post("/create", authMiddleware, WarehouseController.createWarehouseItem);
-router.put("/update/:id", authMiddleware, WarehouseController.updateWarehouseItem);
+router.post("/create", authAdminMiddleware, WarehouseController.createWarehouseItem);
+router.put("/update/:id", authAdminMiddleware, WarehouseController.updateWarehouseItem);
 router.get("/get_by_id/:id", WarehouseController.getDetailWarehouseItem);
 router.get("/get_all", WarehouseController.getAllWarehouseItems);
-router.delete("/delete/:id", authMiddleware, WarehouseController.deleteWarehouseItem);
+router.delete("/delete/:id", authAdminMiddleware, WarehouseController.deleteWarehouseItem);
 
 module.exports = router;

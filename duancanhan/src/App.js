@@ -28,12 +28,10 @@ axiosJwt.interceptors.request.use(
           localStorage.setItem("access_token", JSON.stringify(token));
         } catch (err) {
           localStorage.removeItem("access_token");
-          window.location.href = "/";
           return Promise.reject(err);
         }
       }
 
-      // Standardize on Authorization: Bearer header
       config.headers.Authorization = `Bearer ${token}`;
     }
 

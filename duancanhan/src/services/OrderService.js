@@ -45,3 +45,12 @@ export const getOrderByUserId = async (id, access_token) => {
     return res.data;
 };
 
+export const updateOrderReview = async (id, data, access_token) => {
+    const res = await axiosJwt.put(`${process.env.REACT_APP_API_URL}/order/update-review/${id}`, data, {
+        headers: {
+            token: `Bearer ${access_token}`,
+        }
+    });
+    return res.data;
+};
+

@@ -10,6 +10,10 @@ const categorySchema = new mongoose.Schema({
         type: String,
         default: "",
     },
+    brands: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Brand',
+    }],
 }, { timestamps: true });
 
 const Category = mongoose.model('Category', categorySchema);

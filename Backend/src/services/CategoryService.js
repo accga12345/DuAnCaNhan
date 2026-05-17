@@ -10,7 +10,8 @@ const createCategory = async (newCategory) => {
                 message: "Danh muc da ton tai",
             };
         }
-        const category = await Category.create(newCategory);
+        let category = await Category.create(newCategory);
+        category = await category.populate('brands');
         return {
             status: "success",
             message: "Tao danh muc thanh cong",
@@ -39,7 +40,7 @@ const updateCategory = async (id, data) => {
                 };
             }
         }
-        const category = await Category.findOneAndUpdate({ _id: id }, data, { new: true });
+        const category = await Category.findOneAndUpdate({ _id: id }, data, { new: true }).populate('brands');
         return {
             status: "success",
             message: "Cap nhat danh muc thanh cong",
@@ -52,7 +53,7 @@ const updateCategory = async (id, data) => {
 
 const getDetailCategory = async (id) => {
     try {
-        const category = await Category.findOne({ _id: id });
+        const category = await Category.findOne({ _id: id }).populate('brands');
         return {
             status: "success",
             message: "Lay thong tin danh muc thanh cong",
@@ -65,7 +66,7 @@ const getDetailCategory = async (id) => {
 
 const getAllCategories = async () => {
     try {
-        const categories = await Category.find();
+        const categories = await Category.find().populate('brands');
         return {
             status: "success",
             message: "Lay danh sach danh muc thanh cong",

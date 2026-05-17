@@ -170,17 +170,17 @@ const HeaderComponent = ({ isHiddenSearch, isCart }) => {
     })
   }
   return (
-    <div style={{ background: '#fff', width: '100%', display: 'flex', justifyContent: 'center' }}>
-      <WapperHeaderComponent style={{ width: '1440px', justifyContent: isHiddenSearch || isCart ? 'space-between' : 'center' }}>
-        <Col span={6}>
+    <div style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
+      <WapperHeaderComponent style={{ width: '100%', maxWidth: '1440px' }} justify={isHiddenSearch ? "space-between" : "start"}>
+        <Col span={isHiddenSearch ? 12 : 4}>
           <WapperTextHeader style={{ cursor: 'pointer' }} onClick={() => navigate("/")}>Tech Shop</WapperTextHeader>
         </Col>
 
         {!isHiddenSearch && (
-          <Col span={12}>
+          <Col span={14} style={{ padding: '0 20px' }}>
             <ButtonInputSearch
               size="large"
-              placeholder="Tìm kiếm sản phẩm, hàng hóa hay thương hiệu mong muốn..."
+              placeholder="Tìm kiếm sản phẩm..."
               variant="borderless"
               textButton="Tìm Kiếm"
               onChange={handelOnSearch}
@@ -188,7 +188,7 @@ const HeaderComponent = ({ isHiddenSearch, isCart }) => {
           </Col>
         )}
 
-        <Col span={6}>
+        <Col span={isHiddenSearch ? 12 : 6}>
           <WapperHeaderAction>
             <div className="item">
               <HomeOutlined />

@@ -9,10 +9,16 @@ import ProfilePage from "../pages/ProfilePage/ProfilePage";
 import AdminPage from "../pages/AdminPage/AdminPage";
 import OrderSuccessPage from "../pages/OrderSuccessPage/OrderSuccessPage";
 import MyOrderPage from "../pages/MyOrderPage/MyOrderPage";
+import CommitmentPage from "../pages/CommitmentPage/CommitmentPage";
 const routes = [
     {
         path: "/",
         page: HomePage,
+        isShowHeader: true
+    },
+    {
+        path: "/cam-ket",
+        page: CommitmentPage,
         isShowHeader: true
     },
     {
@@ -62,6 +68,7 @@ const routes = [
         isPrivate: true,
         isHiddenSearch: true,
         isCart: true,
+        isFullWidth: true,
     },
     {
         path: "*",

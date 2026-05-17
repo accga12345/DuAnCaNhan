@@ -121,10 +121,10 @@ const ProductDetailComponent = (props) => {
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                             <WrapperTextRate>
                                 <span style={{ textDecoration: 'underline', fontWeight: '600' }}>{product?.data?.rating}</span>
-                                <Rate allowHalf defaultValue={product?.data?.rating} disabled style={{ fontSize: "14px", color: '#ffbe00' }} />
+                                <Rate value={product?.data?.rating} disabled style={{ fontSize: "14px", color: '#ffbe00' }} />
                             </WrapperTextRate>
                             <span style={{ color: '#f0f0f0' }}>|</span>
-                            <WrapperTextQuantityBuy>{product?.data?.selled || 0} đã bán</WrapperTextQuantityBuy>
+                            <WrapperTextQuantityBuy>{product?.data?.selled} đã bán</WrapperTextQuantityBuy>
                         </div>
                         <WrapperProductPrice style={{ background: '#fafafa', padding: '15px', borderRadius: '4px', marginTop: '15px' }}>
                             <WrapperTextPrice>{product?.data?.price?.toLocaleString()} ₫</WrapperTextPrice>
@@ -213,6 +213,24 @@ const ProductDetailComponent = (props) => {
                                 {showAllDescription ? "Thu gọn nội dung" : "Xem thêm nội dung"}
                             </button>
                         </WrapperReadMoreBtn>
+                    </WrapperDescription>
+
+                    <WrapperDescription style={{ marginTop: '20px', padding: '20px' }}>
+                        <h2>Đánh giá sản phẩm ({product?.data?.reviews?.length || 0})</h2>
+                        {product?.data?.reviews?.length > 0 ? (
+                            product.data.reviews.map((review, index) => (
+                                <div key={index} style={{ borderBottom: '1px solid #eee', padding: '10px 0' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                        <Rate disabled defaultValue={review.rating} style={{ fontSize: '14px' }} />
+                                        <span style={{ fontWeight: 'bold' }}>{review.user?.name || "Khách hàng"}</span>
+                                        <span style={{ color: '#999', fontSize: '12px' }}>{new Date(review.createdAt).toLocaleDateString()}</span>
+                                    </div>
+                                    <p style={{ marginTop: '5px' }}>{review.comment}</p>
+                                </div>
+                            ))
+                        ) : (
+                            <p style={{ color: '#888', fontStyle: 'italic' }}>Chưa có đánh giá nào cho sản phẩm này.</p>
+                        )}
                     </WrapperDescription>
                 </Col>
                 <Col span={8}>

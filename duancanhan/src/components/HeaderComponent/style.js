@@ -2,69 +2,79 @@ import { Row } from 'antd';
 import styled from 'styled-components';
 
 export const WapperHeaderComponent = styled(Row)`
-  background-color: #ffffff;
+  background-color: var(--glass-bg);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   display: flex;
-  height: 60px;
+  height: 70px;
   align-items: center;
   padding: 0 24px;
+  border-bottom: 1px solid var(--glass-border);
+  transition: all 0.3s ease;
 `;
 
 export const WapperTextHeader = styled.span`
-  color: #333;
-  font-size: 20px;
-  font-weight: 600;
+  color: var(--primary-color);
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  background: linear-gradient(135deg, #1a73e8 0%, #0d47a1 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  white-space: nowrap;
 `;
 
 export const WapperHeaderAction = styled.div`
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 20px;
+  gap: 12px;
 
   .item {
-    max-width: 150px;    
+    padding: 6px 10px;
     display: flex;
-    gap: 10px;
+    gap: 6px;
     align-items: center;
     justify-content: center;
+    cursor: pointer;
+    border-radius: 10px;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    color: var(--text-main);
+    white-space: nowrap;
   }
   
   .item .text-item {
-    max-width: 80px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    font-size: 13px;
+    font-weight: 500;
   }
-
 
   .item:hover {
-    border-radius: 5px;
-    padding: 10px;
-    background-color: #f0f0f0;
+    background-color: rgba(0, 0, 0, 0.04);
+    transform: translateY(-1px);
   }
 
-  .item .text-item {
-    font-size: 17px;
-    font-weight: 600;
+  .item:active {
+    transform: translateY(0);
   }
 
   .item:first-child {
-    color: #1890ff;
+    color: var(--primary-color);
+    background-color: rgba(26, 115, 232, 0.08);
   }
 
-
-  .item:last-child {
-    position: relative;
+  .item:first-child:hover {
+    background-color: rgba(26, 115, 232, 0.12);
   }
 
   .item svg {
-    font-size: larger;
+    font-size: 20px;
   }
+
   .divider {
     width: 1px;
-    height: 24px;
-    background-color: #ddd;
-}
+    height: 20px;
+    background-color: var(--glass-border);
+  }
 `;
 
 export const WapperAvatar = styled.div`

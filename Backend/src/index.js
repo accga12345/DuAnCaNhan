@@ -1,11 +1,12 @@
 const express = require('express');
 const dotenv = require('dotenv');
+dotenv.config();
+
 const { default: mongoose } = require('mongoose');
 const router = require('./routes');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
-dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;

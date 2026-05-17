@@ -79,6 +79,14 @@ const orderProductSchema = new mongoose.Schema({
     status: {
         type: Number,
         default: 0,
+    },
+    rating: {
+        type: Number,
+        default: 0,
+    },
+    comment: {
+        type: String,
+        default: "",
     }
 }, { timestamps: true });
 

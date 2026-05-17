@@ -1,0 +1,408 @@
+{
+  "settings": {
+    "languages": [
+      "vi"
+    ],
+    "forceNER": true,
+    "tag": "nlp",
+    "threshold": 0.5,
+    "autoLoad": true,
+    "autoSave": true,
+    "modelFileName": "model.nlp",
+    "executeActionsBeforeAnswers": false,
+    "calculateSentiment": true
+  },
+  "nluManager": {
+    "settings": {
+      "tag": "nlu-manager"
+    },
+    "locales": [
+      "vi"
+    ],
+    "languageNames": {},
+    "domainManagers": {
+      "vi": {
+        "settings": {
+          "locale": "vi",
+          "trainByDomain": false,
+          "tag": "domain-manager-vi",
+          "nluByDomain": {
+            "default": {
+              "className": "NeuralNlu",
+              "settings": {}
+            }
+          },
+          "useStemDict": true
+        },
+        "stemDict": {
+          "chao,xin": {
+            "intent": "greeting",
+            "domain": "default"
+          },
+          "hi,shop": {
+            "intent": "greeting",
+            "domain": "default"
+          },
+          "ban,chao": {
+            "intent": "greeting",
+            "domain": "default"
+          },
+          "build,pc,tu,van": {
+            "intent": "build.pc",
+            "domain": "default"
+          },
+          "may,minh,muon,rap,tinh": {
+            "intent": "build.pc",
+            "domain": "default"
+          },
+          "%budget%,build,can,khoang,may": {
+            "intent": "build.pc",
+            "domain": "default"
+          },
+          "%budget%,pc,rap": {
+            "intent": "build.pc",
+            "domain": "default"
+          },
+          "%budget%,mua,pc,tu,van": {
+            "intent": "build.pc",
+            "domain": "default"
+          }
+        },
+        "intentDict": {
+          "greeting": "default",
+          "build.pc": "default"
+        },
+        "sentences": [
+          {
+            "domain": "default",
+            "utterance": "Xin chào",
+            "intent": "greeting"
+          },
+          {
+            "domain": "default",
+            "utterance": "Hi shop",
+            "intent": "greeting"
+          },
+          {
+            "domain": "default",
+            "utterance": "Chào bạn",
+            "intent": "greeting"
+          },
+          {
+            "domain": "default",
+            "utterance": "tư vấn build pc",
+            "intent": "build.pc"
+          },
+          {
+            "domain": "default",
+            "utterance": "mình muốn ráp máy tính",
+            "intent": "build.pc"
+          },
+          {
+            "domain": "default",
+            "utterance": "cần build máy khoảng %budget%",
+            "intent": "build.pc"
+          },
+          {
+            "domain": "default",
+            "utterance": "ráp pc %budget%",
+            "intent": "build.pc"
+          },
+          {
+            "domain": "default",
+            "utterance": "tư vấn %budget% mua pc",
+            "intent": "build.pc"
+          }
+        ],
+        "domains": {
+          "master_domain": {
+            "settings": {
+              "locale": "vi",
+              "tag": "nlu-vi",
+              "keepStopwords": true,
+              "nonefeatureValue": 1,
+              "nonedeltaMultiplier": 1.2,
+              "spellCheck": false,
+              "spellCheckDistance": 1,
+              "filterZeros": true,
+              "log": true
+            },
+            "features": {
+              "xin": 1,
+              "chao": 1,
+              "hi": 1,
+              "shop": 1,
+              "ban": 1,
+              "tu": 1,
+              "van": 1,
+              "build": 1,
+              "pc": 1,
+              "minh": 1,
+              "muon": 1,
+              "rap": 1,
+              "may": 1,
+              "tinh": 1,
+              "can": 1,
+              "khoang": 1,
+              "%budget%": 1,
+              "mua": 1
+            },
+            "intents": {
+              "greeting": 1,
+              "build.pc": 1
+            },
+            "intentFeatures": {
+              "greeting": {
+                "xin": 1,
+                "chao": 1,
+                "hi": 1,
+                "shop": 1,
+                "ban": 1
+              },
+              "build.pc": {
+                "tu": 1,
+                "van": 1,
+                "build": 1,
+                "pc": 1,
+                "minh": 1,
+                "muon": 1,
+                "rap": 1,
+                "may": 1,
+                "tinh": 1,
+                "can": 1,
+                "khoang": 1,
+                "%budget%": 1,
+                "mua": 1
+              }
+            },
+            "featuresToIntent": {
+              "xin": [
+                "greeting"
+              ],
+              "chao": [
+                "greeting"
+              ],
+              "hi": [
+                "greeting"
+              ],
+              "shop": [
+                "greeting"
+              ],
+              "ban": [
+                "greeting"
+              ],
+              "tu": [
+                "build.pc"
+              ],
+              "van": [
+                "build.pc"
+              ],
+              "build": [
+                "build.pc"
+              ],
+              "pc": [
+                "build.pc"
+              ],
+              "minh": [
+                "build.pc"
+              ],
+              "muon": [
+                "build.pc"
+              ],
+              "rap": [
+                "build.pc"
+              ],
+              "may": [
+                "build.pc"
+              ],
+              "tinh": [
+                "build.pc"
+              ],
+              "can": [
+                "build.pc"
+              ],
+              "khoang": [
+                "build.pc"
+              ],
+              "%budget%": [
+                "build.pc"
+              ],
+              "mua": [
+                "build.pc"
+              ]
+            },
+            "neuralNetwork": {
+              "settings": {
+                "locale": "vi",
+                "tag": "nlu-vi",
+                "keepStopwords": true,
+                "nonefeatureValue": 1,
+                "nonedeltaMultiplier": 1.2,
+                "spellCheck": false,
+                "spellCheckDistance": 1,
+                "filterZeros": true,
+                "log": true
+              },
+              "features": [
+                "xin",
+                "chao",
+                "hi",
+                "shop",
+                "ban",
+                "tu",
+                "van",
+                "build",
+                "pc",
+                "minh",
+                "muon",
+                "rap",
+                "may",
+                "tinh",
+                "can",
+                "khoang",
+                "%budget%",
+                "mua"
+              ],
+              "intents": [
+                "greeting",
+                "build.pc"
+              ],
+              "perceptrons": [
+                [
+                  3.2710940837860107,
+                  6.599116325378418,
+                  4.937139511108398,
+                  4.937139511108398,
+                  3.328313112258911,
+                  -0.8724132180213928,
+                  -0.8724132180213928,
+                  -1.1324113607406616,
+                  -1.6024305820465088,
+                  -0.6665092706680298,
+                  -0.6665092706680298,
+                  -1.4083958864212036,
+                  -1.1412712335586548,
+                  -0.6665092706680298,
+                  -0.4371723234653473,
+                  -0.4371723234653473,
+                  -1.3812915086746216,
+                  -0.16865554451942444,
+                  4.391927295631012
+                ],
+                [
+                  -0.7898755669593811,
+                  -1.5404330492019653,
+                  -1.1319223642349243,
+                  -1.1319223642349243,
+                  -0.7310344576835632,
+                  2.11910343170166,
+                  2.11910343170166,
+                  3.2216734886169434,
+                  4.350653171539307,
+                  1.7262935638427734,
+                  1.7262935638427734,
+                  3.946207284927368,
+                  2.9115703105926514,
+                  1.7262935638427734,
+                  1.1897029876708984,
+                  1.1897029876708984,
+                  3.501281499862671,
+                  0.09520689398050308,
+                  2.288868945728564
+                ]
+              ]
+            }
+          }
+        }
+      }
+    },
+    "intentDomains": {},
+    "extraSentences": [
+      [
+        "vi",
+        "Xin chào"
+      ],
+      [
+        "vi",
+        "Hi shop"
+      ],
+      [
+        "vi",
+        "Chào bạn"
+      ],
+      [
+        "vi",
+        "tư vấn build pc"
+      ],
+      [
+        "vi",
+        "mình muốn ráp máy tính"
+      ],
+      [
+        "vi",
+        "cần build máy khoảng %budget%"
+      ],
+      [
+        "vi",
+        "ráp pc %budget%"
+      ],
+      [
+        "vi",
+        "tư vấn %budget% mua pc"
+      ]
+    ]
+  },
+  "ner": {
+    "settings": {
+      "tag": "ner",
+      "entityPreffix": "%",
+      "entitySuffix": "%"
+    },
+    "rules": {
+      "vi": {
+        "budget": {
+          "name": "budget",
+          "type": "regex",
+          "rules": [
+            "/(\\d+)\\s*(triệu|tr|củ|m)/gi"
+          ]
+        }
+      }
+    }
+  },
+  "nlgManager": {
+    "settings": {
+      "tag": "nlg-manager"
+    },
+    "responses": {
+      "vi": {
+        "greeting": [
+          {
+            "answer": "Chào bạn! Mình là Bot hỗ trợ. Mình giúp gì được cho bạn?"
+          }
+        ],
+        "None": [
+          {
+            "answer": "Dạ, hiện tại mình chỉ hỗ trợ tư vấn ráp PC thôi ạ. Bạn cần ráp máy khoảng bao nhiêu tiền?"
+          }
+        ]
+      }
+    }
+  },
+  "actionManager": {
+    "settings": {
+      "tag": "action-manager"
+    },
+    "actions": {}
+  },
+  "slotManager": {
+    "build.pc": {
+      "budget": {
+        "intent": "build.pc",
+        "entity": "budget",
+        "mandatory": false,
+        "locales": {}
+      }
+    }
+  }
+}

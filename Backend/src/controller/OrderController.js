@@ -78,10 +78,28 @@ const getAllOrderDetails = async (req, res) => {
     }
 }
 
+const updateOrderReview = async (req, res) => {
+    try {
+        const orderId = req.params.id;
+        const data = req.body;
+        if (!orderId) {
+            return res.status(400).json({
+                status: "error",
+                message: "khong tim thay don hang",
+            });
+        }
+        const order = await OrderService.updateOrderReview(orderId, data);
+        return res.status(200).json(order);
+    } catch (error) {
+        return res.status(500).json({ message: error.message });
+    }
+}
+
 module.exports = {
     createOrder,
     getAllOrder,
     updateOrder,
     getDetailsOrder,
-    getAllOrderDetails
+    getAllOrderDetails,
+    updateOrderReview
 };
