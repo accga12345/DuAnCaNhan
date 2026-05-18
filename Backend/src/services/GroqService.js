@@ -12,12 +12,15 @@ const parseUserIntent = async (userMessage, history = []) => {
     const systemPrompt = {
         role: "system",
         content: `Bạn là chuyên gia phân tích yêu cầu tại shop PC.
-        TRẢ VỀ JSON. 
+        TRẢ VỀ JSON.
+        NHIỆM VỤ: Phân tích tin nhắn HIỆN TẠI và LỊCH SỬ trò chuyện để trích xuất thông tin.
+        
+        CÁC TRƯỜNG JSON:
         - "intent": "build.pc" hoặc "chat".
-        - "budget": Số tiền VNĐ chính xác. VD: "16tr5" -> 16500000. NẾU KHÔNG CÓ, LÀ 0.
-        - "purpose": "gaming", "work", "office" hoặc "unknown".
-        - "accessories": Mảng các phụ kiện khách muốn thêm. 
-          CHỈ ĐƯỢC CHỌN TỪ DANH SÁCH: ["Monitor", "keybroad"].
+        - "budget": Số tiền VNĐ. (VD: "16tr5" -> 16500000). NẾU KHÔNG CÓ TRONG CẢ LỊCH SỬ VÀ HIỆN TẠI, LÀ 0.
+        - "purpose": "gaming", "work", "office". PHẢI GIỮ NGUYÊN từ lịch sử nếu tin nhắn mới không đổi mục đích.
+        - "accessories": Mảng các phụ kiện khách đã yêu cầu xuyên suốt cuộc trò chuyện.
+          DANH SÁCH HỢP LỆ: ["Monitor", "keybroad"].
           Lưu ý: Nếu khách nói "bàn phím" hoặc "keyboard", hãy trả về "keybroad".
         
         { "intent": "build.pc", "budget": 0, "purpose": "unknown", "accessories": [] }`

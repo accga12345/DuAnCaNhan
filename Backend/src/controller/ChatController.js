@@ -9,36 +9,21 @@ const handleChat = async (req, res) => {
 
     let botReply = "";
     let suggestedProducts = [];
+    const removeAccents = (str) => str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 
     try {
         const nluResult = await GroqService.parseUserIntent(message, history || []);
         let { intent, budget, purpose, accessories } = nluResult;
 
-        const extractBudget = (text) => {
-            const m = text.match(/(\d+(?:\.\d+)?)\s*(tr|trieu|triệu|cu|củ|m)/i);
-            if (m) {
-                const val = parseFloat(m[1].replace(',', '.'));
-                return val * 1000000;
-            }
-            return 0;
-        };
-
-        let currentMsgBudget = extractBudget(message);
-        if (currentMsgBudget > 0 && currentMsgBudget < 500000000) {
-            budget = currentMsgBudget;
-        } else if (history?.length > 0) {
+        // 1. PHỤC HỒI NGÂN SÁCH (Chỉ nếu AI không bóc được từ tin nhắn mới)
+        if (!budget && history?.length > 0) {
             for (let i = history.length - 1; i >= 0; i--) {
                 if (history[i].role === 'user') {
-                    let histBudget = extractBudget(history[i].parts[0].text);
-                    if (histBudget > 0) { budget = histBudget; break; }
+                    const histBudget = await GroqService.extractBudgetWithAI(history[i].parts[0].text);
+                    if (histBudget) { budget = histBudget; break; }
                 }
             }
         }
-
-        const removeAccents = (str) => str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-        const msgLower = removeAccents(message);
-        if (msgLower.includes('van phong') || msgLower.includes('office')) purpose = 'office';
-        if (msgLower.includes('game') || msgLower.includes('gaming')) purpose = 'gaming';
 
         const formatMoneyText = (amount) => {
             if (amount >= 1000000) {
@@ -66,7 +51,6 @@ const handleChat = async (req, res) => {
                 let selectedRatios = { ...PURPOSE_RATIOS[purpose] || PURPOSE_RATIOS['gaming'] };
                 let buildOrder = ['CPU', 'Mainboard', 'RAM', 'SSD', 'PSU', 'Case', 'Cooling', 'VGA'];
 
-                // MAP TÊN AI SANG TÊN DB
                 const accessoryMapping = { 'keyboard': 'keybroad', 'keybroad': 'keybroad', 'Monitor': 'Monitor', 'mouse': 'Chuột' };
                 const requestedItems = [];
                 if (accessories && accessories.length > 0) {
@@ -78,9 +62,7 @@ const handleChat = async (req, res) => {
                     });
                 }
 
-                // Linh kiện BẮT BUỘC
                 let mandatoryList = ['CPU', 'Mainboard', 'RAM', 'SSD', 'PSU', 'Case'];
-                // Nếu khách yêu cầu phụ kiện, nó trở thành mục tiêu bắt buộc phải có trong lần build này
                 accessories.forEach(acc => {
                     const dbCat = accessoryMapping[acc] || acc;
                     if (!mandatoryList.includes(dbCat)) mandatoryList.push(dbCat);
@@ -94,42 +76,21 @@ const handleChat = async (req, res) => {
                 const getBestProduct = async (catName, targetPrice, constraints = {}, isMandatory = true) => {
                     const cat = allCategories.find(c => c.name === catName);
                     if (!cat) return null;
-
                     const safeTarget = targetPrice + surplus;
                     const limitPrice = (catName === 'PSU') ? 2000000 : safeTarget * 1.5;
                     let query = { category: cat._id, price: { $lte: Math.min(safeTarget, limitPrice) } };
-
                     const andConditions = [];
                     for (const [key, value] of Object.entries(constraints)) {
                         if (!value) continue;
                         const specKey = key === 'ramType' ? 'Loại RAM' : 'Socket';
-                        andConditions.push({
-                            "$or": [
-                                { "specifications": { $elemMatch: { key: specKey, value: { $regex: new RegExp(value, 'i') } } } },
-                                { "specifications": { $not: { $elemMatch: { key: specKey } } } }
-                            ]
-                        });
+                        andConditions.push({ "$or": [ { "specifications": { $elemMatch: { key: specKey, value: { $regex: new RegExp(value, 'i') } } } }, { "specifications": { $not: { $elemMatch: { key: specKey } } } } ] });
                     }
-                    andConditions.push({
-                        "$or": [
-                            { "specifications": { $elemMatch: { key: "Mục đích", value: { $regex: new RegExp(dbPurpose, 'i') } } } },
-                            { "specifications": { $not: { $elemMatch: { key: "Mục đích" } } } }
-                        ]
-                    });
+                    andConditions.push({ "$or": [ { "specifications": { $elemMatch: { key: "Mục đích", value: { $regex: new RegExp(dbPurpose, 'i') } } } }, { "specifications": { $not: { $elemMatch: { key: "Mục đích" } } } } ] });
                     query["$and"] = andConditions;
 
-                    console.log(`DEBUG: Tìm ${catName} với ngân sách ${safeTarget}, mandatory: ${isMandatory}`);
-
                     let p = await ProductModel.findOne(query).sort({ price: -1 });
-                    if (!p) {
-                        delete query["$and"]; 
-                        p = await ProductModel.findOne(query).sort({ price: -1 });
-                    }
-
-                    if (!p && isMandatory) {
-                        p = await ProductModel.findOne({ category: cat._id, price: { $lte: (absoluteMaxTotal - currentTotalSpent) } }).sort({ price: 1 });
-                    }
-
+                    if (!p) { delete query["$and"]; p = await ProductModel.findOne(query).sort({ price: -1 }); }
+                    if (!p && isMandatory) { p = await ProductModel.findOne({ category: cat._id, price: { $lte: (absoluteMaxTotal - currentTotalSpent) } }).sort({ price: 1 }); }
                     if (p) {
                         const pObj = p.toObject();
                         pObj.categoryName = catName;
@@ -137,7 +98,6 @@ const handleChat = async (req, res) => {
                         surplus = Math.max(0, safeTarget - p.price); 
                         return pObj;
                     }
-                    console.log(`DEBUG: Không tìm thấy ${catName}`);
                     return null;
                 };
 
@@ -147,15 +107,9 @@ const handleChat = async (req, res) => {
                     let constraints = {};
                     if (catName === 'Mainboard' && cpu) constraints.socket = cpu.specifications?.find(s => s.key === 'Socket')?.value;
                     if (catName === 'RAM' && main) constraints.ramType = main.specifications?.find(s => s.key === 'Loại RAM')?.value;
-
                     const p = await getBestProduct(catName, budget * (selectedRatios[catName] || 0.05), constraints, isMandatory);
-                    
                     if (!p && isMandatory) { success = false; break; }
-                    if (p) {
-                        suggestedProducts.push(p);
-                        if (catName === 'CPU') cpu = p;
-                        if (catName === 'Mainboard') main = p;
-                    }
+                    if (p) { suggestedProducts.push(p); if (catName === 'CPU') cpu = p; if (catName === 'Mainboard') main = p; }
                 }
 
                 if (success && currentTotalSpent <= absoluteMaxTotal) {
@@ -163,7 +117,7 @@ const handleChat = async (req, res) => {
                     botReply = await GroqService.generateNaturalReply(message, suggestedProducts, purpose, budget, currentTotalSpent, missingReq);
                     botReply += `\n\n[Tổng: ${currentTotalSpent.toLocaleString()}đ / Budget: ${budget.toLocaleString()}đ (+1tr dự phòng)]`;
                 } else {
-                    botReply = `Ngân sách ${formatMoneyText(budget)} không đủ linh kiện cốt lõi. Hãy tăng ngân sách nhé!`;
+                    botReply = `Ngân sách ${formatMoneyText(budget)} không đủ linh kiện cần thiết cho ${dbPurpose}. Bạn hãy tăng ngân sách nhé!`;
                     suggestedProducts = [];
                 }
             }
