@@ -2,7 +2,7 @@ const Groq = require("groq-sdk");
 
 const groqClient = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
-const parseUserIntent = async (userMessage, history = []) => {
+const parseUserIntent = async (userMessage, history = [], validCategories = []) => {
     const messages = history.map(item => ({
         role: item.role === 'user' ? 'user' : 'assistant',
         content: item.parts[0].text
@@ -12,18 +12,22 @@ const parseUserIntent = async (userMessage, history = []) => {
     const systemPrompt = {
         role: "system",
         content: `Bạn là chuyên gia phân tích yêu cầu tại shop PC.
-        TRẢ VỀ JSON.
-        NHIỆM VỤ: Phân tích tin nhắn HIỆN TẠI và LỊCH SỬ trò chuyện để trích xuất thông tin.
+        NHIỆM VỤ: Trích xuất thông tin từ tin nhắn và lịch sử. 
         
-        CÁC TRƯỜNG JSON:
-        - "intent": "build.pc" hoặc "chat".
-        - "budget": Số tiền VNĐ. (VD: "16tr5" -> 16500000). NẾU KHÔNG CÓ TRONG CẢ LỊCH SỬ VÀ HIỆN TẠI, LÀ 0.
-        - "purpose": "gaming", "work", "office". PHẢI GIỮ NGUYÊN từ lịch sử nếu tin nhắn mới không đổi mục đích.
-        - "accessories": Mảng các phụ kiện khách đã yêu cầu xuyên suốt cuộc trò chuyện.
-          DANH SÁCH HỢP LỆ: ["Monitor", "keybroad"].
-          Lưu ý: Nếu khách nói "bàn phím" hoặc "keyboard", hãy trả về "keybroad".
+        CÁC TRƯỜNG JSON CẦN TRẢ VỀ:
+        - "intent": "build.pc", "buy.individual", hoặc "chat".
+        - "budget": Số tiền VNĐ tổng. (15tr -> 15000000). NẾU CHƯA CÓ, LÀ 0.
+        - "purpose": "gaming", "work", "office". NẾU CHƯA CÓ, PHẢI LÀ "unknown".
+        - "cpuBrand": "intel", "amd". NẾU CHƯA CÓ, PHẢI LÀ "unknown".
+        - "components": Mảng linh kiện: {"cat": "Tên danh mục chuẩn", "budget": số_tiền}.
         
-        { "intent": "build.pc", "budget": 0, "purpose": "unknown", "accessories": [] }`
+        QUY TẮC CỰC KỲ QUAN TRỌNG:
+        1. KHÔNG ĐƯỢC đoán "purpose" hay "cpuBrand" nếu khách chưa nói rõ.
+        2. Nếu thiếu bất kỳ thông tin nào trong 3 thứ (budget, purpose, cpuBrand), "intent" PHẢI là "chat".
+        3. CHỈ khi nào có ĐỦ CẢ 3 (budget, purpose, cpuBrand), "intent" mới được là "build.pc".
+        4. DANH MỤC HỢP LỆ: [${validCategories.join(', ')}]
+        
+        { "intent": "chat", "budget": 0, "purpose": "unknown", "cpuBrand": "unknown", "components": [] }`
     };
     messages.unshift(systemPrompt);
 
@@ -43,17 +47,16 @@ const generateNaturalReply = async (userMessage, productList = [], purpose = "un
 
     let systemContent = `Bạn là nhân viên tư vấn phần cứng PC. 
     Dữ liệu:
-    - Danh sách: \n${productDetails}
+    - Danh sách linh kiện đã chọn: \n${productDetails}
     - ${missingText}
-    - Tổng: ${actualTotal.toLocaleString()}đ
-    - Ngân sách: ${budget.toLocaleString()}đ
+    - Tổng cộng: ${actualTotal.toLocaleString()}đ
+    - Ngân sách khách: ${budget.toLocaleString()}đ
 
     NHIỆM VỤ:
-    1. Trả lời dưới 30 từ, tập trung vào cấu hình phần cứng.
-    2. Nếu thiếu món: Báo rõ món thiếu và gợi ý tăng ngân sách.
-    3. Nếu đủ: Xác nhận cấu hình RẤT TỐT.
-    4. Trả về JSON: {"reply": "Nội dung phản hồi của bạn"}
-    KHÔNG ĐƯỢC CHÈN THÊM BẤT KỲ KÝ TỰ NÀO NGOÀI JSON.`;
+    1. Trả lời dưới 30 từ, xác nhận cấu hình và báo tổng giá.
+    2. Nếu thiếu món: Báo rõ món thiếu và gợi ý khách tăng ngân sách nhẹ.
+    3. TUYỆT ĐỐI KHÔNG nói về phần mềm, cài đặt hay hệ điều hành.
+    4. PHẢI trả về một JSON object duy nhất có định dạng: {"reply": "Nội dung phản hồi"}`;
 
     const completion = await groqClient.chat.completions.create({
         messages: [{ role: "system", content: systemContent }, { role: "user", content: userMessage }],
@@ -65,7 +68,7 @@ const generateNaturalReply = async (userMessage, productList = [], purpose = "un
         const responseData = JSON.parse(completion.choices[0].message.content);
         return responseData.reply;
     } catch (e) {
-        return `Cấu hình giá ${actualTotal.toLocaleString()}đ đã sẵn sàng.`;
+        return `Cấu hình PC giá ${actualTotal.toLocaleString()}đ đã sẵn sàng.`;
     }
 };
 
@@ -78,7 +81,12 @@ const askGroqGeneric = async (userMessage, history = []) => {
 
     messages.unshift({
         role: "system",
-        content: "Bạn là nhân viên tư vấn PC chuyên nghiệp. Trả lời dưới 20 từ. Chỉ hỏi ngân sách hoặc mục đích nếu chưa có."
+        content: `Bạn là nhân viên tư vấn PC. 
+        NHIỆM VỤ: 
+        1. Nếu khách đã cung cấp ngân sách và mục đích (gaming/văn phòng), hãy hỏi duy nhất câu: "Bạn muốn build PC với CPU Intel hay AMD?"
+        2. TUYỆT ĐỐI KHÔNG gợi ý linh kiện, không hỏi về màn hình/phím/chuột.
+        3. TUYỆT ĐỐI KHÔNG nói về phần mềm/OS.
+        4. Trả lời dưới 15 từ.`
     });
 
     const completion = await groqClient.chat.completions.create({

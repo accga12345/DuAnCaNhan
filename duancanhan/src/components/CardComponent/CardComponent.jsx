@@ -4,8 +4,9 @@ import { WrapperNameText, WrapperReportText, WrapperPriceText, WrapperDiscountTe
 import { useNavigate } from "react-router-dom";
 
 const CardComponent = (props) => {
-    const { name, image, category, price, selled, rating, discount, id, onReplace } = props;
+    const { name, image, category, price, selled, rating, discount, id, _id, onReplace, replaceLabel = 'Thay thế' } = props;
     const navigate = useNavigate();
+    const productId = id || _id;
 
     const handleDetailProduct = (id) => {
         navigate(`/productdetail/${id}`)
@@ -14,7 +15,7 @@ const CardComponent = (props) => {
     return (
         <div style={{ display: 'flex', flexDirection: 'column' }}>
             <WrapperCardStyle
-                onClick={() => !onReplace && handleDetailProduct(id)}
+                onClick={() => handleDetailProduct(productId)}
                 cover={
                     <div style={{
                         position: "relative",
@@ -73,15 +74,14 @@ const CardComponent = (props) => {
             </WrapperCardStyle>
 
             {onReplace && (
-                <button onClick={(e) => {
-                    e.stopPropagation();
-                    onReplace();
-                }} style={{ marginTop: 10, padding: 8, background: '#1890ff', color: '#fff', border: 'none', borderRadius: 5, cursor: 'pointer' }}>
-                    Thay thế
+                <button onClick={(e) => { 
+                    e.stopPropagation(); 
+                    onReplace(); 
+                }} style={{ marginTop: 10, padding: 8, background: replaceLabel === 'Chọn' ? '#52c41a' : '#1890ff', color: '#fff', border: 'none', borderRadius: 5, cursor: 'pointer' }}>
+                    {replaceLabel}
                 </button>
             )}
         </div>
     )
 };
-
 export default CardComponent;
