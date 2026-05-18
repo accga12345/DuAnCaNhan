@@ -12,94 +12,145 @@ const handleChat = async (req, res) => {
 
     try {
         const nluResult = await GroqService.parseUserIntent(message, history || []);
-        let { intent, budget, purpose } = nluResult;
+        let { intent, budget, purpose, accessories } = nluResult;
 
-        const removeAccents = (str) => str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-        const msgLower = removeAccents(message);
-        
-        let reqMonitor = false;
-        if (msgLower.includes('man') || msgLower.includes('monitor') || msgLower.includes('man hinh')) reqMonitor = true;
+        const extractBudget = (text) => {
+            const m = text.match(/(\d+(?:\.\d+)?)\s*(tr|trieu|triệu|cu|củ|m)/i);
+            if (m) {
+                const val = parseFloat(m[1].replace(',', '.'));
+                return val * 1000000;
+            }
+            return 0;
+        };
 
-        // Trích xuất budget TỪ TIN NHẮN HIỆN TẠI - không lấy từ lịch sử
-        const budgetMatch = message.match(/(\d+)\s*(tr|trieu|cu|m|k|triệu|củ)/i);
-        if (budgetMatch) {
-            let val = parseInt(budgetMatch[1]);
-            budget = budgetMatch[2].toLowerCase() === 'k' ? val * 1000 : val * 1000000;
-        }
-
-        if (purpose === 'unknown' && history?.length > 0) {
+        let currentMsgBudget = extractBudget(message);
+        if (currentMsgBudget > 0 && currentMsgBudget < 500000000) {
+            budget = currentMsgBudget;
+        } else if (history?.length > 0) {
             for (let i = history.length - 1; i >= 0; i--) {
-                const prevMsg = history[i].parts[0].text.toLowerCase();
-                if (prevMsg.includes('game')) { purpose = 'gaming'; break; }
-                if (prevMsg.includes('đồ họa') || prevMsg.includes('render')) { purpose = 'work'; break; }
-                if (prevMsg.includes('văn phòng')) { purpose = 'office'; break; }
+                if (history[i].role === 'user') {
+                    let histBudget = extractBudget(history[i].parts[0].text);
+                    if (histBudget > 0) { budget = histBudget; break; }
+                }
             }
         }
 
-        const formatMoneyText = (amount) => amount >= 1000000 ? (amount / 1000000) + ' triệu đồng' : amount.toLocaleString('vi-VN') + 'đ';
+        const removeAccents = (str) => str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+        const msgLower = removeAccents(message);
+        if (msgLower.includes('van phong') || msgLower.includes('office')) purpose = 'office';
+        if (msgLower.includes('game') || msgLower.includes('gaming')) purpose = 'gaming';
+
+        const formatMoneyText = (amount) => {
+            if (amount >= 1000000) {
+                const millions = amount / 1000000;
+                return (millions % 1 === 0 ? millions : millions.toString().replace('.', ',')) + ' triệu đồng';
+            }
+            return amount.toLocaleString('vi-VN') + 'đ';
+        };
 
         if (intent === 'build.pc' || (budget > 0 && purpose !== 'unknown')) {
             if (!budget) {
-                botReply = await GroqService.askGroqGeneric("Khách muốn build PC nhưng chưa có ngân sách. Hãy hỏi khách dự định build bao nhiêu một cách ngắn gọn.", []);
+                botReply = await GroqService.askGroqGeneric("Khách muốn build PC nhưng chưa có ngân sách. Hãy hỏi ngân sách.", []);
             } else if (purpose === 'unknown') {
-                botReply = await GroqService.askGroqGeneric(`Khách muốn build PC ${formatMoneyText(budget)} nhưng chưa rõ mục đích. Hãy hỏi ngắn gọn khách dùng làm gì.`, []);
+                botReply = await GroqService.askGroqGeneric("Khách muốn build PC, hãy hỏi mục đích sử dụng.", []);
             } else {
                 const allCategories = await CategoryModel.find({});
                 const dbPurpose = (purpose === 'gaming') ? 'chơi game' : (purpose === 'work' ? 'đồ họa' : 'văn phòng');
                 
-                let currentTotalSpent = 0;
-                const absoluteMaxTotal = budget + 1000000;
-                
-                const getBestProduct = async (cat, targetPrice, constraints = {}, isMandatory = true) => {
-                    let query = { category: cat._id };
-                    for (const [key, value] of Object.entries(constraints)) {
-                        if (!value) continue;
-                        const keyMap = { 'ramType': 'Loại RAM', 'socket': 'Socket', 'purpose': 'Mục đích' };
-                        const specKey = keyMap[key] || key;
-                        query["$or"] = [
-                            { "specifications": { $elemMatch: { key: specKey, value: { $regex: new RegExp(value, 'i') } } } },
-                            { "specifications": { $not: { $elemMatch: { key: specKey } } } }
-                        ];
-                    }
-                    if (dbPurpose) {
-                        query["$or"] = [
-                            { "specifications": { $elemMatch: { key: "Mục đích", value: { $regex: new RegExp(dbPurpose, 'i') } } } },
-                            { "specifications": { $not: { $elemMatch: { key: "Mục đích" } } } }
-                        ];
-                    }
-                    let maxPriceForThis = Math.min(targetPrice * 1.5, absoluteMaxTotal - currentTotalSpent);
-                    let p = await ProductModel.findOne({ ...query, price: { $lte: maxPriceForThis } }).sort({ price: -1 });
-                    if (!p) p = await ProductModel.findOne(query).sort({ price: 1 });
-
-                    if (p) {
-                        p = p.toObject();
-                        p.categoryName = cat.name;
-                        currentTotalSpent += p.price;
-                    }
-                    return p;
+                const PURPOSE_RATIOS = {
+                    gaming: { CPU: 0.18, Mainboard: 0.10, RAM: 0.08, SSD: 0.07, PSU: 0.07, Case: 0.05, Cooling: 0.05, VGA: 0.35 },
+                    office: { CPU: 0.30, Mainboard: 0.15, RAM: 0.12, SSD: 0.12, PSU: 0.08, Case: 0.05, Cooling: 0.05, VGA: 0.08 },
+                    work:   { CPU: 0.25, Mainboard: 0.12, RAM: 0.15, SSD: 0.10, PSU: 0.08, Case: 0.05, Cooling: 0.05, VGA: 0.15 }
                 };
 
-                const mandatoryList = ['CPU', 'Mainboard', 'RAM', 'SSD', 'PSU', 'Case', 'Cooling', 'VGA'];
-                const buildOrder = ['CPU', 'Mainboard', 'RAM', 'SSD', 'PSU', 'Case', 'Cooling', 'VGA', 'Monitor'];
-                const ratios = { CPU: 0.20, Mainboard: 0.12, RAM: 0.08, SSD: 0.07, PSU: 0.07, Case: 0.05, Cooling: 0.05, VGA: 0.36, Monitor: 0.15 };
-                
+                let selectedRatios = { ...PURPOSE_RATIOS[purpose] || PURPOSE_RATIOS['gaming'] };
+                let buildOrder = ['CPU', 'Mainboard', 'RAM', 'SSD', 'PSU', 'Case', 'Cooling', 'VGA'];
+
+                // MAP TÊN AI SANG TÊN DB
+                const accessoryMapping = { 'keyboard': 'keybroad', 'keybroad': 'keybroad', 'Monitor': 'Monitor', 'mouse': 'Chuột' };
+                const requestedItems = [];
+                if (accessories && accessories.length > 0) {
+                    accessories.forEach(acc => {
+                        const dbCat = accessoryMapping[acc] || acc;
+                        requestedItems.push(dbCat);
+                        selectedRatios[dbCat] = 0.05;
+                        if (!buildOrder.includes(dbCat)) buildOrder.push(dbCat);
+                    });
+                }
+
+                // Linh kiện BẮT BUỘC
+                let mandatoryList = ['CPU', 'Mainboard', 'RAM', 'SSD', 'PSU', 'Case'];
+                // Nếu khách yêu cầu phụ kiện, nó trở thành mục tiêu bắt buộc phải có trong lần build này
+                accessories.forEach(acc => {
+                    const dbCat = accessoryMapping[acc] || acc;
+                    if (!mandatoryList.includes(dbCat)) mandatoryList.push(dbCat);
+                });
+
+                let currentTotalSpent = 0;
+                let surplus = 0;
                 let cpu, main;
-                let success = true;
+                const absoluteMaxTotal = budget + 1000000;
 
-                for (const catName of buildOrder) {
-                    if (catName === 'Monitor' && !reqMonitor) continue;
-                    if (catName === 'VGA' && purpose === 'office') continue;
-
+                const getBestProduct = async (catName, targetPrice, constraints = {}, isMandatory = true) => {
                     const cat = allCategories.find(c => c.name === catName);
-                    if (!cat) continue;
+                    if (!cat) return null;
 
+                    const safeTarget = targetPrice + surplus;
+                    const limitPrice = (catName === 'PSU') ? 2000000 : safeTarget * 1.5;
+                    let query = { category: cat._id, price: { $lte: Math.min(safeTarget, limitPrice) } };
+
+                    const andConditions = [];
+                    for (const [key, value] of Object.entries(constraints)) {
+                        if (!value) continue;
+                        const specKey = key === 'ramType' ? 'Loại RAM' : 'Socket';
+                        andConditions.push({
+                            "$or": [
+                                { "specifications": { $elemMatch: { key: specKey, value: { $regex: new RegExp(value, 'i') } } } },
+                                { "specifications": { $not: { $elemMatch: { key: specKey } } } }
+                            ]
+                        });
+                    }
+                    andConditions.push({
+                        "$or": [
+                            { "specifications": { $elemMatch: { key: "Mục đích", value: { $regex: new RegExp(dbPurpose, 'i') } } } },
+                            { "specifications": { $not: { $elemMatch: { key: "Mục đích" } } } }
+                        ]
+                    });
+                    query["$and"] = andConditions;
+
+                    console.log(`DEBUG: Tìm ${catName} với ngân sách ${safeTarget}, mandatory: ${isMandatory}`);
+
+                    let p = await ProductModel.findOne(query).sort({ price: -1 });
+                    if (!p) {
+                        delete query["$and"]; 
+                        p = await ProductModel.findOne(query).sort({ price: -1 });
+                    }
+
+                    if (!p && isMandatory) {
+                        p = await ProductModel.findOne({ category: cat._id, price: { $lte: (absoluteMaxTotal - currentTotalSpent) } }).sort({ price: 1 });
+                    }
+
+                    if (p) {
+                        const pObj = p.toObject();
+                        pObj.categoryName = catName;
+                        currentTotalSpent += p.price;
+                        surplus = Math.max(0, safeTarget - p.price); 
+                        return pObj;
+                    }
+                    console.log(`DEBUG: Không tìm thấy ${catName}`);
+                    return null;
+                };
+
+                let success = true;
+                for (const catName of buildOrder) {
+                    const isMandatory = mandatoryList.includes(catName);
                     let constraints = {};
                     if (catName === 'Mainboard' && cpu) constraints.socket = cpu.specifications?.find(s => s.key === 'Socket')?.value;
                     if (catName === 'RAM' && main) constraints.ramType = main.specifications?.find(s => s.key === 'Loại RAM')?.value;
 
-                    const p = await getBestProduct(cat, budget * (ratios[catName] || 0.02), constraints, mandatoryList.includes(catName));
+                    const p = await getBestProduct(catName, budget * (selectedRatios[catName] || 0.05), constraints, isMandatory);
                     
-                    if (!p && mandatoryList.includes(catName)) { success = false; break; }
+                    if (!p && isMandatory) { success = false; break; }
                     if (p) {
                         suggestedProducts.push(p);
                         if (catName === 'CPU') cpu = p;
@@ -107,27 +158,68 @@ const handleChat = async (req, res) => {
                     }
                 }
 
-                if (success) {
-                    const actualTotal = suggestedProducts.reduce((sum, p) => sum + p.price, 0);
-                    
-                    if (actualTotal > absoluteMaxTotal) {
-                        botReply = `Cấu hình này có giá ${actualTotal.toLocaleString()}đ, vượt quá ngân sách cho phép (${budget.toLocaleString()}đ + 1tr dự phòng). Bạn có muốn tăng ngân sách hoặc bỏ bớt linh kiện (ví dụ: màn hình) không?`;
-                        suggestedProducts = [];
-                    } else {
-                        botReply = `Cấu hình đã sẵn sàng. Tổng giá: ${actualTotal.toLocaleString()}đ (Ngân sách: ${budget.toLocaleString()}đ).`;
-                        suggestedProducts.forEach(p => { botReply += `\n- ${p.name}: ${p.price.toLocaleString()}đ`; });
-                    }
+                if (success && currentTotalSpent <= absoluteMaxTotal) {
+                    const missingReq = requestedItems.filter(item => !suggestedProducts.find(p => p.categoryName === item));
+                    botReply = await GroqService.generateNaturalReply(message, suggestedProducts, purpose, budget, currentTotalSpent, missingReq);
+                    botReply += `\n\n[Tổng: ${currentTotalSpent.toLocaleString()}đ / Budget: ${budget.toLocaleString()}đ (+1tr dự phòng)]`;
                 } else {
-                    botReply = `Ngân sách ${formatMoneyText(budget)} không đủ linh kiện cần thiết. Bạn có thể cân nhắc tăng ngân sách hoặc điều chỉnh cấu hình không?`;
+                    botReply = `Ngân sách ${formatMoneyText(budget)} không đủ linh kiện cốt lõi. Hãy tăng ngân sách nhé!`;
+                    suggestedProducts = [];
                 }
             }
         } else {
             botReply = await GroqService.askGroqGeneric(message, history || []);
         }
-    } catch (error) {
+    } catch (e) {
+        console.error("❌ LỖI HỆ THỐNG:", e);
         botReply = "Xin lỗi, hệ thống đang gặp sự cố.";
     }
     return res.status(200).json({ status: 'OK', message: botReply, data: suggestedProducts });
 };
 
-module.exports = { handleChat };
+const replaceComponent = async (req, res) => {
+    const { categoryName, newProductId, currentBuild, budgetInput } = req.body;
+    try {
+        const budget = await GroqService.extractBudgetWithAI(budgetInput);
+        const cat = await CategoryModel.findOne({ name: categoryName });
+        if (!cat) return res.status(404).json({ status: 'ERR', message: 'Danh mục không hợp lệ' });
+
+        if (!newProductId) {
+            let constraints = {};
+            const cpu = currentBuild.find(p => p.categoryName === 'CPU');
+            const main = currentBuild.find(p => p.categoryName === 'Mainboard');
+            if (categoryName === 'Mainboard' && cpu) constraints.socket = cpu.specifications?.find(s => s.key === 'Socket')?.value;
+            if (categoryName === 'RAM' && main) constraints.ramType = main.specifications?.find(s => s.key === 'Loại RAM')?.value;
+
+            let query = { category: cat._id };
+            if (budget) query.price = { $gte: Math.max(0, budget - 500000), $lte: budget + 500000 };
+
+            for (const [key, value] of Object.entries(constraints)) {
+                if (!value) continue;
+                const specKey = key === 'ramType' ? 'Loại RAM' : 'Socket';
+                query["$or"] = [
+                    { "specifications": { $elemMatch: { key: specKey, value: { $regex: new RegExp(value, 'i') } } } },
+                    { "specifications": { $not: { $elemMatch: { key: specKey } } } }
+                ];
+            }
+
+            const alternatives = await ProductModel.find(query).limit(5);
+            return res.status(200).json({ status: 'OK', suggestions: alternatives });
+        }
+
+        const newProduct = await ProductModel.findById(newProductId).populate('category');
+        if (!newProduct) return res.status(404).json({ status: 'ERR', message: 'Không tìm thấy linh kiện' });
+
+        let updatedBuild = currentBuild.filter(p => p.categoryName !== categoryName);
+        let productToAdd = newProduct.toObject();
+        productToAdd.categoryName = categoryName;
+        updatedBuild.push(productToAdd);
+
+        return res.status(200).json({ status: 'OK', data: updatedBuild });
+    } catch (e) {
+        console.error("❌ LỖI THAY THẾ:", e);
+        return res.status(500).json({ status: 'ERR', message: 'Lỗi thay thế' });
+    }
+};
+
+module.exports = { handleChat, replaceComponent };

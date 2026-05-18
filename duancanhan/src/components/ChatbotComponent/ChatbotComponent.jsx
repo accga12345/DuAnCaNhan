@@ -9,6 +9,7 @@ const ChatbotComponent = () => {
     ]);
     const [inputText, setInputText] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [replaceMode, setReplaceMode] = useState(null);
     const messagesEndRef = useRef(null);
 
     const scrollToBottom = () => {
@@ -19,20 +20,33 @@ const ChatbotComponent = () => {
     const handleSendMessage = async () => {
         if (!inputText.trim()) return;
 
-        const userMsg = { sender: 'user', text: inputText, products: [] };
+        // Hàm helper để parse ngân sách qua AI (Backend sẽ xử lý)
+        const fetchBudgetFromAI = async (text) => {
+            const apiUrl = process.env.REACT_APP_API_URL;
+            try {
+                // Gửi text lên để backend dùng Groq phân tích
+                const res = await axios.post(`${apiUrl}/chat/message`, { message: `Trích xuất ngân sách từ: ${text}` });
+                return res.data.budget || parseInt(text.replace(/[^0-9]/g, ''));
+            } catch (e) { return parseInt(text.replace(/[^0-9]/g, '')); }
+        };
 
-        // Tạo history theo định dạng Gemini yêu cầu (user/model)
-        // LỌC BỎ tin nhắn đầu tiên nếu nó là của Bot để đảm bảo tin nhắn đầu là của User
-        const chatHistory = messages
-            .filter((msg, index) => !(index === 0 && msg.sender === 'bot'))
-            .map(msg => ({
-                role: msg.sender === 'user' ? 'user' : 'model',
-                parts: [{
-                    text: msg.products && msg.products.length > 0
-                        ? `${msg.text} | Đã gợi ý: ${msg.products.map(p => p.name).join(', ')}`
-                        : msg.text
-                }],
-            }));
+        if (replaceMode && replaceMode.step === 'budget') {
+            const budget = await fetchBudgetFromAI(inputText);
+            if (isNaN(budget) || budget === 0) {
+                setMessages(prev => [...prev, { sender: 'bot', text: 'Vui lòng nhập ngân sách hợp lệ (ví dụ: 2000000)', products: [] }]);
+            } else {
+                setReplaceMode({ ...replaceMode, step: 'select', budget: budget });
+                fetchAlternatives(replaceMode.product, budget);
+            }
+            setInputText('');
+            return;
+        }
+
+        const userMsg = { sender: 'user', text: inputText, products: [] };
+        const chatHistory = messages.map(msg => ({
+            role: msg.sender === 'user' ? 'user' : 'model',
+            parts: [{ text: msg.text }],
+        }));
 
         setMessages(prev => [...prev, userMsg]);
         setInputText('');
@@ -40,76 +54,76 @@ const ChatbotComponent = () => {
 
         try {
             const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
-            const res = await axios.post(`${apiUrl}/chat/message`, {
-                message: userMsg.text,
-                history: chatHistory // Gửi lịch sử lên
-            });
-
-            const botMsg = {
-                sender: 'bot',
-                text: res.data.message,
-                products: res.data.data
-            };
+            const res = await axios.post(`${apiUrl}/chat/message`, { message: userMsg.text, history: chatHistory });
+            const botMsg = { sender: 'bot', text: res.data.message, products: res.data.data };
             setMessages(prev => [...prev, botMsg]);
         } catch (error) {
-            setMessages(prev => [...prev, { sender: 'bot', text: 'Xin lỗi, hệ thống đang bận. Vui lòng thử lại sau!', products: [] }]);
+            setMessages(prev => [...prev, { sender: 'bot', text: 'Xin lỗi, hệ thống đang bận.', products: [] }]);
         } finally {
             setIsLoading(false);
         }
     };
 
+    const fetchAlternatives = async (product, budget) => {
+        try {
+            const apiUrl = process.env.REACT_APP_API_URL;
+            const res = await axios.post(`${apiUrl}/chat/replace`, {
+                categoryName: product.categoryName,
+                targetPrice: budget,
+                currentBuild: messages[messages.length - 2].products
+            });
+            setMessages(prev => [...prev, {
+                sender: 'bot',
+                text: res.data.suggestions && res.data.suggestions.length > 0 ? `Đã tìm thấy các lựa chọn ${product.categoryName} thay thế:` : `Không tìm thấy linh kiện thay thế nào trong tầm giá.`,
+                products: res.data.suggestions || []
+            }]);
+        } catch (e) {
+            setMessages(prev => [...prev, { sender: 'bot', text: 'Không tìm thấy linh kiện thay thế.', products: [] }]);
+            setReplaceMode(null);
+        }
+    };
+
+    const handleSelectReplacement = async (newProduct) => {
+        try {
+            const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+            const lastBuildMsg = [...messages].reverse().find(msg => msg.products && msg.products.length > 0);
+
+            const resUpdate = await axios.post(`${apiUrl}/chat/replace`, {
+                categoryName: replaceMode.product.categoryName,
+                newProductId: newProduct._id,
+                currentBuild: lastBuildMsg.products
+            });
+            setMessages(prev => [...prev, { sender: 'bot', text: 'Đã thay thế thành công!', products: resUpdate.data.data }]);
+            setReplaceMode(null);
+        } catch (e) { alert('Lỗi thay thế'); }
+    };
+
+    const handleReplace = (product) => {
+        setReplaceMode({ step: 'budget', product: product });
+        setMessages(prev => [...prev, {
+            sender: 'bot',
+            text: `Bạn muốn thay ${product.name} với ngân sách khoảng bao nhiêu? (Ví dụ: 2000000)`,
+            products: []
+        }]);
+    };
+
     return (
-        <div style={{ position: 'fixed', bottom: 20, right: 20, zIndex: 9999 }}>
-            {/* Nút bật/tắt Chat */}
-            <button
-                onClick={() => setIsOpen(!isOpen)}
-                style={{
-                    width: 60, height: 60, borderRadius: '50%', background: '#ff4d4f', color: '#fff',
-                    border: 'none', cursor: 'pointer', fontSize: 24, boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center'
-                }}
-            >
-                💬
-            </button>
-
-            {/* Cửa sổ Chat */}
+        <div style={{ position: 'fixed', bottom: 20, right: 20, zIndex: 9999, fontFamily: 'Arial' }}>
+            <button onClick={() => setIsOpen(!isOpen)} style={{ width: 60, height: 60, borderRadius: '50%', background: '#ff4d4f', border: 'none', color: '#fff', cursor: 'pointer', fontSize: 24 }}>💬</button>
             {isOpen && (
-                <div style={{
-                    position: 'absolute', bottom: 70, right: 0, width: 350, height: 500,
-                    background: '#fff', borderRadius: 10, boxShadow: '0 5px 20px rgba(0,0,0,0.2)',
-                    display: 'flex', flexDirection: 'column', overflow: 'hidden'
-                }}>
-                    <div style={{ background: '#ff4d4f', color: '#fff', padding: 15, fontWeight: 'bold' }}>
-                        Tư vấn cấu hình PC
-                    </div>
-
-                    <div style={{ flex: 1, padding: 10, overflowY: 'auto', background: '#f5f5f5' }}>
+                <div style={{ position: 'absolute', bottom: 70, right: 0, width: 380, height: 550, background: '#fff', borderRadius: 15, boxShadow: '0 10px 30px rgba(0,0,0,0.2)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                    <div style={{ padding: 15, background: '#ff4d4f', color: '#fff', textAlign: 'center', fontWeight: 'bold' }}>Tư vấn cấu hình</div>
+                    <div style={{ flex: 1, padding: 15, overflowY: 'auto', background: '#f9f9f9' }}>
                         {messages.map((msg, index) => (
-                            <div key={index} style={{ marginBottom: 15, textAlign: msg.sender === 'user' ? 'right' : 'left' }}>
-                                <div style={{
-                                    display: 'inline-block', padding: 10, borderRadius: 10,
-                                    background: msg.sender === 'user' ? '#1890ff' : '#fff',
-                                    color: msg.sender === 'user' ? '#fff' : '#000',
-                                    maxWidth: '80%', textAlign: 'left', border: msg.sender === 'bot' ? '1px solid #ddd' : 'none',
-                                    wordBreak: 'break-word'
-                                }}>
-                                    {msg.text}
-                                </div>
-
-                                {/* Render sản phẩm nếu Bot trả về danh sách Build PC */}
+                            <div key={index} style={{ marginBottom: 15 }}>
+                                <div style={{ padding: 12, borderRadius: 15, background: msg.sender === 'user' ? '#1890ff' : '#fff', color: msg.sender === 'user' ? '#fff' : '#333', border: '1px solid #eee' }}>{msg.text}</div>
                                 {msg.products && msg.products.length > 0 && (
-                                    <div style={{ marginTop: 10, display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 10, textAlign: 'left' }}>
-                                        {msg.products.map(product => (
-                                            <div style={{ minWidth: 150 }} key={product._id}>
+                                    <div style={{ marginTop: 10, display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 5 }}>
+                                        {msg.products.map(p => (
+                                            <div key={p._id} style={{ minWidth: 160, background: '#fff', padding: 8, borderRadius: 10, border: '1px solid #ddd' }}>
                                                 <CardComponent
-                                                    id={product._id}
-                                                    name={product.name}
-                                                    image={product.image}
-                                                    price={product.price}
-                                                    rating={product.rating}
-                                                    type={product.type}
-                                                    discount={product.discount}
-                                                    selled={product.selled}
+                                                    {...p}
+                                                    onReplace={() => handleReplace(p)}
                                                 />
                                             </div>
                                         ))}
@@ -117,25 +131,15 @@ const ChatbotComponent = () => {
                                 )}
                             </div>
                         ))}
-                        {isLoading && <div style={{ color: '#888', fontSize: 12 }}>Bot đang gõ...</div>}
                         <div ref={messagesEndRef} />
                     </div>
-
-                    <div style={{ padding: 10, borderTop: '1px solid #ddd', display: 'flex', background: '#fff' }}>
-                        <input
-                            type="text"
-                            value={inputText}
-                            onChange={(e) => setInputText(e.target.value)}
-                            onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                            placeholder="Nhập 'Mình có 15 triệu...'"
-                            style={{ flex: 1, padding: '8px 12px', borderRadius: 20, border: '1px solid #ddd', outline: 'none' }}
-                        />
-                        <button onClick={handleSendMessage} style={{ background: 'transparent', border: 'none', color: '#ff4d4f', fontWeight: 'bold', marginLeft: 10, cursor: 'pointer' }}>Gửi</button>
+                    <div style={{ padding: 10, borderTop: '1line solid #eee', display: 'flex' }}>
+                        <input value={inputText} onChange={(e) => setInputText(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()} style={{ flex: 1, padding: 10, borderRadius: 20, border: '1px solid #ddd' }} />
+                        <button onClick={handleSendMessage} style={{ marginLeft: 5, background: '#ff4d4f', color: '#fff', border: 'none', borderRadius: 20, padding: '0 15px' }}>Gửi</button>
                     </div>
                 </div>
             )}
         </div>
     );
 };
-
 export default ChatbotComponent;

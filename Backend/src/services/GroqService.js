@@ -2,7 +2,6 @@ const Groq = require("groq-sdk");
 
 const groqClient = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
-// Bước 1: Phân tích ý định người dùng (NLU)
 const parseUserIntent = async (userMessage, history = []) => {
     const messages = history.map(item => ({
         role: item.role === 'user' ? 'user' : 'assistant',
@@ -17,14 +16,11 @@ const parseUserIntent = async (userMessage, history = []) => {
         - "intent": "build.pc" hoặc "chat".
         - "budget": Số tiền VNĐ chính xác. VD: "16tr5" -> 16500000. NẾU KHÔNG CÓ, LÀ 0.
         - "purpose": "gaming", "work", "office" hoặc "unknown".
+        - "accessories": Mảng các phụ kiện khách muốn thêm. 
+          CHỈ ĐƯỢC CHỌN TỪ DANH SÁCH: ["Monitor", "keybroad"].
+          Lưu ý: Nếu khách nói "bàn phím" hoặc "keyboard", hãy trả về "keybroad".
         
-        Quy tắc xử lý budget: 
-        - 15tr -> 15000000
-        - 16tr5 -> 16500000
-        - 16.5tr -> 16500000
-        
-        TUYỆT ĐỐI KHÔNG tự bịa budget.
-        { "intent": "build.pc", "budget": 0, "purpose": "unknown" }`
+        { "intent": "build.pc", "budget": 0, "purpose": "unknown", "accessories": [] }`
     };
     messages.unshift(systemPrompt);
 
@@ -36,22 +32,25 @@ const parseUserIntent = async (userMessage, history = []) => {
     return JSON.parse(completion.choices[0].message.content);
 };
 
-// Bước 2: Tạo câu trả lời tự nhiên dựa trên dữ liệu THẬT
-const generateNaturalReply = async (userMessage, productList = [], purpose = "unknown", budget = 0, actualTotal = 0) => {
+const generateNaturalReply = async (userMessage, productList = [], purpose = "unknown", budget = 0, actualTotal = 0, missingItems = []) => {
     const productDetails = productList.map(p => `- ${p.name}: ${p.price.toLocaleString()}đ`).join("\n");
-    const isOverBudget = actualTotal > budget;
+    const missingText = missingItems.length > 0 
+        ? `CÁC MÓN KHÔNG THỂ THÊM VÌ HẾT NGÂN SÁCH: ${missingItems.join(', ')}` 
+        : "ĐÃ ĐỦ TẤT CẢ LINH KIỆN YÊU CẦU.";
 
-    let systemContent = `Bạn là nhân viên tư vấn PC. Chỉ dùng dữ liệu sau, TUYỆT ĐỐI KHÔNG TỰ TÍNH TOÁN:
-    DANH SÁCH:
-    ${productDetails}
-    TỔNG CỘNG CHÍNH XÁC (DÙNG CON SỐ NÀY): ${actualTotal.toLocaleString()}đ
-    NGÂN SÁCH KHÁCH: ${budget.toLocaleString()}đ
+    let systemContent = `Bạn là nhân viên tư vấn phần cứng PC. 
+    Dữ liệu:
+    - Danh sách: \n${productDetails}
+    - ${missingText}
+    - Tổng: ${actualTotal.toLocaleString()}đ
+    - Ngân sách: ${budget.toLocaleString()}đ
 
     NHIỆM VỤ:
-    1. Trả lời dưới 30 từ, cực kỳ ngắn gọn.
-    2. Dùng đúng con số "TỔNG CỘNG CHÍNH XÁC" ở trên.
-    3. NẾU Tổng cộng <= Ngân sách: Báo giá tổng và xác nhận cấu hình ổn. TUYỆT ĐỐI KHÔNG HỎI TĂNG NGÂN SÁCH.
-    4. Trả về JSON: {"reply": "Nội dung"}`;
+    1. Trả lời dưới 30 từ, tập trung vào cấu hình phần cứng.
+    2. Nếu thiếu món: Báo rõ món thiếu và gợi ý tăng ngân sách.
+    3. Nếu đủ: Xác nhận cấu hình RẤT TỐT.
+    4. Trả về JSON: {"reply": "Nội dung phản hồi của bạn"}
+    KHÔNG ĐƯỢC CHÈN THÊM BẤT KỲ KÝ TỰ NÀO NGOÀI JSON.`;
 
     const completion = await groqClient.chat.completions.create({
         messages: [{ role: "system", content: systemContent }, { role: "user", content: userMessage }],
@@ -63,13 +62,10 @@ const generateNaturalReply = async (userMessage, productList = [], purpose = "un
         const responseData = JSON.parse(completion.choices[0].message.content);
         return responseData.reply;
     } catch (e) {
-        return isOverBudget 
-            ? `Cấu hình này giá ${actualTotal.toLocaleString()}đ, vượt ngân sách. Bạn có muốn tăng thêm ngân sách không?`
-            : `Đã xong! Bộ máy có giá ${actualTotal.toLocaleString()}đ, hoàn toàn nằm trong ngân sách của bạn.`;
+        return `Cấu hình giá ${actualTotal.toLocaleString()}đ đã sẵn sàng.`;
     }
 };
 
-// Hàm fallback cho chat bình thường
 const askGroqGeneric = async (userMessage, history = []) => {
     const messages = history.map(item => ({
         role: item.role === 'user' ? 'user' : 'assistant',
@@ -89,4 +85,13 @@ const askGroqGeneric = async (userMessage, history = []) => {
     return completion.choices[0].message.content;
 };
 
-module.exports = { parseUserIntent, generateNaturalReply, askGroqGeneric };
+module.exports = { parseUserIntent, generateNaturalReply, askGroqGeneric, extractBudgetWithAI };
+
+async function extractBudgetWithAI(text) {
+    const prompt = `Trích xuất ngân sách từ câu: "${text}". Trả về JSON duy nhất: {"budget": số_tiền_VNĐ}. Nếu không có số, trả về 0. VD: "16tr5" -> 16500000.`;
+    const response = await askGroqGeneric(prompt, []);
+    try {
+        const jsonMatch = response.match(/\{.*\}/);
+        return jsonMatch ? JSON.parse(jsonMatch[0]).budget : 0;
+    } catch { return 0; }
+}
