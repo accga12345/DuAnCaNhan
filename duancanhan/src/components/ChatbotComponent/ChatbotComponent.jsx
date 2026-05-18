@@ -25,7 +25,7 @@ const ChatbotComponent = () => {
             const userText = inputText;
             setMessages(prev => [...prev, { sender: 'user', text: userText }]);
             setInputText('');
-            
+
             try {
                 if (!userText || userText.trim() === "") {
                     setMessages(prev => [...prev, { sender: 'bot', text: 'Vui lòng nhập ngân sách hợp lệ (ví dụ: 2 triệu)', products: [] }]);
@@ -66,16 +66,16 @@ const ChatbotComponent = () => {
             const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
             // Tìm cấu hình build gần nhất
             const lastBuildMsg = [...messages].reverse().find(msg => msg.products && msg.products.length > 0 && msg.type === 'build');
-            
+
             const res = await axios.post(`${apiUrl}/chat/replace`, {
                 categoryName: product.categoryName,
                 budgetInput: budget.toString(),
                 currentBuild: lastBuildMsg ? lastBuildMsg.products : []
             });
-            
-            setMessages(prev => [...prev, { 
-                sender: 'bot', 
-                text: res.data.suggestions?.length > 0 ? `Gợi ý ${product.categoryName} thay thế:` : `Không có món nào trong tầm giá.`, 
+
+            setMessages(prev => [...prev, {
+                sender: 'bot',
+                text: res.data.suggestions?.length > 0 ? `Gợi ý ${product.categoryName} thay thế:` : `Không có món nào trong tầm giá.`,
                 products: res.data.suggestions || [],
                 type: 'suggestions'
             }]);
@@ -96,11 +96,11 @@ const ChatbotComponent = () => {
                 currentBuild: lastBuildMsg ? lastBuildMsg.products : []
             });
 
-            setMessages(prev => [...prev, { 
-                sender: 'bot', 
-                text: resUpdate.data.message, 
-                products: resUpdate.data.data, 
-                type: 'build' 
+            setMessages(prev => [...prev, {
+                sender: 'bot',
+                text: resUpdate.data.message,
+                products: resUpdate.data.data,
+                type: 'build'
             }]);
             setReplaceMode(null);
         } catch (e) { alert('Lỗi thay thế'); }
@@ -108,10 +108,10 @@ const ChatbotComponent = () => {
 
     const handleReplaceClick = (product) => {
         setReplaceMode({ step: 'budget', product: product });
-        setMessages(prev => [...prev, { 
-            sender: 'bot', 
-            text: `Bạn muốn thay ${product.name} với ngân sách khoảng bao nhiêu? (Ví dụ: 2 triệu)`, 
-            products: [] 
+        setMessages(prev => [...prev, {
+            sender: 'bot',
+            text: `Bạn muốn thay ${product.name} với ngân sách khoảng bao nhiêu? (Ví dụ: 2 triệu)`,
+            products: []
         }]);
     };
 
@@ -119,16 +119,16 @@ const ChatbotComponent = () => {
         <div style={{ position: 'fixed', bottom: 20, right: 20, zIndex: 9999, fontFamily: 'Arial' }}>
             <button onClick={() => setIsOpen(!isOpen)} style={{ width: 60, height: 60, borderRadius: '50%', background: '#ff4d4f', border: 'none', color: '#fff', cursor: 'pointer', fontSize: 24 }}>💬</button>
             {isOpen && (
-                <div style={{ position: 'absolute', bottom: 70, right: 0, width: 400, height: 600, background: '#fff', borderRadius: 15, boxShadow: '0 10px 30px rgba(0,0,0,0.2)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                <div style={{ position: 'absolute', bottom: 0, right: 65, width: 400, height: 580, background: '#fff', borderRadius: 15, boxShadow: '0 10px 30px rgba(0,0,0,0.2)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
                     <div style={{ padding: 15, background: '#ff4d4f', color: '#fff', textAlign: 'center', fontWeight: 'bold' }}>Tư vấn cấu hình</div>
                     <div style={{ flex: 1, padding: 15, overflowY: 'auto', background: '#f9f9f9' }}>
                         {messages.map((msg, index) => (
                             <div key={index} style={{ marginBottom: 15 }}>
-                                <div style={{ 
-                                    padding: 12, 
-                                    borderRadius: 15, 
-                                    background: msg.sender === 'user' ? '#1890ff' : '#fff', 
-                                    color: msg.sender === 'user' ? '#fff' : '#333', 
+                                <div style={{
+                                    padding: 12,
+                                    borderRadius: 15,
+                                    background: msg.sender === 'user' ? '#1890ff' : '#fff',
+                                    color: msg.sender === 'user' ? '#fff' : '#333',
                                     border: '1px solid #eee',
                                     maxWidth: '85%',
                                     marginLeft: msg.sender === 'user' ? 'auto' : '0'
@@ -139,11 +139,11 @@ const ChatbotComponent = () => {
                                     <div style={{ marginTop: 10, display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 10 }}>
                                         {msg.products.map(p => (
                                             <div key={p._id} style={{ minWidth: 180 }}>
-                                                <CardComponent 
-                                                    {...p} 
+                                                <CardComponent
+                                                    {...p}
                                                     id={p._id}
-                                                    onReplace={msg.type === 'suggestions' 
-                                                        ? () => handleSelectReplacement(p) 
+                                                    onReplace={msg.type === 'suggestions'
+                                                        ? () => handleSelectReplacement(p)
                                                         : () => handleReplaceClick(p)
                                                     }
                                                     replaceLabel={msg.type === 'suggestions' ? 'Chọn' : 'Thay thế'}
