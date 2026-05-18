@@ -5,7 +5,7 @@ dotenv.config();
 const extractToken = (req) => {
     const authHeader = req.headers.authorization || req.headers.token;
     if (!authHeader) return null;
-    
+
     // Support "Bearer <token>" or raw "<token>"
     if (authHeader.startsWith('Bearer ')) {
         return authHeader.split(' ')[1];
@@ -66,7 +66,7 @@ const authUserMiddleware = async (req, res, next) => {
         jwt.verify(token, process.env.ACCESS_TOKEN, (err, user) => {
             if (err) return res.status(401).json({ message: 'Unauthorized', status: 'error' });
 
-            if (user.isAdmin || user.id === userId) {
+            if (user.isAdmin || user.id === userId || user.isEmployee) {
                 req.user = user;
                 next();
             }

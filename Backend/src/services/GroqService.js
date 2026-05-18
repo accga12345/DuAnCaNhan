@@ -16,7 +16,7 @@ const parseUserIntent = async (userMessage, history = [], validCategories = []) 
         
         CÁC TRƯỜNG JSON CẦN TRẢ VỀ:
         - "intent": "build.pc", "buy.individual", hoặc "chat".
-        - "budget": Số tiền VNĐ tổng. (15tr -> 15000000). NẾU CHƯA CÓ, LÀ 0.
+        - "budget": Số tiền VNĐ tổng. (Ví dụ: 15tr -> 15000000). NẾU CHƯA CÓ, LÀ 0.
         - "purpose": "gaming", "work", "office". NẾU CHƯA CÓ, PHẢI LÀ "unknown".
         - "cpuBrand": "intel", "amd". NẾU CHƯA CÓ, PHẢI LÀ "unknown".
         - "components": Mảng linh kiện: {"cat": "Tên danh mục chuẩn", "budget": số_tiền}.
@@ -41,8 +41,8 @@ const parseUserIntent = async (userMessage, history = [], validCategories = []) 
 
 const generateNaturalReply = async (userMessage, productList = [], purpose = "unknown", budget = 0, actualTotal = 0, missingItems = []) => {
     const productDetails = productList.map(p => `- ${p.name}: ${p.price.toLocaleString()}đ`).join("\n");
-    const missingText = missingItems.length > 0 
-        ? `CÁC MÓN KHÔNG THỂ THÊM VÌ HẾT NGÂN SÁCH: ${missingItems.join(', ')}` 
+    const missingText = missingItems.length > 0
+        ? `CÁC MÓN KHÔNG THỂ THÊM VÌ HẾT NGÂN SÁCH: ${missingItems.join(', ')}`
         : "ĐÃ ĐỦ TẤT CẢ LINH KIỆN YÊU CẦU.";
 
     let systemContent = `Bạn là nhân viên tư vấn phần cứng PC. 

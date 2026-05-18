@@ -73,7 +73,7 @@ function SignInPage() {
     return (
         <WrapperSignInContainer>
             <div style={{ position: "relative" }}>
-                <WrapperExitPage>X</WrapperExitPage>
+                <WrapperExitPage onClick={() => navigate('/')}>X</WrapperExitPage>
                 <WrapperSignInPage>
                     <div style={{ flex: 1, padding: "20px" }}>
                         <Form

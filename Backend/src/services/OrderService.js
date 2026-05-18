@@ -177,11 +177,19 @@ const updateOrder = async (id, data) => {
                 }
             }
             checkOrder.status = 3
+            // Reset trạng thái thanh toán khi hủy đơn (đặc biệt cho PayPal)
+            checkOrder.isPaid = false
+            checkOrder.paidAt = null
         }
 
         if (data.status === 4) {
             checkOrder.isDelivered = true
             checkOrder.deliveredAt = new Date()
+            // Tự động cập nhật đã thanh toán khi giao hàng thành công
+            if (!checkOrder.isPaid) {
+                checkOrder.isPaid = true
+                checkOrder.paidAt = new Date()
+            }
         }
 
         const updatedOrder = await Order.findByIdAndUpdate(id, checkOrder, { new: true, session })

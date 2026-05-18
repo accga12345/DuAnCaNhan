@@ -1,7 +1,7 @@
 import React from "react";
-import { WrapperSignInPage, WrapperSignInContainer, WrapperTextCreateAccount, WrapperExitPage} from "./style";
+import { WrapperSignInPage, WrapperSignInContainer, WrapperTextCreateAccount, WrapperExitPage } from "./style";
 import { Image } from 'antd';
-import SignInImg from  "../../assets/images/SignIn.png"
+import SignInImg from "../../assets/images/SignIn.png"
 import { Button, Checkbox, Form, Input } from 'antd';
 import { useNavigate } from "react-router-dom";
 import * as UserService from "../../services/UserServices";
@@ -23,19 +23,19 @@ function SignUpPage() {
     useEffect(() => {
         if (isSuccess && data) {
             showSuccess(data.message);
-    
+
             setTimeout(() => {
                 navigate("/signin");
             }, 500);
         }
-    
+
         if (isError) {
             showError(
                 mutation.error?.response?.data?.message || "Đăng nhập thất bại"
             );
         }
     }, [isSuccess, isError]);
-    
+
     const onFinish = (values) => {
         mutation.mutate({
             email: values.email,
@@ -43,7 +43,7 @@ function SignUpPage() {
             confirmPassword: values.confirmPassword
         });
     };
-    
+
     const onFinishFailed = (errorInfo) => {
         console.log('Failed:', errorInfo);
     }
@@ -52,8 +52,8 @@ function SignUpPage() {
     }
     return (
         <WrapperSignInContainer>
-            <div style={{ position: "relative"}}>
-                <WrapperExitPage>X</WrapperExitPage>
+            <div style={{ position: "relative" }}>
+                <WrapperExitPage onClick={() => navigate('/')}>X</WrapperExitPage>
                 <WrapperSignInPage>
                     <div style={{ flex: 1, padding: "20px" }}>
                         <Form
@@ -70,7 +70,7 @@ function SignUpPage() {
                                 name="email"
                                 placeholder="abc@gmail.com"
                                 rules={[{ required: true, message: 'Vui lòng nhập tài khoản' }]}
-                                style={{marginBottom:'5px'}}
+                                style={{ marginBottom: '5px' }}
                             >
                                 <Input />
                             </Form.Item>
@@ -79,7 +79,7 @@ function SignUpPage() {
                                 label="Mật khẩu"
                                 name="password"
                                 rules={[{ required: true, message: 'Vui lòng nhập mật khẩu' }]}
-                                style={{marginBottom:'5px'}}
+                                style={{ marginBottom: '5px' }}
                             >
                                 <Input.Password />
                             </Form.Item>
@@ -88,42 +88,42 @@ function SignUpPage() {
                                 label="Nhập lại mật khẩu"
                                 name="confirmPassword"
                                 rules={[{ required: true, message: 'Vui lòng nhập lại mật khẩu' }]}
-                                style={{marginBottom:'10px'}}
+                                style={{ marginBottom: '10px' }}
                             >
                                 <Input.Password />
                             </Form.Item>
-                            {isError && <div style={{color: "red"}}>{mutation.error.response.data.message}</div>}
+                            {isError && <div style={{ color: "red" }}>{mutation.error.response.data.message}</div>}
                             <Form.Item name="remember" valuePropName="checked" label={null}>
                                 <Checkbox>Remember me</Checkbox>
                             </Form.Item>
 
                             <Form.Item label={null}>
                                 <LoadingComponent isPending={isPending}>
-                                    <Button 
-                                        type="primary" 
+                                    <Button
+                                        type="primary"
                                         htmlType="submit"
                                         width="100%"
-                                        style={{width: "100%"}}
+                                        style={{ width: "100%" }}
                                     >
                                         {isPending ? "...đang đăng ký" : "Đăng ký"}
                                     </Button>
                                 </LoadingComponent>
                             </Form.Item>
-                            <div style={{fontSize: "14px" }}>
-                                Bạn đã có tài khoản? 
+                            <div style={{ fontSize: "14px" }}>
+                                Bạn đã có tài khoản?
                                 <span onClick={handleSignIn} style={{ color: "#1677ff", cursor: "pointer" }}> Đăng nhập</span>
                             </div>
                         </Form>
                     </div>
-                    <div style={{ width: "300px", display: "flex", justifyContent: "center", alignItems: "center", backgroundColor: "rgb(222, 235, 255)"}}>
+                    <div style={{ width: "300px", display: "flex", justifyContent: "center", alignItems: "center", backgroundColor: "rgb(222, 235, 255)" }}>
                         <Image
-                            src={SignInImg} 
+                            src={SignInImg}
                             alt="Sign In"
-                            style={{ width: "200px", height: "200px"}}
+                            style={{ width: "200px", height: "200px" }}
                             preview={false}
-                            
+
                         />
-                    </div>    
+                    </div>
                 </WrapperSignInPage>
             </div>
         </WrapperSignInContainer>
