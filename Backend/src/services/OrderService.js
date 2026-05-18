@@ -2,7 +2,7 @@ const Order = require("../models/OrderProductModel");
 const Product = require("../models/ProductModel");
 const Warehouse = require("../models/WarehouseModel");
 const mongoose = require('mongoose');
-const socket = require("../socket");
+const socket = require("../sockets");
 
 const createOrder = async (newOrder) => {
     const session = await mongoose.startSession();

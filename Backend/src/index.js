@@ -28,15 +28,9 @@ mongoose.connect(process.env.MONGODB_URL, {
 
 const http = require('http');
 const server = http.createServer(app);
-const socket = require('./socket');
+const socket = require('./sockets');
 
 const io = socket.init(server);
-io.on('connection', (socket) => {
-    console.log('Client connected:', socket.id);
-    socket.on('disconnect', () => {
-        console.log('Client disconnected:', socket.id);
-    });
-});
 
 server.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);

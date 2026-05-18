@@ -1,5 +1,6 @@
 import HeaderComponent from "../HeaderComponent/HeaderComponent"
 import ChatbotComponent from "../ChatbotComponent/ChatbotComponent"
+import LiveChatComponent from "../LiveChatComponent/LiveChatComponent"
 
 const DefaultComponent = ({ children, isHiddenSearch = false, isCart = false, isFullWidth = false }) => {
     return (
@@ -14,6 +15,7 @@ const DefaultComponent = ({ children, isHiddenSearch = false, isCart = false, is
                 {children}
             </div>
             <ChatbotComponent />
+            <LiveChatComponent />
         </div>
     )
 }
