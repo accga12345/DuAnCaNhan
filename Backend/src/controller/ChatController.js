@@ -54,7 +54,7 @@ const handleChat = async (req, res) => {
                 for (const [key, value] of Object.entries(constraints)) {
                     if (!value) continue;
                     const specKey = key === 'ramType' ? 'Loại RAM' : 'Socket';
-                    techConditions.push({ "$or": [ { "specifications": { $elemMatch: { key: specKey, value: { $regex: new RegExp(value, 'i') } } } }, { "specifications": { $not: { $elemMatch: { key: specKey } } } } ] });
+                    techConditions.push({ "$or": [{ "specifications": { $elemMatch: { key: specKey, value: { $regex: new RegExp(value, 'i') } } } }, { "specifications": { $not: { $elemMatch: { key: specKey } } } }] });
                 }
                 if (techConditions.length > 0) query["$and"] = techConditions;
 
@@ -65,7 +65,7 @@ const handleChat = async (req, res) => {
                     const pObj = p.toObject();
                     pObj.categoryName = catName;
                     currentTotalSpent += p.price;
-                    surplus = Math.max(0, safeTarget - p.price); 
+                    surplus = Math.max(0, safeTarget - p.price);
                     return pObj;
                 }
                 return null;
@@ -93,21 +93,21 @@ const handleChat = async (req, res) => {
                 const mandatoryCore = ['CPU', 'Mainboard', 'RAM', 'SSD', 'PSU', 'Case'];
                 const requestedFromAI = (components || []).map(c => c.cat);
                 const finalBuildList = [...new Set([...mandatoryCore, ...requestedFromAI])];
-                
+
                 const sortedBuildOrder = ['CPU', 'Mainboard', 'Monitor', 'keybroad', 'RAM', 'SSD', 'PSU', 'Case', 'Cooling', 'VGA'];
                 const buildOrder = sortedBuildOrder.filter(item => finalBuildList.includes(item) || (['Cooling', 'VGA'].includes(item)));
 
                 const selectedPurposeRatios = {
                     gaming: { CPU: 0.20, Mainboard: 0.10, Monitor: 0.15, keybroad: 0.05, RAM: 0.08, SSD: 0.08, PSU: 0.07, Case: 0.05, Cooling: 0.05, VGA: 0.12, Chuột: 0.05 },
                     office: { CPU: 0.25, Mainboard: 0.12, Monitor: 0.18, keybroad: 0.05, RAM: 0.10, SSD: 0.10, PSU: 0.07, Case: 0.05, Cooling: 0.05, VGA: 0.03, Chuột: 0.05 },
-                    work:   { CPU: 0.22, Mainboard: 0.12, Monitor: 0.15, keybroad: 0.05, RAM: 0.12, SSD: 0.10, PSU: 0.08, Case: 0.05, Cooling: 0.05, VGA: 0.10, Chuột: 0.05 }
+                    work: { CPU: 0.22, Mainboard: 0.12, Monitor: 0.15, keybroad: 0.05, RAM: 0.12, SSD: 0.10, PSU: 0.08, Case: 0.05, Cooling: 0.05, VGA: 0.10, Chuột: 0.05 }
                 }[purpose] || { CPU: 0.2, Mainboard: 0.1, Monitor: 0.15, keybroad: 0.05, RAM: 0.1, SSD: 0.1, PSU: 0.1, Case: 0.1, Cooling: 0.1 };
 
                 const getBestProduct = async (catName, targetPrice, constraints = {}, isMandatory = true, useSurplus = true) => {
                     const cat = allCategories.find(c => c.name === catName);
                     if (!cat) return null;
                     const safeTarget = useSurplus ? (targetPrice + surplus) : targetPrice;
-                    
+
                     let limitPrice = safeTarget * 1.5;
                     if (purpose === 'office') {
                         if (catName === 'PSU') limitPrice = Math.min(limitPrice, 1200000);
@@ -118,13 +118,13 @@ const handleChat = async (req, res) => {
 
                     let query = { category: cat._id };
                     if (catName === 'CPU') query.brand = { $regex: new RegExp(`^${cpuBrand}$`, 'i') };
-                    
+
                     const techConditions = [];
-                    techConditions.push({ "$or": [ { "specifications": { $elemMatch: { key: "Mục đích", value: { $regex: new RegExp(dbPurpose, 'i') } } } }, { "specifications": { $not: { $elemMatch: { key: "Mục đích" } } } } ] });
+                    techConditions.push({ "$or": [{ "specifications": { $elemMatch: { key: "Mục đích", value: { $regex: new RegExp(dbPurpose, 'i') } } } }, { "specifications": { $not: { $elemMatch: { key: "Mục đích" } } } }] });
                     for (const [key, value] of Object.entries(constraints)) {
                         if (!value) continue;
                         const specKey = key === 'ramType' ? 'Loại RAM' : 'Socket';
-                        techConditions.push({ "$or": [ { "specifications": { $elemMatch: { key: specKey, value: { $regex: new RegExp(value, 'i') } } } }, { "specifications": { $not: { $elemMatch: { key: specKey } } } } ] });
+                        techConditions.push({ "$or": [{ "specifications": { $elemMatch: { key: specKey, value: { $regex: new RegExp(value, 'i') } } } }, { "specifications": { $not: { $elemMatch: { key: specKey } } } }] });
                     }
                     query["$and"] = techConditions;
 
@@ -140,7 +140,7 @@ const handleChat = async (req, res) => {
                         const pObj = p.toObject();
                         pObj.categoryName = catName;
                         currentTotalSpent += p.price;
-                        surplus = Math.max(0, safeTarget - p.price); 
+                        surplus = Math.max(0, safeTarget - p.price);
                         return pObj;
                     }
                     return null;
@@ -190,7 +190,6 @@ const handleChat = async (req, res) => {
 const replaceComponent = async (req, res) => {
     const { categoryName, newProductId, currentBuild, budgetInput } = req.body;
     try {
-        // 1. TRÍCH XUẤT BUDGET (Hỗ trợ cả '4tr' và '4000000')
         let budget = 0;
         if (budgetInput) {
             const m = budgetInput.toString().match(/(\d+(?:\.\d+)?)\s*(tr|trieu|triệu|cu|củ|m|k)/i);
@@ -235,10 +234,10 @@ const replaceComponent = async (req, res) => {
 
             // Xây dựng query CHẶT CHẼ TRONG $AND
             const andConditions = [];
-            
+
             // A. Đúng danh mục
             andConditions.push({ category: cat._id });
-            
+
             // B. Đúng tầm giá +/- 500k
             if (budget > 0) {
                 andConditions.push({ price: { $gte: budget - 500000, $lte: budget + 500000 } });

@@ -9,7 +9,9 @@ const CardComponent = (props) => {
     const productId = id || _id;
 
     const handleDetailProduct = (id) => {
-        navigate(`/productdetail/${id}`)
+        // Kiểm tra xem URL hiện tại có chứa 'category' hay không để truyền state
+        const isFromCategory = window.location.pathname.includes('/category/');
+        navigate(`/productdetail/${id}`, { state: { fromCategory: isFromCategory } });
     }
 
     return (

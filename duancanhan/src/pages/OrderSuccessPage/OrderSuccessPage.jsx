@@ -44,7 +44,7 @@ const OrderSuccessPage = () => {
     }, [isSuccessUpdate, isErrorUpdate]);
 
     const handleReceivedOrder = () => {
-        mutationUpdate.mutate({ id: orderDetails?.data?._id, status: 4, token: user?.accessToken });
+        mutationUpdate.mutate({ id: orderDetails?.data?._id, status: 4, isPaid: true, paidAt: new Date(), token: user?.accessToken });
     };
 
     const handleCancelOrder = () => {

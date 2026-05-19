@@ -1,13 +1,16 @@
 import React, { useEffect } from "react";
 import ProductDetailComponent from "../../components/ProductDetalComponent/ProductDetailComponent";
-import { useNavigate, useParams } from "react-router-dom";
+import BreadcrumbComponent from "../../components/BreadcrumbComponent/BreadcrumbComponent";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getDetailProduct } from "../../services/ProductService";
+import { convertToSlug } from "../../ultil";
 import { io } from "socket.io-client";
 
 const ProductDetailPage = () => {
   const navigate = useNavigate();
   const { id } = useParams();
+  const location = useLocation();
   const queryClient = useQueryClient();
   
   const { data: product, isLoading: isLoadingDetail } = useQuery({
@@ -33,20 +36,29 @@ const ProductDetailPage = () => {
     };
   }, [id, queryClient]);
 
+  const productData = product?.data || product;
+  const categoryData = productData?.category;
+  
+  const breadcrumbItems = [];
+  
+  // Dùng state từ location thay vì window.location.referrer
+  const isFromCategory = location.state?.fromCategory;
+  
+  if (isFromCategory && categoryData && categoryData._id && categoryData.name) {
+      const categoryName = categoryData.name;
+      const categorySlug = convertToSlug(categoryName);
+      breadcrumbItems.push({ 
+          name: categoryName, 
+          onClick: () => navigate(`/product/category/${categorySlug}`) 
+      });
+  }
+  
+  breadcrumbItems.push({ name: 'Chi tiết sản phẩm' });
+
   return (
     <div style={{ background: 'var(--bg-color)', width: '100%', minHeight: '100vh', paddingBottom: '40px' }}>
       <div style={{ padding: '0 24px', maxWidth: '1440px', margin: '0 auto', width: '100%' }}>
-        <h5 style={{ 
-          color: "var(--text-secondary)", 
-          padding: '24px 0', 
-          fontSize: '14px', 
-          fontWeight: '500',
-          letterSpacing: '0.2px'
-        }}>
-          <span style={{ color: "var(--primary-color)", cursor: "pointer", fontWeight: '600' }} onClick={() => navigate("/")}>Trang chủ</span>
-          <span style={{ margin: '0 8px', color: '#ccc' }}>/</span>
-          <span style={{ color: 'var(--text-main)' }}>Chi tiết sản phẩm</span>
-        </h5>
+        <BreadcrumbComponent items={breadcrumbItems} />
         <div style={{ backgroundColor: '#fff', borderRadius: '16px', padding: '24px', boxShadow: 'var(--shadow-soft)' }}>
           <ProductDetailComponent 
             id={id} 

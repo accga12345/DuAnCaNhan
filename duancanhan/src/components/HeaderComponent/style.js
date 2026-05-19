@@ -28,24 +28,29 @@ export const WapperHeaderAction = styled.div`
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 12px;
+  gap: 6px;
+  height: 70px;
 
   .item {
-    padding: 6px 10px;
+    padding: 0 4px;
+    min-width: auto;
     display: flex;
-    gap: 6px;
+    gap: 4px;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    border-radius: 10px;
+    border-radius: 8px;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     color: var(--text-main);
     white-space: nowrap;
+    height: 44px;
   }
   
-  .item .text-item {
-    font-size: 13px;
-    font-weight: 500;
+  .item .user-name {
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .item:hover {
@@ -58,12 +63,12 @@ export const WapperHeaderAction = styled.div`
   }
 
   .item:first-child {
-    color: var(--primary-color);
-    background-color: rgba(26, 115, 232, 0.08);
+    color: var(--text-main);
+    background-color: transparent;
   }
 
   .item:first-child:hover {
-    background-color: rgba(26, 115, 232, 0.12);
+    background-color: rgba(0, 0, 0, 0.04);
   }
 
   .item svg {
@@ -89,6 +94,3 @@ export const WapperAvatar = styled.div`
     object-fit: cover;
   }
 `;
-
-
-

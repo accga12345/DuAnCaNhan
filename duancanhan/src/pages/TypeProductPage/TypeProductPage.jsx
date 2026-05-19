@@ -3,11 +3,12 @@ import TypeProduct from "../../components/TypeProducts/TypeProduct"
 import { WapperHomePage, WrapperProductGrid } from "./style"
 import SliderComponent from "../../components/SliderComponent/SliderComponent"
 import CommitmentBanner from "../../components/CommitmentBanner/CommitmentBanner"
+import BreadcrumbComponent from "../../components/BreadcrumbComponent/BreadcrumbComponent"
 import slider1 from "../../assets/images/gearvn-build-pc.png"
 import slider2 from "../../assets/images/gearvn-chuot-gaming.png"
 import slider3 from "../../assets/images/gearvn-laptop-gaming.png"
 import CardComponent from "../../components/CardComponent/CardComponent"
-import { useParams } from "react-router-dom"
+import { useParams, useNavigate } from "react-router-dom"
 import { getProductByCategory, getAllCategoryProduct } from "../../services/ProductService"
 import { convertToSlug } from "../../ultil"
 import { useQuery } from "@tanstack/react-query"
@@ -18,6 +19,7 @@ import { Card, Radio, Space, Rate } from "antd"
 
 const TypeProductPage = () => {
   const { slug } = useParams();
+  const navigate = useNavigate();
   const searchProduct = useSelector((state) => state.product?.search)
   const searchDebounce = useDebounce(searchProduct, 1000)
   const [products, setProducts] = useState([]);
@@ -94,6 +96,8 @@ const TypeProductPage = () => {
   return (
     <div style={{ backgroundColor: "var(--bg-color)", padding: "20px 0", minHeight: '100vh' }}>
       <div style={{ maxWidth: "1440px", margin: "0 auto", padding: "0 24px" }}>
+        
+        <BreadcrumbComponent items={[{ name: currentCategoryName }]} />
 
         <CommitmentBanner />
 
@@ -167,4 +171,4 @@ const TypeProductPage = () => {
   )
 }
 
-export default TypeProductPage
+export default TypeProductPage;

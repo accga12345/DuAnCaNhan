@@ -18,7 +18,7 @@ import { useDebounce } from "../../hooks/useDebounce"
 const HomePage = () => {
   const searchProduct = useSelector((state) => state.product?.search)
   const searchDebounce = useDebounce(searchProduct, 1000)
-  const [limit, setLimit] = useState(6)
+  const [limit, setLimit] = useState(12)
   const [sortOption, setSortOption] = useState('')
   const [ratingFilter, setRatingFilter] = useState(0)
   const refSearch = useRef()
@@ -99,8 +99,12 @@ const HomePage = () => {
             <Card style={{ padding: "8px", borderRadius: "8px", boxShadow: "0 1px 2px 0 rgba(60,64,67,0.1), 0 2px 6px 2px rgba(60,64,67,0.15)", border: "none", marginBottom: '16px' }} bodyStyle={{ padding: '12px' }}>
               <h3 style={{ marginBottom: "16px", fontWeight: "700", fontSize: '16px', color: 'var(--text-main)' }}>Danh mục</h3>
               <WapperHomePage style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'stretch' }}>
+                  <div style={{ padding: '8px', border: '1px solid #1890ff', borderRadius: '4px', textAlign: 'center', marginBottom: '8px', cursor: 'pointer' }} onClick={() => window.location.href = '/xay-dung-cau-hinh'}>
+                    <span style={{ fontWeight: "700", color: "#1890ff" }}>🛠 Xây dựng cấu hình PC</span>
+                  </div>
+
                   {categories?.data?.map((item) => (
-                  <TypeProduct name={item.name} id={item._id} key={item._id} />
+                    <TypeProduct name={item.name} id={item._id} key={item._id} />
                   ))}
               </WapperHomePage>
             </Card>
@@ -136,7 +140,29 @@ const HomePage = () => {
             </div>
 
             <div>
-              <h2 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '16px', color: 'var(--text-main)', paddingLeft: '8px' }}>Gợi ý hôm nay</h2>
+              {/* Best Selling Section */}
+              <h2 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '16px', color: 'var(--text-main)', paddingLeft: '8px' }}>Sản phẩm bán chạy</h2>
+              <WrapperProductGrid>
+              {products?.data
+                ?.sort((a, b) => b.selled - a.selled || b.rating - a.rating)
+                ?.slice(0, 4)
+                ?.map((product) => (
+                <CardComponent key={product._id}
+                  name={product.name}
+                  image={product.image}
+                  category={product.category}
+                  price={product.price}
+                  countInStock={product.countInStock}
+                  rating={product.rating}
+                  description={product.description}
+                  selled={product.selled}
+                  discount={product.discount}
+                  id={product._id}
+                />
+              ))}
+              </WrapperProductGrid>
+
+              <h2 style={{ fontSize: '20px', fontWeight: 700, margin: '32px 0 16px 8px', color: 'var(--text-main)' }}>Gợi ý hôm nay</h2>
 
               <WrapperProductGrid>
               {getFilteredAndSortedProducts().map((product) => (

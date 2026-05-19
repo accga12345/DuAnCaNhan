@@ -20,17 +20,15 @@ const NavBarComponent = ({ types, onChange }) => {
     const renderContent = (type, data) => {
         switch (type) {
             case 'category':
-                return data?.map(item => {
-                    return (
-                        <WrapperText key={item._id} onClick={() => handleNavigate(item.name)} style={{ cursor: 'pointer' }}>
-                            {item.name}
-                        </WrapperText>
-                    )
-                })
+                return data?.map(item => (
+                    <WrapperText key={item._id} onClick={() => handleNavigate(item.name)} style={{ cursor: 'pointer' }}>
+                        {item.name}
+                    </WrapperText>
+                )) || [];
             case 'checkbox':
                 return data?.map(item => {
                     return (
-                        <Checkbox key={item.value} value={item.value}>{item.label}</Checkbox>
+                        <Checkbox key={item.value} value={item.label}>{item.label}</Checkbox>
                     )
                 })
             case 'rate':
@@ -49,6 +47,12 @@ const NavBarComponent = ({ types, onChange }) => {
 
     return (
         <div>
+            <div style={{ marginBottom: '20px', padding: '10px', border: '1px solid #1890ff', borderRadius: '5px', textAlign: 'center' }}>
+                <WrapperText onClick={() => navigate('/xay-dung-cau-hinh')} style={{ cursor: 'pointer', fontWeight: 'bold', color: '#1890ff', fontSize: '16px' }}>
+                    🛠 Xây dựng cấu hình PC
+                </WrapperText>
+            </div>
+
             <WrapperLabel>Danh mục</WrapperLabel>
             <WrapperContent>
                 {renderContent('category', types)}

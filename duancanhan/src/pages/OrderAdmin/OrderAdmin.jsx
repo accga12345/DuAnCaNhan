@@ -108,6 +108,16 @@ const OrderAdmin = () => {
             render: (text) => renderStatus(text),
         },
         {
+            title: 'Thanh toán',
+            dataIndex: 'isPaid',
+            key: 'isPaid',
+            render: (isPaid) => (
+                <Tag color={isPaid ? 'success' : 'default'}>
+                    {isPaid ? 'Đã thanh toán' : 'Chưa thanh toán'}
+                </Tag>
+            ),
+        },
+        {
             title: 'Tổng tiền',
             dataIndex: 'totalPrice',
             key: 'totalPrice',

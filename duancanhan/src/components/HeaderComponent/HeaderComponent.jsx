@@ -396,7 +396,7 @@ const HeaderComponent = ({ isHiddenSearch, isCart }) => {
                     ) : (
                       <SmileOutlined />
                     )}
-                    <span className="user-name text-item">
+                    <span className="user-name">
                       {user.name || user.email}
                     </span>
                   </div>
@@ -457,17 +457,16 @@ const HeaderComponent = ({ isHiddenSearch, isCart }) => {
                   {msg.sender === 'system' ? (
                     <span style={{ fontSize: 12, color: '#999', fontStyle: 'italic' }}>{msg.text}</span>
                   ) : (
-                      <div style={{
-                        padding: '8px 12px', borderRadius: 15,
-                        background: msg.sender === 'me' ? '#1890ff' : '#eee',
-                        color: msg.sender === 'me' ? '#fff' : '#000',
-                        maxWidth: '75%',
-                        marginLeft: msg.sender === 'me' ? 'auto' : '0',
-                        marginRight: msg.sender === 'me' ? '0' : 'auto',
-                        display: 'block', width: 'fit-content',
-                        textAlign: 'left',
-                        wordBreak: 'break-word', marginBottom: '5px'
-                      }}>                      {msg.sender === 'customer' && <div style={{ fontSize: 10, color: '#888', marginBottom: 2 }}>{msg.senderName}</div>}
+                    <div style={{
+                      padding: '8px 12px', borderRadius: 15,
+                      background: msg.sender === 'me' ? '#1890ff' : '#eee',
+                      color: msg.sender === 'me' ? '#fff' : '#000',
+                      maxWidth: '75%',
+                      marginLeft: msg.sender === 'me' ? 'auto' : '0',
+                      marginRight: msg.sender === 'me' ? '0' : 'auto',
+                      display: 'block', textAlign: 'left',
+                      wordBreak: 'break-word', marginBottom: '5px'
+                    }}>                      {msg.sender === 'customer' && <div style={{ fontSize: 10, color: '#888', marginBottom: 2 }}>{msg.senderName}</div>}
                       {msg.text}
                     </div>
                   )}

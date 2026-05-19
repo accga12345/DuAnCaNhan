@@ -10,10 +10,16 @@ import AdminPage from "../pages/AdminPage/AdminPage";
 import OrderSuccessPage from "../pages/OrderSuccessPage/OrderSuccessPage";
 import MyOrderPage from "../pages/MyOrderPage/MyOrderPage";
 import CommitmentPage from "../pages/CommitmentPage/CommitmentPage";
+import PCBuilderPage from "../pages/PCBuilderPage/PCBuilderPage";
 const routes = [
     {
         path: "/",
         page: HomePage,
+        isShowHeader: true
+    },
+    {
+        path: "/xay-dung-cau-hinh",
+        page: PCBuilderPage,
         isShowHeader: true
     },
     {
