@@ -123,7 +123,7 @@ function SignInPage() {
                             </Form.Item>
 
 
-                            <span style={{ color: "#1677ff", cursor: "pointer", fontSize: "14px" }}> Quên mật khẩu</span>
+                            <span onClick={() => navigate("/forgot-password")} style={{ color: "#1677ff", cursor: "pointer", fontSize: "14px" }}> Quên mật khẩu</span>
                             <div style={{ fontSize: "14px" }}>
                                 Bạn chưa có tài khoản?
                                 <span onClick={handleSignUp} style={{ color: "#1677ff", cursor: "pointer" }}> Đăng ký</span>

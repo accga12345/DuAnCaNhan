@@ -51,39 +51,39 @@ const HomePage = () => {
   }, [products])
 
   const getFilteredAndSortedProducts = () => {
-      let result = products?.data || [];
-      
-      if (searchDebounce) {
-          result = result.filter(product => product?.name?.toLowerCase()?.includes(searchDebounce?.toLowerCase()));
-      }
+    let result = products?.data || [];
 
-      if (ratingFilter > 0) {
-          result = result.filter(product => product.rating >= ratingFilter);
-      }
+    if (searchDebounce) {
+      result = result.filter(product => product?.name?.toLowerCase()?.includes(searchDebounce?.toLowerCase()));
+    }
 
-      if (sortOption === 'priceAsc') {
-          result = [...result].sort((a, b) => a.price - b.price);
-      } else if (sortOption === 'priceDesc') {
-          result = [...result].sort((a, b) => b.price - a.price);
-      } else if (sortOption === 'ratingDesc') {
-          result = [...result].sort((a, b) => b.rating - a.rating);
-      } else if (sortOption === 'selledDesc') {
-          result = [...result].sort((a, b) => b.selled - a.selled);
-      }
+    if (ratingFilter > 0) {
+      result = result.filter(product => product.rating >= ratingFilter);
+    }
 
-      return result;
+    if (sortOption === 'priceAsc') {
+      result = [...result].sort((a, b) => a.price - b.price);
+    } else if (sortOption === 'priceDesc') {
+      result = [...result].sort((a, b) => b.price - a.price);
+    } else if (sortOption === 'ratingDesc') {
+      result = [...result].sort((a, b) => b.rating - a.rating);
+    } else if (sortOption === 'selledDesc') {
+      result = [...result].sort((a, b) => b.selled - a.selled);
+    }
+
+    return result;
   }
 
   const renderStarFilter = (stars) => (
-      <div 
-          style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', padding: '4px 0' }}
-          onClick={() => setRatingFilter(ratingFilter === stars ? 0 : stars)}
-      >
-          <Rate disabled defaultValue={stars} style={{ fontSize: '14px', color: ratingFilter === stars ? '#1890ff' : '#fadb14' }} />
-          <span style={{ fontSize: '14px', color: ratingFilter === stars ? '#1890ff' : 'var(--text-main)', fontWeight: ratingFilter === stars ? 600 : 400 }}>
-              từ {stars} sao
-          </span>
-      </div>
+    <div
+      style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', padding: '4px 0' }}
+      onClick={() => setRatingFilter(ratingFilter === stars ? 0 : stars)}
+    >
+      <Rate disabled defaultValue={stars} style={{ fontSize: '14px', color: ratingFilter === stars ? '#1890ff' : '#fadb14' }} />
+      <span style={{ fontSize: '14px', color: ratingFilter === stars ? '#1890ff' : 'var(--text-main)', fontWeight: ratingFilter === stars ? 600 : 400 }}>
+        từ {stars} sao
+      </span>
+    </div>
   );
 
   return (
@@ -99,23 +99,23 @@ const HomePage = () => {
             <Card style={{ padding: "8px", borderRadius: "8px", boxShadow: "0 1px 2px 0 rgba(60,64,67,0.1), 0 2px 6px 2px rgba(60,64,67,0.15)", border: "none", marginBottom: '16px' }} bodyStyle={{ padding: '12px' }}>
               <h3 style={{ marginBottom: "16px", fontWeight: "700", fontSize: '16px', color: 'var(--text-main)' }}>Danh mục</h3>
               <WapperHomePage style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'stretch' }}>
-                  <div style={{ padding: '8px', border: '1px solid #1890ff', borderRadius: '4px', textAlign: 'center', marginBottom: '8px', cursor: 'pointer' }} onClick={() => window.location.href = '/xay-dung-cau-hinh'}>
-                    <span style={{ fontWeight: "700", color: "#1890ff" }}>🛠 Xây dựng cấu hình PC</span>
-                  </div>
+                <div style={{ padding: '8px', border: '1px solid #1890ff', borderRadius: '4px', textAlign: 'center', marginBottom: '8px', cursor: 'pointer' }} onClick={() => window.location.href = '/xay-dung-cau-hinh'}>
+                  <span style={{ fontWeight: "700", color: "#1890ff" }}>🛠 Xây dựng cấu hình PC</span>
+                </div>
 
-                  {categories?.data?.map((item) => (
-                    <TypeProduct name={item.name} id={item._id} key={item._id} />
-                  ))}
+                {categories?.data?.map((item) => (
+                  <TypeProduct name={item.name} id={item._id} key={item._id} />
+                ))}
               </WapperHomePage>
             </Card>
 
             <Card style={{ padding: "8px", borderRadius: "8px", boxShadow: "0 1px 2px 0 rgba(60,64,67,0.1), 0 2px 6px 2px rgba(60,64,67,0.15)", border: "none", marginBottom: '16px' }} bodyStyle={{ padding: '12px' }}>
               <h3 style={{ marginBottom: "16px", fontWeight: "700", fontSize: '16px', color: 'var(--text-main)' }}>Đánh giá</h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  {renderStarFilter(5)}
-                  {renderStarFilter(4)}
-                  {renderStarFilter(3)}
-                  {renderStarFilter(2)}
+                {renderStarFilter(5)}
+                {renderStarFilter(4)}
+                {renderStarFilter(3)}
+                {renderStarFilter(2)}
               </div>
             </Card>
 
@@ -141,53 +141,53 @@ const HomePage = () => {
 
             <div>
               {/* Best Selling Section */}
-              <h2 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '16px', color: 'var(--text-main)', paddingLeft: '8px' }}>Sản phẩm bán chạy</h2>
+              <h2 style={{ fontSize: '30px', fontWeight: 700, marginBottom: '16px', color: 'var(--text-main)', paddingLeft: '8px' }}>Sản phẩm bán chạy</h2>
               <WrapperProductGrid>
-              {products?.data
-                ?.sort((a, b) => b.selled - a.selled || b.rating - a.rating)
-                ?.slice(0, 4)
-                ?.map((product) => (
-                <CardComponent key={product._id}
-                  name={product.name}
-                  image={product.image}
-                  category={product.category}
-                  price={product.price}
-                  countInStock={product.countInStock}
-                  rating={product.rating}
-                  description={product.description}
-                  selled={product.selled}
-                  discount={product.discount}
-                  id={product._id}
-                />
-              ))}
+                {products?.data
+                  ?.sort((a, b) => b.selled - a.selled || b.rating - a.rating)
+                  ?.slice(0, 4)
+                  ?.map((product) => (
+                    <CardComponent key={product._id}
+                      name={product.name}
+                      image={product.image}
+                      category={product.category}
+                      price={product.price}
+                      countInStock={product.countInStock}
+                      rating={product.rating}
+                      description={product.description}
+                      selled={product.selled}
+                      discount={product.discount}
+                      id={product._id}
+                    />
+                  ))}
               </WrapperProductGrid>
 
-              <h2 style={{ fontSize: '20px', fontWeight: 700, margin: '32px 0 16px 8px', color: 'var(--text-main)' }}>Gợi ý hôm nay</h2>
+              <h2 style={{ fontSize: '30px', fontWeight: 700, margin: '32px 0 16px 8px', color: 'var(--text-main)' }}>Gợi ý hôm nay</h2>
 
               <WrapperProductGrid>
-              {getFilteredAndSortedProducts().map((product) => (
-                <CardComponent key={product._id}
-                  name={product.name}
-                  image={product.image}
-                  category={product.category}
-                  price={product.price}
-                  countInStock={product.countInStock}
-                  rating={product.rating}
-                  description={product.description}
-                  selled={product.selled}
-                  discount={product.discount}
-                  id={product._id}
-                />
-              ))}
+                {getFilteredAndSortedProducts().map((product) => (
+                  <CardComponent key={product._id}
+                    name={product.name}
+                    image={product.image}
+                    category={product.category}
+                    price={product.price}
+                    countInStock={product.countInStock}
+                    rating={product.rating}
+                    description={product.description}
+                    selled={product.selled}
+                    discount={product.discount}
+                    id={product._id}
+                  />
+                ))}
               </WrapperProductGrid>
 
-              <div style={{ display: "flex", justifyContent: "center", marginTop: "32px", paddingBottom: "16px" }}>        
+              <div style={{ display: "flex", justifyContent: "center", marginTop: "32px", paddingBottom: "16px" }}>
                 <WrapperButtonMore
                   textButton={isLoading ? "Đang tải..." : "Xem thêm"}
                   type="outline"
                   styleButton={{
                     border: "1px solid var(--primary-color)",
-                    color: `${products?.totalProducts === products?.data?.length ? "#ccc" : "var(--primary-color)"}`,      
+                    color: `${products?.totalProducts === products?.data?.length ? "#ccc" : "var(--primary-color)"}`,
                     width: "240px",
                     height: "40px",
                     borderRadius: "4px",

@@ -1,6 +1,7 @@
 const User = require('../models/UserModel');
 const bcrypt = require('bcrypt');
 const { generateToken, generateRefreshToken } = require('./JwtService');
+const { sendEmailResetPassword } = require('./EmailService');
 const jwt = require('jsonwebtoken');
 const dotenv = require('dotenv');
 dotenv.config();
@@ -184,6 +185,75 @@ const deleteManyUser = async (ids) => {
     }
 }
 
+const forgotPassword = async (email) => {
+    try {
+        const checkUser = await User.findOne({ email });
+        if (!checkUser) {
+            return {
+                status: "error",
+                message: "Email không tồn tại trong hệ thống"
+            };
+        }
+
+        const token = jwt.sign(
+            { id: checkUser._id },
+            process.env.ACCESS_TOKEN,
+            { expiresIn: '15m' }
+        );
+
+        await sendEmailResetPassword(email, token);
+
+        return {
+            status: "success",
+            message: "Vui lòng kiểm tra email để nhận link khôi phục mật khẩu"
+        };
+    } catch (error) {
+        throw error;
+    }
+};
+
+const resetPassword = async (token, password) => {
+    try {
+        const decoded = jwt.verify(token, process.env.ACCESS_TOKEN);
+        if (!decoded?.id) {
+            return {
+                status: "error",
+                message: "Token không hợp lệ hoặc đã hết hạn"
+            };
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const user = await User.findOneAndUpdate(
+            { _id: decoded.id },
+            { password: hashedPassword },
+            { new: true }
+        );
+
+        if (!user) {
+            return {
+                status: "error",
+                message: "Người dùng không tồn tại"
+            };
+        }
+
+        return {
+            status: "success",
+            message: "Đổi mật khẩu thành công"
+        };
+    } catch (error) {
+        if (error.name === 'TokenExpiredError') {
+            return {
+                status: "error",
+                message: "Link khôi phục đã hết hạn"
+            };
+        }
+        return {
+            status: "error",
+            message: "Đã có lỗi xảy ra, vui lòng thử lại"
+        };
+    }
+};
+
 module.exports = {
     createUser,
     loginUser,
@@ -192,5 +262,7 @@ module.exports = {
     getAllUsers,
     getUserById,
     refreshTokenService,
-    deleteManyUser
+    deleteManyUser,
+    forgotPassword,
+    resetPassword
 }

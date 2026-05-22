@@ -240,6 +240,11 @@ function ProductListPage() {
     };
 
     const handleChangeMainImage = async ({ file, fileList: newFileList }) => {
+        if (newFileList.length === 0) {
+            form.setFieldsValue({ image: null });
+            setFileList([]);
+            return;
+        }
         const realFile = file.originFileObj || file;
         if (!(realFile instanceof Blob)) return;
         const base64 = await getBase64(realFile);

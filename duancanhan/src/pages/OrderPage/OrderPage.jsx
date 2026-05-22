@@ -6,7 +6,7 @@ import { WrapperContainer, WrapperLeft, WrapperRight, WrapperInfo, WrapperTotal,
 import ButtonComponents from '../../components/ButtonComponents/ButtonComponents';
 import { increaseAmount, decreaseAmount, removeOrderProduct, removeAllOrderProduct } from '../../redux/slides/orderSlide';
 import { useMemo, useState, useEffect } from 'react';
-import { Modal, Form, Input } from 'antd';
+import { Modal, Form, Input, Typography, Divider } from 'antd';
 import { useMutationHook } from '../../hooks/useMutationHook';
 import { createOrder } from '../../services/OrderService';
 import { showSuccess, showError } from '../../components/MessageComponent/MessageComponent';
@@ -15,7 +15,9 @@ import { updateUser } from '../../redux/slides/userSlide';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
-import { getClientConfig } from '../../services/PaymentService';
+import { getClientConfig, createSePayPayment } from '../../services/PaymentService';
+
+const { Text } = Typography;
 
 const OrderPage = () => {
   const order = useSelector((state) => state.order);
@@ -23,8 +25,12 @@ const OrderPage = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [isOpenModalUpdateInfo, setIsOpenModalUpdateInfo] = useState(false);
+  const [isOpenModalSePay, setIsOpenModalSePay] = useState(false);
+  const [sepayData, setSePayData] = useState(null);
   const [stateUserDetails, setStateUserDetails] = useState({
     address: '',
+    name: '',
+    phone: '',
   });
   const [listChecked, setListChecked] = useState([]);
   const [payment, setPayment] = useState('later_money');
@@ -44,7 +50,7 @@ const OrderPage = () => {
         phone: user?.phone,
       });
     }
-  }, [isOpenModalUpdateInfo]);
+  }, [isOpenModalUpdateInfo, user]);
 
   const handleChangeAddress = () => {
     setIsOpenModalUpdateInfo(true);
@@ -55,7 +61,6 @@ const OrderPage = () => {
       name: '',
       phone: '',
       address: '',
-      city: ''
     });
     form.resetFields();
     setIsOpenModalUpdateInfo(false);
@@ -77,38 +82,38 @@ const OrderPage = () => {
     }
   );
 
-  const { isPending: isPendingUpdate, data: dataUpdate } = mutationUpdate;
   const { data: dataAdd, isPending: isPendingAddOrder, isSuccess: isSuccessAddOrder, isError: isErrorAddOrder } = mutationAddOrder;
 
-  useEffect(() => {
-    if (isSuccessAddOrder && dataAdd?.status === 'OK') {
+  const handleOrderSuccess = (resData, currentPayment) => {
+    if (resData?.status === 'OK') {
       const orderItemsOrdered = order?.orderItems?.filter(item =>
         listChecked.includes(item.product)
       )
-
       const arrayOrdered = orderItemsOrdered.map(item => item.product)
-
+      
       queryClient.invalidateQueries({ queryKey: ['my-orders', user?._id] })
-
       dispatch(removeAllOrderProduct({ listChecked: arrayOrdered }))
       showSuccess('Đặt hàng thành công')
 
-      navigate('/orderSuccess', {
-        state: {
-          id: dataAdd?.data?._id,
-          delivery: deliveryPriceMemo,
-          paymentMethod: payment,
-          totalPrice: totalPriceMemo,
-          orderItems: orderItemsOrdered,
-        }
-      })
+      if (currentPayment !== 'sepay') {
+        navigate('/orderSuccess', {
+          state: {
+            id: resData?.data?._id,
+            delivery: deliveryPriceMemo,
+            paymentMethod: currentPayment,
+            totalPrice: totalPriceMemo,
+            orderItems: orderItemsOrdered,
+          }
+        })
+      }
     }
+  }
 
+  useEffect(() => {
     if (isErrorAddOrder) {
       showError('Đặt hàng thất bại')
     }
-
-  }, [isSuccessAddOrder, isErrorAddOrder, dataAdd])
+  }, [isErrorAddOrder]);
 
 
   const handleUpdateInformation = () => {
@@ -123,7 +128,7 @@ const OrderPage = () => {
     }
   };
 
-  const handleAddOrder = (isPaid = false) => {
+  const handleAddOrder = async (isPaid = false) => {
     if (!user?.accessToken) {
       navigate('/signin');
       return;
@@ -135,6 +140,40 @@ const OrderPage = () => {
     } else if (!listChecked.length) {
       showError('Vui lòng chọn sản phẩm để thanh toán');
     } else {
+      if (payment === 'sepay') {
+        mutationAddOrder.mutate({
+          token: user?.accessToken,
+          orderItems: order?.orderItems?.filter(item => listChecked.includes(item.product)),
+          fullName: user?.name,
+          address: user?.address,
+          phone: user?.phone,
+          paymentMethod: 'sepay',
+          itemsPrice: priceMemo,
+          shippingPrice: deliveryPriceMemo,
+          totalPrice: totalPriceMemo,
+          user: user?._id,
+          isPaid: false,
+        }, {
+          onSuccess: async (resOrder) => {
+            if (resOrder?.status === 'OK') {
+              const mongoOrderId = resOrder?.data?._id;
+              const resPay = await createSePayPayment({
+                amount: totalPriceMemo,
+                orderId: mongoOrderId
+              }, user?.accessToken);
+
+              if (resPay?.status === 'success' && resPay?.data?.payUrl) {
+                setSePayData(resPay.data);
+                setIsOpenModalSePay(true);
+              } else {
+                showError('Không thể tạo liên kết thanh toán SePay');
+              }
+            }
+          }
+        });
+        return;
+      }
+
       mutationAddOrder.mutate({
         token: user?.accessToken,
         orderItems: order?.orderItems?.filter(item => listChecked.includes(item.product)),
@@ -165,7 +204,6 @@ const OrderPage = () => {
       showError('Số lượng sản phẩm không đủ');
       return;
     }
-
     setPayment(e.target.value);
   };
 
@@ -224,7 +262,6 @@ const OrderPage = () => {
         const discount = cur.discount || 0
         const discountMoney =
           (cur.price * discount / 100) * cur.amount
-
         return total + discountMoney
       }
       return total
@@ -249,7 +286,6 @@ const OrderPage = () => {
 
   const dataConfig = async () => {
     const { data } = await getClientConfig();
-    console.log(data);
     const script = document.createElement('script');
     script.type = 'text/javascript';
     script.src = `https://www.paypal.com/sdk/js?client-id=${data}`;
@@ -288,26 +324,26 @@ const OrderPage = () => {
                 </div>
               </WrapperInfo>
               <WrapperListOrder>
-                {order?.orderItems?.map((order) => {
+                {order?.orderItems?.map((orderItem) => {
                   return (
-                    <WrapperItemOrder key={order?.product}>
+                    <WrapperItemOrder key={orderItem?.product}>
                       <div style={{ width: '390px', display: 'flex', alignItems: 'center', gap: 4 }}>
-                        <Checkbox onChange={onChangeCheck} value={order?.product} checked={listChecked.includes(order?.product)} />
-                        <img src={order?.image} style={{ width: '77px', height: '79px', objectFit: 'cover' }} alt="Sản phẩm" />
-                        <div style={{ width: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{order?.name}</div>
+                        <Checkbox onChange={onChangeCheck} value={orderItem?.product} checked={listChecked.includes(orderItem?.product)} />
+                        <img src={orderItem?.image} style={{ width: '77px', height: '79px', objectFit: 'cover' }} alt="Sản phẩm" />
+                        <div style={{ width: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{orderItem?.name}</div>
                       </div>
                       <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         <span>
-                          <span style={{ fontSize: '13px', color: '#242424' }}>{(order?.price || 0)?.toLocaleString()}đ</span>
-                          {order?.discount > 0 && <WrapperPriceDiscount>{((order?.price || 0) + ((order?.price || 0) * (order?.discount || 0) / 100))?.toLocaleString()}đ</WrapperPriceDiscount>}
+                          <span style={{ fontSize: '13px', color: '#242424' }}>{(orderItem?.price || 0)?.toLocaleString()}đ</span>
+                          {orderItem?.discount > 0 && <WrapperPriceDiscount>{((orderItem?.price || 0) + ((orderItem?.price || 0) * (orderItem?.discount || 0) / 100))?.toLocaleString()}đ</WrapperPriceDiscount>}
                         </span>
                         <WrapperQuantityBuy>
-                          <ButtonComponents textButton="-" size="middle" styleButton={{ width: "35px", padding: "4px" }} disabled={order?.amount === 1} onClick={() => handleOnChangeCount('decrease', order?.product)} />
-                          <WrapperInputQuantityBuy size="middle" defaultValue={order?.amount} value={order?.amount} controls={false} />
-                          <ButtonComponents textButton="+" size="middle" styleButton={{ width: "35px", padding: "4px" }} disabled={order?.amount === order?.countInStock} onClick={() => handleOnChangeCount('increase', order?.product)} />
+                          <ButtonComponents textButton="-" size="middle" styleButton={{ width: "35px", padding: "4px" }} disabled={orderItem?.amount === 1} onClick={() => handleOnChangeCount('decrease', orderItem?.product)} />
+                          <WrapperInputQuantityBuy size="middle" defaultValue={orderItem?.amount} value={orderItem?.amount} controls={false} />
+                          <ButtonComponents textButton="+" size="middle" styleButton={{ width: "35px", padding: "4px" }} disabled={orderItem?.amount === orderItem?.countInStock} onClick={() => handleOnChangeCount('increase', orderItem?.product)} />
                         </WrapperQuantityBuy>
-                        <span style={{ color: 'rgb(255, 66, 78)', fontSize: '13px', fontWeight: 500 }}>{((order?.price || 0) * (order?.amount || 0))?.toLocaleString()}đ</span>
-                        <DeleteOutlined style={{ cursor: 'pointer' }} onClick={() => handleDeleteOrder(order?.product)} />
+                        <span style={{ color: 'rgb(255, 66, 78)', fontSize: '13px', fontWeight: 500 }}>{((orderItem?.price || 0) * (orderItem?.amount || 0))?.toLocaleString()}đ</span>
+                        <DeleteOutlined style={{ cursor: 'pointer' }} onClick={() => handleDeleteOrder(orderItem?.product)} />
                       </div>
                     </WrapperItemOrder>
                   )
@@ -347,6 +383,7 @@ const OrderPage = () => {
                   <span>Chọn phương thức thanh toán</span>
                   <Radio.Group onChange={handlePayment} value={payment} style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '10px' }}>
                     <Radio value="later_money">Thanh toán tiền mặt khi nhận hàng (COD)</Radio>
+                    <Radio value="sepay">Chuyển khoản Ngân hàng tự động (SePay)</Radio>
                     <Radio value="paypal">Thanh toán bằng PayPal</Radio>
                   </Radio.Group>
                 </div>
@@ -437,8 +474,43 @@ const OrderPage = () => {
           </Form.Item>
         </Form>
       </Modal>
+
+      <Modal 
+        title="Thanh toán qua chuyển khoản Ngân hàng" 
+        open={isOpenModalSePay} 
+        onCancel={() => {
+            setIsOpenModalSePay(false);
+            navigate('/my-order');
+        }}
+        footer={null}
+        width={400}
+      >
+        <div style={{ textAlign: 'center' }}>
+          <p>Vui lòng quét mã QR dưới đây để thanh toán</p>
+          <img src={sepayData?.payUrl} alt="SePay QR" style={{ width: '100%', maxWidth: '250px', marginBottom: '20px' }} />
+          <Divider />
+          <div style={{ textAlign: 'left', background: '#f0f2f5', padding: '15px', borderRadius: '8px' }}>
+            <div style={{ marginBottom: '10px' }}>
+              <Text strong>Số tiền:</Text> <Text type="danger" style={{ fontSize: '18px' }}>{sepayData?.amount?.toLocaleString()}đ</Text>
+            </div>
+            <div style={{ marginBottom: '10px' }}>
+              <Text strong>Nội dung chuyển khoản:</Text>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '5px' }}>
+                <Input value={sepayData?.description} readOnly style={{ fontWeight: 'bold', color: '#1677ff' }} />
+              </div>
+              <Text type="secondary" style={{ fontSize: '12px' }}>* Quan trọng: Nhập chính xác nội dung này để đơn hàng được tự động xác nhận.</Text>
+            </div>
+            <div>
+              <Text strong>Số tài khoản:</Text> <Text>{sepayData?.bankAccount}</Text>
+            </div>
+          </div>
+          <p style={{ marginTop: '20px', fontStyle: 'italic', fontSize: '13px' }}>
+            Hệ thống sẽ tự động cập nhật sau 1-3 phút khi nhận được tiền.
+          </p>
+        </div>
+      </Modal>
     </div>
   )
 }
 
-export default OrderPage
+export default OrderPage;

@@ -170,6 +170,44 @@ const deleteManyUser = async (req, res) => {
     }
 }
 
+const forgotPassword = async (req, res) => {
+    try {
+        const { email } = req.body;
+        if (!email) {
+            return res.status(400).json({
+                status: "error",
+                message: "Vui lòng nhập email"
+            });
+        }
+        const data = await UserService.forgotPassword(email);
+        if (data.status === "error") {
+            return res.status(404).json(data);
+        }
+        return res.status(200).json(data);
+    } catch (error) {
+        return res.status(500).json({ message: error.message });
+    }
+};
+
+const resetPassword = async (req, res) => {
+    try {
+        const { password, token } = req.body;
+        if (!password || !token) {
+            return res.status(400).json({
+                status: "error",
+                message: "Vui lòng cung cấp mật khẩu và mã xác nhận"
+            });
+        }
+        const data = await UserService.resetPassword(token, password);
+        if (data.status === "error") {
+            return res.status(400).json(data);
+        }
+        return res.status(200).json(data);
+    } catch (error) {
+        return res.status(500).json({ message: error.message });
+    }
+};
+
 module.exports = {
     createUser,
     loginUser,
@@ -179,5 +217,7 @@ module.exports = {
     getUserById,
     refreshTokenService,
     logoutUser,
-    deleteManyUser
+    deleteManyUser,
+    forgotPassword,
+    resetPassword
 }

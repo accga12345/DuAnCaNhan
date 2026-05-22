@@ -3,6 +3,7 @@ import { Space, Button, Modal, Form, Input, InputNumber, Select, Popconfirm } fr
 import { getAllWarehouseItems, deleteWarehouseItem, getDetailWarehouseItem, updateWarehouseItem } from '../../services/WarehouseService';
 import { getAllCategories } from '../../services/CategoryService';
 import { getAllSuppliers } from '../../services/SupplierService';
+import { getAllBrands } from '../../services/BrandService';
 import { useQuery } from '@tanstack/react-query';
 import TableComponent from '../../components/TableComponent/TableComponent';
 import { showSuccess, showError } from '../../components/MessageComponent/MessageComponent';
@@ -29,6 +30,11 @@ function WarehouseListPage() {
     const { data: suppliersData } = useQuery({
         queryKey: ['suppliers'],
         queryFn: () => getAllSuppliers(),
+    });
+
+    const { data: brandsData } = useQuery({
+        queryKey: ['brands'],
+        queryFn: () => getAllBrands(),
     });
 
     const handleGetDetailItem = async (id) => {
@@ -176,6 +182,11 @@ function WarehouseListPage() {
                     <Form.Item label="Danh mục" name="category">
                         <Select
                             options={categoriesData?.data?.map(c => ({ value: c._id, label: c.name }))}
+                        />
+                    </Form.Item>
+                    <Form.Item label="Thương hiệu" name="brand">
+                        <Select
+                            options={brandsData?.data?.map(b => ({ value: b.name, label: b.name }))}
                         />
                     </Form.Item>
                     <Form.Item label="Nhà cung cấp" name="supplier">

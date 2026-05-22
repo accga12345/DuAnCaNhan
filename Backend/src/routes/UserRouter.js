@@ -13,5 +13,7 @@ router.get('/get_by_id/:id', authUserMiddleware, userController.getUserById)
 router.post('/refresh_token', userController.refreshTokenService)
 router.post('/logout', userController.logoutUser)
 router.delete('/delete_many_user', authAdminMiddleware, userController.deleteManyUser)
+router.post('/forgot-password', userController.forgotPassword)
+router.post('/reset-password', userController.resetPassword)
 
 module.exports = router 

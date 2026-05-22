@@ -11,6 +11,9 @@ import OrderSuccessPage from "../pages/OrderSuccessPage/OrderSuccessPage";
 import MyOrderPage from "../pages/MyOrderPage/MyOrderPage";
 import CommitmentPage from "../pages/CommitmentPage/CommitmentPage";
 import PCBuilderPage from "../pages/PCBuilderPage/PCBuilderPage";
+import ForgotPasswordPage from "../pages/ForgotPasswordPage/ForgotPasswordPage";
+import ResetPasswordPage from "../pages/ResetPasswordPage/ResetPasswordPage";
+
 const routes = [
     {
         path: "/",
@@ -60,6 +63,16 @@ const routes = [
     {
         path: "/signup",
         page: SignUpPage,
+        isShowHeader: false
+    },
+    {
+        path: "/forgot-password",
+        page: ForgotPasswordPage,
+        isShowHeader: false
+    },
+    {
+        path: "/reset-password",
+        page: ResetPasswordPage,
         isShowHeader: false
     },
     {
