@@ -1,6 +1,6 @@
 import React from "react"
 import TypeProduct from "../../components/TypeProducts/TypeProduct"
-import { WapperHomePage, WrapperButtonMore, WrapperProductGrid } from "./style"
+import { WapperHomePage, WrapperButtonMore, WrapperProductGrid, WrapperProductSlider } from "./style"
 import SliderComponent from "../../components/SliderComponent/SliderComponent"
 import CommitmentBanner from "../../components/CommitmentBanner/CommitmentBanner"
 import slider1 from "../../assets/images/gearvn-build-pc.png"
@@ -11,9 +11,10 @@ import { useQuery } from "@tanstack/react-query"
 import { getAllProduct } from "../../services/ProductService";
 import { getAllCategories } from "../../services/CategoryService";
 import { useSelector } from "react-redux"
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useMemo } from "react"
 import { Card, Radio, Space, Rate } from "antd"
 import { useDebounce } from "../../hooks/useDebounce"
+import Slider from "react-slick"
 
 const HomePage = () => {
   const searchProduct = useSelector((state) => state.product?.search)
@@ -24,12 +25,41 @@ const HomePage = () => {
   const refSearch = useRef()
   const initialLoad = useRef(true)
 
+  // Map sortOption string to backend array format [order, field]
+  const backendSort = useMemo(() => {
+    switch (sortOption) {
+      case 'priceAsc': return ['asc', 'price'];
+      case 'priceDesc': return ['desc', 'price'];
+      case 'ratingDesc': return ['desc', 'rating'];
+      case 'selledDesc': return ['desc', 'selled'];
+      default: return null;
+    }
+  }, [sortOption]);
+
+  // Map filters to backend array format [field, value]
+  const backendFilter = useMemo(() => {
+    if (searchDebounce) {
+       return ['name', searchDebounce];
+    }
+    if (ratingFilter > 0) {
+       return ['rating', ratingFilter.toString()];
+    }
+    return null;
+  }, [searchDebounce, ratingFilter]);
+
   const { data: products, isLoading } = useQuery({
-    queryKey: ["products", limit],
-    queryFn: () => getAllProduct(limit, 0),
+    queryKey: ["products", limit, backendSort, backendFilter],
+    queryFn: () => getAllProduct(limit, 1, backendSort, backendFilter),
     retry: 3,
     retryDelay: 1000,
     placeholderData: (previousData) => previousData,
+  });
+
+  const { data: bestSellingProducts } = useQuery({
+    queryKey: ["bestSellingProducts"],
+    queryFn: () => getAllProduct(10, 1, ['desc', 'selled'], null),
+    retry: 3,
+    retryDelay: 1000,
   });
 
   const { data: categories } = useQuery({
@@ -50,34 +80,13 @@ const HomePage = () => {
     }
   }, [products])
 
-  const getFilteredAndSortedProducts = () => {
-    let result = products?.data || [];
-
-    if (searchDebounce) {
-      result = result.filter(product => product?.name?.toLowerCase()?.includes(searchDebounce?.toLowerCase()));
-    }
-
-    if (ratingFilter > 0) {
-      result = result.filter(product => product.rating >= ratingFilter);
-    }
-
-    if (sortOption === 'priceAsc') {
-      result = [...result].sort((a, b) => a.price - b.price);
-    } else if (sortOption === 'priceDesc') {
-      result = [...result].sort((a, b) => b.price - a.price);
-    } else if (sortOption === 'ratingDesc') {
-      result = [...result].sort((a, b) => b.rating - a.rating);
-    } else if (sortOption === 'selledDesc') {
-      result = [...result].sort((a, b) => b.selled - a.selled);
-    }
-
-    return result;
-  }
-
   const renderStarFilter = (stars) => (
     <div
       style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', padding: '4px 0' }}
-      onClick={() => setRatingFilter(ratingFilter === stars ? 0 : stars)}
+      onClick={() => {
+        setRatingFilter(ratingFilter === stars ? 0 : stars);
+        setLimit(12); // Reset limit on filter change
+      }}
     >
       <Rate disabled defaultValue={stars} style={{ fontSize: '14px', color: ratingFilter === stars ? '#1890ff' : '#fadb14' }} />
       <span style={{ fontSize: '14px', color: ratingFilter === stars ? '#1890ff' : 'var(--text-main)', fontWeight: ratingFilter === stars ? 600 : 400 }}>
@@ -85,6 +94,39 @@ const HomePage = () => {
       </span>
     </div>
   );
+
+  const bestSellingSliderSettings = {
+    dots: true,
+    infinite: true,
+    speed: 500,
+    slidesToShow: 4,
+    slidesToScroll: 2,
+    autoplay: true,
+    autoplaySpeed: 4000,
+    responsive: [
+      {
+        breakpoint: 1024,
+        settings: {
+          slidesToShow: 3,
+          slidesToScroll: 1,
+        }
+      },
+      {
+        breakpoint: 768,
+        settings: {
+          slidesToShow: 2,
+          slidesToScroll: 1,
+        }
+      },
+      {
+        breakpoint: 480,
+        settings: {
+          slidesToShow: 1,
+          slidesToScroll: 1,
+        }
+      }
+    ]
+  };
 
   return (
     <div style={{ backgroundColor: "var(--bg-color)", padding: "20px 0" }}>
@@ -116,12 +158,14 @@ const HomePage = () => {
                 {renderStarFilter(4)}
                 {renderStarFilter(3)}
                 {renderStarFilter(2)}
+                {renderStarFilter(1)}
+                {renderStarFilter(0)}
               </div>
             </Card>
 
             <Card style={{ padding: "8px", borderRadius: "8px", boxShadow: "0 1px 2px 0 rgba(60,64,67,0.1), 0 2px 6px 2px rgba(60,64,67,0.15)", border: "none" }} bodyStyle={{ padding: '12px' }}>
               <h3 style={{ marginBottom: "16px", fontWeight: "700", fontSize: '16px', color: 'var(--text-main)' }}>Sắp xếp theo</h3>
-              <Radio.Group onChange={(e) => setSortOption(e.target.value)} value={sortOption}>
+              <Radio.Group onChange={(e) => { setSortOption(e.target.value); setLimit(12); }} value={sortOption}>
                 <Space direction="vertical">
                   <Radio value="">Mặc định</Radio>
                   <Radio value="priceAsc">Giá thấp đến cao</Radio>
@@ -142,30 +186,33 @@ const HomePage = () => {
             <div>
               {/* Best Selling Section */}
               <h2 style={{ fontSize: '30px', fontWeight: 700, marginBottom: '16px', color: 'var(--text-main)', paddingLeft: '8px' }}>Sản phẩm bán chạy</h2>
-              <WrapperProductGrid>
-                {products?.data
-                  ?.sort((a, b) => b.selled - a.selled || b.rating - a.rating)
-                  ?.slice(0, 4)
-                  ?.map((product) => (
-                    <CardComponent key={product._id}
-                      name={product.name}
-                      image={product.image}
-                      category={product.category}
-                      price={product.price}
-                      countInStock={product.countInStock}
-                      rating={product.rating}
-                      description={product.description}
-                      selled={product.selled}
-                      discount={product.discount}
-                      id={product._id}
-                    />
-                  ))}
-              </WrapperProductGrid>
+              {bestSellingProducts?.data && bestSellingProducts.data.length > 0 && (
+                <WrapperProductSlider>
+                  <Slider {...bestSellingSliderSettings}>
+                    {bestSellingProducts.data.map((product) => (
+                        <div key={product._id}>
+                          <CardComponent
+                            name={product.name}
+                            image={product.image}
+                            category={product.category}
+                            price={product.price}
+                            countInStock={product.countInStock}
+                            rating={product.rating}
+                            description={product.description}
+                            selled={product.selled}
+                            discount={product.discount}
+                            id={product._id}
+                          />
+                        </div>
+                      ))}
+                  </Slider>
+                </WrapperProductSlider>
+              )}
 
               <h2 style={{ fontSize: '30px', fontWeight: 700, margin: '32px 0 16px 8px', color: 'var(--text-main)' }}>Gợi ý hôm nay</h2>
 
               <WrapperProductGrid>
-                {getFilteredAndSortedProducts().map((product) => (
+                {products?.data?.map((product) => (
                   <CardComponent key={product._id}
                     name={product.name}
                     image={product.image}
@@ -187,7 +234,7 @@ const HomePage = () => {
                   type="outline"
                   styleButton={{
                     border: "1px solid var(--primary-color)",
-                    color: `${products?.totalProducts === products?.data?.length ? "#ccc" : "var(--primary-color)"}`,
+                    color: `${products?.totalProducts <= products?.data?.length ? "#ccc" : "var(--primary-color)"}`,
                     width: "240px",
                     height: "40px",
                     borderRadius: "4px",
@@ -195,7 +242,7 @@ const HomePage = () => {
                     fontWeight: 500,
                   }}
                   onClick={() => setLimit((prev) => prev + 6)}
-                  disabled={products?.totalProducts === products?.data?.length || isLoading}
+                  disabled={products?.totalProducts <= products?.data?.length || isLoading}
                   ref={refSearch}
                 />
               </div>

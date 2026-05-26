@@ -13,6 +13,7 @@ const categorySchema = new mongoose.Schema({
     brands: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Brand',
+        required: true,
     }],
 }, { timestamps: true });
 

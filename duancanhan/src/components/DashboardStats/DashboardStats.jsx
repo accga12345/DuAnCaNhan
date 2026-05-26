@@ -34,8 +34,8 @@ const DashboardStats = ({ orders, products, users }) => {
         const totalFixedCosts = rentCost + (staffCount * staffCostPerPerson);
 
         orders.data.forEach(order => {
-            // Kiểm tra theo thuộc tính isDelivered chuẩn của Schema
-            if (order.isDelivered !== true) return; 
+            // Kiểm tra theo thuộc tính status === 4 (Hoàn thành) hoặc isDelivered
+            if (order.status !== 4 && order.isDelivered !== true) return; 
 
             const date = new Date(order.createdAt);
             const monthYear = `${date.getMonth() + 1}/${date.getFullYear()}`;

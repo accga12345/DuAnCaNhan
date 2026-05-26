@@ -1,14 +1,15 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getAllOrder, updateOrder } from '../../services/OrderService';
 import { useSelector } from 'react-redux';
-import { Space, Button, Tag, Typography, Tooltip, Modal, List, Image } from 'antd';
-import { CheckCircleOutlined, CarOutlined, CloseCircleOutlined, SyncOutlined, EyeOutlined } from '@ant-design/icons';
+import { Space, Button, Tag, Typography, Tooltip, Modal, List, Image, Input } from 'antd';
+import { CheckCircleOutlined, CarOutlined, CloseCircleOutlined, SyncOutlined, EyeOutlined, SearchOutlined } from '@ant-design/icons';
 import TableComponent from '../../components/TableComponent/TableComponent';
 import LoadingComponent from '../../components/Loading/LoadingComponent';
 import { useMutationHook } from '../../hooks/useMutationHook';
 import * as message from '../../components/MessageComponent/MessageComponent';
 import styled from 'styled-components';
+import Highlighter from 'react-highlight-words';
 
 const { Title, Text } = Typography;
 
@@ -23,6 +24,9 @@ const OrderAdmin = () => {
     const user = useSelector((state) => state.user);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedOrder, setSelectedOrder] = useState(null);
+    const [searchText, setSearchText] = useState('');
+    const [searchedColumn, setSearchedColumn] = useState('');
+    const searchInput = useRef(null);
 
     const { data: orders, isPending: isLoadingOrders, refetch } = useQuery({
         queryKey: ['orders'],
@@ -47,6 +51,77 @@ const OrderAdmin = () => {
             message.showError('Cập nhật trạng thái thất bại');
         }
     }, [isSuccessUpdate, isErrorUpdate, dataUpdate, refetch]);
+
+    const handleSearch = (selectedKeys, confirm, dataIndex) => {
+        confirm();
+        setSearchText(selectedKeys[0]);
+        setSearchedColumn(dataIndex);
+    };
+
+    const handleReset = (clearFilters) => {
+        clearFilters();
+        setSearchText('');
+    };
+
+    const getColumnSearchProps = (dataIndex) => ({
+        filterDropdown: ({ setSelectedKeys, selectedKeys, confirm, clearFilters, close }) => (
+            <div style={{ padding: 8 }} onKeyDown={(e) => e.stopPropagation()}>
+                <Input
+                    ref={searchInput}
+                    placeholder={`Tìm ${dataIndex}`}
+                    value={selectedKeys[0]}
+                    onChange={(e) => setSelectedKeys(e.target.value ? [e.target.value] : [])}
+                    onPressEnter={() => handleSearch(selectedKeys, confirm, dataIndex)}
+                    style={{ marginBottom: 8, display: 'block' }}
+                />
+                <Space>
+                    <Button
+                        type="primary"
+                        onClick={() => handleSearch(selectedKeys, confirm, dataIndex)}
+                        icon={<SearchOutlined />}
+                        size="small"
+                        style={{ width: 90 }}
+                    >
+                        Tìm
+                    </Button>
+                    <Button
+                        onClick={() => clearFilters && handleReset(clearFilters)}
+                        size="small"
+                        style={{ width: 90 }}
+                    >
+                        Xóa
+                    </Button>
+                </Space>
+            </div>
+        ),
+        filterIcon: (filtered) => (
+            <SearchOutlined style={{ color: filtered ? '#1890ff' : undefined }} />
+        ),
+        onFilter: (value, record) => {
+            const keys = dataIndex.split('.');
+            let val = record;
+            for (const key of keys) {
+                val = val?.[key];
+            }
+            return val?.toString().toLowerCase().includes(value.toLowerCase());
+        },
+        onFilterDropdownOpenChange: (visible) => {
+            if (visible) {
+                setTimeout(() => searchInput.current?.select(), 100);
+            }
+        },
+        render: (text) =>
+            searchedColumn === dataIndex ? (
+                <Highlighter
+                    highlightStyle={{ backgroundColor: '#ffc069', padding: 0 }}
+                    searchWords={[searchText]}
+                    autoEscape
+                    textToHighlight={text ? text.toString() : ''}
+                />
+            ) : (
+                text
+            ),
+    });
 
     const handleViewDetails = (record) => {
         setSelectedOrder(record);
@@ -78,12 +153,31 @@ const OrderAdmin = () => {
 
     const columns = [
         {
+            title: 'Mã đơn hàng',
+            dataIndex: 'orderCode',
+            key: 'orderCode',
+            ...getColumnSearchProps('orderCode'),
+            render: (text) => <Text strong color="#1890ff">{text || 'N/A'}</Text>,
+        },
+        {
             title: 'Khách hàng',
             key: 'customer',
+            ...getColumnSearchProps('shippingAddress.fullName'),
             render: (_, record) => (
                 <div>
-                    <div style={{ fontWeight: 600 }}>{record.shippingAddress.fullName}</div>
-                    <div style={{ fontSize: '12px', color: '#8c8c8c' }}>{record.shippingAddress.phone}</div>
+                    <div style={{ fontWeight: 600 }}>
+                        {searchedColumn === 'shippingAddress.fullName' ? (
+                            <Highlighter
+                                highlightStyle={{ backgroundColor: '#ffc069', padding: 0 }}
+                                searchWords={[searchText]}
+                                autoEscape
+                                textToHighlight={record.shippingAddress?.fullName ? record.shippingAddress.fullName.toString() : ''}
+                            />
+                        ) : (
+                            record.shippingAddress?.fullName
+                        )}
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#8c8c8c' }}>{record.shippingAddress?.phone}</div>
                 </div>
             ),
         },
@@ -91,7 +185,7 @@ const OrderAdmin = () => {
             title: 'Địa chỉ',
             dataIndex: 'address',
             key: 'address',
-            render: (_, record) => record.shippingAddress.address,
+            render: (_, record) => record.shippingAddress?.address,
             width: '20%',
         },
         {
@@ -106,6 +200,14 @@ const OrderAdmin = () => {
             dataIndex: 'status',
             key: 'status',
             render: (text) => renderStatus(text),
+            filters: [
+                { text: 'Đợi xác nhận', value: 0 },
+                { text: 'Đã xác nhận', value: 1 },
+                { text: 'Đang giao hàng', value: 2 },
+                { text: 'Đã hủy', value: 3 },
+                { text: 'Hoàn thành', value: 4 },
+            ],
+            onFilter: (value, record) => record.status === value,
         },
         {
             title: 'Thanh toán',
@@ -116,12 +218,17 @@ const OrderAdmin = () => {
                     {isPaid ? 'Đã thanh toán' : 'Chưa thanh toán'}
                 </Tag>
             ),
+            filters: [
+                { text: 'Đã thanh toán', value: true },
+                { text: 'Chưa thanh toán', value: false },
+            ],
+            onFilter: (value, record) => record.isPaid === value,
         },
         {
             title: 'Tổng tiền',
             dataIndex: 'totalPrice',
             key: 'totalPrice',
-            render: (text) => <span style={{ color: '#f5222d', fontWeight: 600 }}>{text.toLocaleString()} đ</span>,
+            render: (text) => <span style={{ color: '#f5222d', fontWeight: 600 }}>{text?.toLocaleString()} đ</span>,
         },
         {
             title: 'Hành động',

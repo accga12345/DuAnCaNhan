@@ -1,8 +1,20 @@
 import axios from "axios";
 import { axiosJwt } from "./UserServices";
 
-export const getAllProduct = async (limit, page) => {
-    const res = await axios.get(`${process.env.REACT_APP_API_URL}/product/get_all?limit=${limit}&page=${page}`)
+export const getAllProduct = async (limit, page, sort, filter) => {
+    let url = `${process.env.REACT_APP_API_URL}/product/get_all?limit=${limit}&page=${page}`
+    
+    if (sort) {
+        // sort format expected by backend: array [order, field]
+        url += `&sort=${sort[0]}&sort=${sort[1]}`
+    }
+    
+    if (filter) {
+        // filter format expected by backend: array [field, value]
+        url += `&filter=${filter[0]}&filter=${filter[1]}`
+    }
+
+    const res = await axios.get(url)
     return res.data
 }
 
@@ -55,10 +67,21 @@ export const getAllCategoryProduct = async () => {
     return res.data
 }
 
-export const getProductByCategory = async (id, limit, page) => {
-    const res = await axios.get(`${process.env.REACT_APP_API_URL}/product/get_all?filter=category&filter=${id}&limit=${limit}&page=${page}`)
+export const getProductByCategory = async (id, limit, page, sort, ratingFilter) => {
+    let url = `${process.env.REACT_APP_API_URL}/product/get_all?filter=category&filter=${id}&limit=${limit}&page=${page}`
+    
+    if (sort) {
+        url += `&sort=${sort[0]}&sort=${sort[1]}`
+    }
+    
+    if (ratingFilter) {
+        url += `&filter=rating&filter=${ratingFilter}`
+    }
+
+    const res = await axios.get(url)
     return res.data
 }
+
 
 
 

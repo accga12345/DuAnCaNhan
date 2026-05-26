@@ -3,9 +3,15 @@ import ProductDetailComponent from "../../components/ProductDetalComponent/Produ
 import BreadcrumbComponent from "../../components/BreadcrumbComponent/BreadcrumbComponent";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { getDetailProduct } from "../../services/ProductService";
+import { getDetailProduct, getProductByCategory } from "../../services/ProductService";
 import { convertToSlug } from "../../ultil";
 import { io } from "socket.io-client";
+import Slider from "react-slick";
+import CardComponent from "../../components/CardComponent/CardComponent";
+import { WrapperProductSlider } from "../HomePage/style";
+import { Typography } from "antd";
+
+const { Title } = Typography;
 
 const ProductDetailPage = () => {
   const navigate = useNavigate();
@@ -17,6 +23,14 @@ const ProductDetailPage = () => {
     queryKey: ["product-detail", id],
     queryFn: () => getDetailProduct(id),
     enabled: !!id,
+  });
+
+  const categoryId = product?.data?.category?._id || product?.data?.category;
+
+  const { data: relatedProducts } = useQuery({
+    queryKey: ["related-products", categoryId],
+    queryFn: () => getProductByCategory(categoryId, 10, 1),
+    enabled: !!categoryId,
   });
 
   useEffect(() => {
@@ -55,17 +69,76 @@ const ProductDetailPage = () => {
   
   breadcrumbItems.push({ name: 'Chi tiết sản phẩm' });
 
+  const sliderSettings = {
+    dots: true,
+    infinite: false,
+    speed: 500,
+    slidesToShow: 5,
+    slidesToScroll: 2,
+    responsive: [
+      {
+        breakpoint: 1024,
+        settings: {
+          slidesToShow: 4,
+          slidesToScroll: 2,
+        }
+      },
+      {
+        breakpoint: 768,
+        settings: {
+          slidesToShow: 3,
+          slidesToScroll: 1,
+        }
+      },
+      {
+        breakpoint: 480,
+        settings: {
+          slidesToShow: 2,
+          slidesToScroll: 1,
+        }
+      }
+    ]
+  };
+
   return (
     <div style={{ background: 'var(--bg-color)', width: '100%', minHeight: '100vh', paddingBottom: '40px' }}>
       <div style={{ padding: '0 24px', maxWidth: '1440px', margin: '0 auto', width: '100%' }}>
         <BreadcrumbComponent items={breadcrumbItems} />
-        <div style={{ backgroundColor: '#fff', borderRadius: '16px', padding: '24px', boxShadow: 'var(--shadow-soft)' }}>
+        <div style={{ backgroundColor: '#fff', borderRadius: '16px', padding: '24px', boxShadow: 'var(--shadow-soft)', marginBottom: '32px' }}>
           <ProductDetailComponent 
             id={id} 
             product={product} 
             isLoading={isLoadingDetail} 
           />
         </div>
+
+        {relatedProducts?.data && relatedProducts.data.length > 1 && (
+          <div>
+            <Title level={3} style={{ marginBottom: '16px', color: 'var(--text-main)' }}>Sản phẩm liên quan</Title>
+            <WrapperProductSlider>
+              <Slider {...sliderSettings}>
+                {relatedProducts.data
+                  .filter((p) => p._id !== id)
+                  .map((p) => (
+                    <div key={p._id}>
+                      <CardComponent
+                        name={p.name}
+                        image={p.image}
+                        category={p.category}
+                        price={p.price}
+                        countInStock={p.countInStock}
+                        rating={p.rating}
+                        description={p.description}
+                        selled={p.selled}
+                        discount={p.discount}
+                        id={p._id}
+                      />
+                    </div>
+                  ))}
+              </Slider>
+            </WrapperProductSlider>
+          </div>
+        )}
       </div>
     </div>
   );

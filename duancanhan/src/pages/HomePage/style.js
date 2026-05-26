@@ -38,4 +38,41 @@ export const WrapperProductGrid = styled.div`
     width: 100%;
 `;
 
+export const WrapperProductSlider = styled.div`
+    margin-top: 20px;
+    width: 100%;
+    padding-bottom: 40px;
+    
+    .slick-slide > div {
+        margin: 0 10px;
+        padding-bottom: 10px;
+    }
+    .slick-list {
+        margin: 0 -10px;
+    }
+    .slick-prev, .slick-next {
+        z-index: 10;
+        width: 36px;
+        height: 36px;
+        background-color: rgba(0, 0, 0, 0.25);
+        border-radius: 50%;
+        transition: all 0.3s ease;
+    }
+    .slick-prev:before, .slick-next:before {
+        font-size: 20px;
+    }
+    .slick-prev:hover, .slick-next:hover {
+        background-color: rgba(0, 0, 0, 0.6);
+    }
+    .slick-prev {
+        left: -15px;
+    }
+    .slick-next {
+        right: -15px;
+    }
+    .slick-dots {
+        bottom: -25px;
+    }
+`;
+
 

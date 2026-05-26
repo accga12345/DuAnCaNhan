@@ -56,7 +56,10 @@ const OrderSuccessPage = () => {
     return (
         <div style={{ background: '#f5f5fa', width: '100%', minHeight: '100vh' }}>
             <div style={{ padding: '0 24px', width: '1440px', margin: '0 auto' }}>
-                <h3 style={{ fontWeight: 'bold', fontSize: '24px', paddingTop: '20px' }}>Chi tiết đơn hàng</h3>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '20px', paddingTop: '20px' }}>
+                    <h3 style={{ fontWeight: 'bold', fontSize: '24px', margin: 0 }}>Chi tiết đơn hàng</h3>
+                    {orderData?.orderCode && <span style={{ fontSize: '18px', color: '#1890ff', fontWeight: 'bold' }}>#{orderData.orderCode}</span>}
+                </div>
                 <LoadingComponent isPending={isLoadingDetail}>
                     <Row gutter={20} style={{ display: 'flex', justifyContent: 'center' }}>
                         <Col span={17}>

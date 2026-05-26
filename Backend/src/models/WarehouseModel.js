@@ -13,6 +13,7 @@ const warehouseSchema = new mongoose.Schema({
     },
     brand: {
         type: String,
+        required: true,
     },
     supplier: {
         type: mongoose.Schema.Types.ObjectId,

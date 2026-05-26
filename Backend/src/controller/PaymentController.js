@@ -3,14 +3,14 @@ const Order = require('../models/OrderProductModel');
 
 const createSePayPayment = async (req, res) => {
     try {
-        const { amount, orderId } = req.body;
-        if (!amount || !orderId) {
+        const { amount, orderCode } = req.body;
+        if (!amount || !orderCode) {
             return res.status(400).json({
                 status: 'error',
                 message: 'Thiếu số tiền hoặc mã đơn hàng'
             });
         }
-        const data = await SePayService.createPaymentUrl(amount, orderId);
+        const data = await SePayService.createPaymentUrl(amount, orderCode);
         return res.status(200).json({
             status: 'success',
             data
@@ -25,34 +25,26 @@ const createSePayPayment = async (req, res) => {
 
 const handleSePayCallback = async (req, res) => {
     try {
-        console.log("--------------------");
-        console.log("SePay Webhook Received Data:", JSON.stringify(req.body, null, 2));
-        
         const { content, order_invoice_number } = req.body;
         const rawContent = order_invoice_number || content || "";
-
-        // Tìm mã ID đơn hàng (24 ký tự hex của MongoDB) trong chuỗi nội dung
-        // Ví dụ: "SEVQR Thanh toan don hang 6649f..." -> Lấy ra "6649f..."
-        const regex = /[0-9a-fA-F]{24}/;
+        const regex = /DH\d+/;
         const match = rawContent.match(regex);
-        const orderId = match ? match[0] : null;
+        const orderCode = match ? match[0] : null;
 
-        console.log("Extracted Order ID:", orderId);
-
-        if (!orderId) {
-            console.log("WARNING: No valid Order ID found in content.");
-            return res.status(200).json({ success: true }); // Trả về success để SePay không gửi lại nữa
+        if (!orderCode) {
+            console.log("WARNING: No valid Order Code found in content.");
+            return res.status(200).json({ success: true });
         }
 
-        const order = await Order.findOne({ _id: orderId });
-        
+        const order = await Order.findOne({ orderCode: orderCode });
+
         if (order) {
             order.isPaid = true;
             order.paidAt = new Date();
             await order.save();
-            console.log(`SUCCESS: Order ${orderId} updated to paid.`);
+            console.log(`SUCCESS: Order ${orderCode} updated to paid.`);
         } else {
-            console.log(`WARNING: Order ${orderId} not found in database.`);
+            console.log(`WARNING: Order code ${orderCode} not found in database.`);
         }
 
         return res.status(200).json({ success: true });

@@ -10,7 +10,6 @@ router.get('/config', (req, res) => {
     })
 });
 
-// Cho phép người dùng đã đăng nhập (có token) gọi route này
 router.post('/sepay', PaymentController.createSePayPayment);
 router.post('/sepay-callback', PaymentController.handleSePayCallback);
 

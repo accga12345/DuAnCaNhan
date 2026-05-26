@@ -120,6 +120,8 @@ const TypeProductPage = () => {
                   {renderStarFilter(4)}
                   {renderStarFilter(3)}
                   {renderStarFilter(2)}
+                  {renderStarFilter(1)}
+                  {renderStarFilter(0)}
               </div>
             </Card>
 

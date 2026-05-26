@@ -151,7 +151,8 @@ function ProductAddPage() {
                                     category: item.category?._id,
                                     brand: item.brand,
                                     supplier: item.supplier?._id,
-                                    countInStock: item.quantity
+                                    warehouseQuantity: item.quantity, // Set the read-only warehouse quantity
+                                    countInStock: 1
                                 });
                                 setMaxStock(item.quantity);
                                 const category = categoriesData?.data?.find(c => c._id === item.category?._id);
@@ -161,12 +162,16 @@ function ProductAddPage() {
                     />
                 </Form.Item>
 
+                <Form.Item label="Số lượng trong kho" name="warehouseQuantity">
+                    <InputNumber disabled style={{ width: '100%', fontWeight: 'bold', color: '#000' }} />
+                </Form.Item>
+
                 <Form.Item label="Tên hiển thị web" name="name" rules={[{ required: true }]}>
                     <Input disabled />
                 </Form.Item>
 
-                <Form.Item label="Số lượng đưa lên Page" name="countInStock" rules={[{ required: true }]}>
-                    <InputNumber min={0} max={maxStock} style={{ width: '100%' }} placeholder={`Tối đa ${maxStock}`} />
+                <Form.Item label="Số lượng" name="countInStock" rules={[{ required: true, message: 'Vui lòng nhập số lượng đăng bán' }]}>
+                    <InputNumber min={1} max={maxStock} style={{ width: '100%' }} placeholder={`Nhập số lượng (Tối đa ${maxStock})`} />
                 </Form.Item>
 
                 <Form.Item label="Giá bán" name="price" rules={[{ required: true }]}>

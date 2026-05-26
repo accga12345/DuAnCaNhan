@@ -63,8 +63,8 @@ function ProductListPage() {
     });
 
     const { data: products, isPending: productsLoading, refetch } = useQuery({
-        queryKey: ['products', page],
-        queryFn: () => getAllProduct(limit, page),
+        queryKey: ['products'],
+        queryFn: () => getAllProduct(1000, 1),
         refetchOnWindowFocus: false,
     });
 
@@ -182,7 +182,7 @@ function ProductListPage() {
             <div style={{ padding: 8 }} onKeyDown={e => e.stopPropagation()}>
                 <Input
                     ref={searchInput}
-                    placeholder={`Search ${dataIndex}`}
+                    placeholder={`Tìm ${dataIndex}`}
                     value={selectedKeys[0]}
                     onChange={e => setSelectedKeys(e.target.value ? [e.target.value] : [])}
                     onPressEnter={() => handleSearch(selectedKeys, confirm, dataIndex)}
@@ -196,21 +196,27 @@ function ProductListPage() {
                         size="small"
                         style={{ width: 90 }}
                     >
-                        Search
+                        Tìm
                     </Button>
                     <Button
                         onClick={() => clearFilters && handleReset(clearFilters)}
                         size="small"
                         style={{ width: 90 }}
                     >
-                        Reset
+                        Xóa
                     </Button>
                 </Space>
             </div>
         ),
         filterIcon: filtered => <SearchOutlined style={{ color: filtered ? '#1677ff' : undefined }} />,
-        onFilter: (value, record) =>
-            record[dataIndex]?.toString().toLowerCase().includes(value?.toLowerCase() || ''),
+        onFilter: (value, record) => {
+            const keys = dataIndex.split('.');
+            let val = record;
+            for (const key of keys) {
+                val = val?.[key];
+            }
+            return val?.toString().toLowerCase().includes(value.toLowerCase());
+        },
         filterDropdownProps: {
             onOpenChange(open) {
                 if (open) {
@@ -281,12 +287,14 @@ function ProductListPage() {
         {
             title: 'Loại',
             key: 'category',
+            ...getColumnSearchProps('category.name'),
             render: (record) => record.category?.name || "N/A"
         },
         {
             title: 'Hãng',
             dataIndex: 'brand',
             key: 'brand',
+            ...getColumnSearchProps('brand'),
         },
         {
             title: 'Tồn kho',
@@ -367,12 +375,6 @@ function ProductListPage() {
                     data={products?.data}
                     handleDeleteMany={handleDeleteMany}
                     rowKey="_id"
-                    pagination={{
-                        current: page,
-                        pageSize: limit,
-                        total: products?.totalProducts,
-                        onChange: (page) => setPage(page),
-                    }} 
                 />
             </LoadingComponent>
 

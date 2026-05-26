@@ -156,10 +156,10 @@ const OrderPage = () => {
         }, {
           onSuccess: async (resOrder) => {
             if (resOrder?.status === 'OK') {
-              const mongoOrderId = resOrder?.data?._id;
+              const orderCode = resOrder?.data?.orderCode;
               const resPay = await createSePayPayment({
                 amount: totalPriceMemo,
-                orderId: mongoOrderId
+                orderCode: orderCode
               }, user?.accessToken);
 
               if (resPay?.status === 'success' && resPay?.data?.payUrl) {

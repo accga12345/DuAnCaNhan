@@ -72,9 +72,15 @@ const MyOrderPage = () => {
                         {orders?.data?.map((order) => (
                             <WrapperItemOrder key={order?._id} style={{ flexDirection: 'column', alignItems: 'flex-start', padding: '20px', gap: '15px' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', width: '100%', justifyContent: 'space-between' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                        <span style={{ fontWeight: 'bold', color: 'rgb(255, 66, 78)', fontSize: '14px' }}>Trạng thái: </span>
-                                        <span style={{ color: order.status === 3 ? 'red' : 'green', fontWeight: '500' }}>{renderStatus(order.status)}</span>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                            <span style={{ fontWeight: 'bold', color: '#1890ff', fontSize: '14px' }}>Mã đơn: </span>
+                                            <span style={{ fontWeight: '600' }}>{order.orderCode || 'N/A'}</span>
+                                        </div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                            <span style={{ fontWeight: 'bold', color: 'rgb(255, 66, 78)', fontSize: '14px' }}>Trạng thái: </span>
+                                            <span style={{ color: order.status === 3 ? 'red' : 'green', fontWeight: '500' }}>{renderStatus(order.status)}</span>
+                                        </div>
                                     </div>
                                     <span onClick={() => handleDetailsOrder(order._id)} style={{ color: 'blue', cursor: 'pointer', fontSize: '13px' }}>Xem chi tiết</span>
                                 </div>

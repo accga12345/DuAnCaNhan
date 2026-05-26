@@ -1,21 +1,26 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Space, Button, Modal, Form, Input, InputNumber, Select, Popconfirm } from 'antd';
 import { getAllWarehouseItems, deleteWarehouseItem, getDetailWarehouseItem, updateWarehouseItem } from '../../services/WarehouseService';
 import { getAllCategories } from '../../services/CategoryService';
 import { getAllSuppliers } from '../../services/SupplierService';
 import { getAllBrands } from '../../services/BrandService';
 import { useQuery } from '@tanstack/react-query';
+import { SearchOutlined } from '@ant-design/icons';
 import TableComponent from '../../components/TableComponent/TableComponent';
 import { showSuccess, showError } from '../../components/MessageComponent/MessageComponent';
 import { useMutationHook } from '../../hooks/useMutationHook';
 import { useSelector } from 'react-redux';
 import LoadingComponent from '../../components/Loading/LoadingComponent';
+import Highlighter from 'react-highlight-words';
 
 function WarehouseListPage() {
     const [form] = Form.useForm();
     const [itemDetail, setItemDetail] = useState({});
     const user = useSelector((state) => state.user);
     const [openModal, setOpenModal] = useState(false);
+    const [searchText, setSearchText] = useState('');
+    const [searchedColumn, setSearchedColumn] = useState('');
+    const searchInput = useRef(null);
     
     const { data: items, isPending: itemsLoading, refetch } = useQuery({
         queryKey: ['warehouseItems'],
@@ -35,6 +40,77 @@ function WarehouseListPage() {
     const { data: brandsData } = useQuery({
         queryKey: ['brands'],
         queryFn: () => getAllBrands(),
+    });
+
+    const handleSearch = (selectedKeys, confirm, dataIndex) => {
+        confirm();
+        setSearchText(selectedKeys[0]);
+        setSearchedColumn(dataIndex);
+    };
+
+    const handleReset = (clearFilters) => {
+        clearFilters();
+        setSearchText('');
+    };
+
+    const getColumnSearchProps = (dataIndex) => ({
+        filterDropdown: ({ setSelectedKeys, selectedKeys, confirm, clearFilters, close }) => (
+            <div style={{ padding: 8 }} onKeyDown={(e) => e.stopPropagation()}>
+                <Input
+                    ref={searchInput}
+                    placeholder={`Tìm ${dataIndex}`}
+                    value={selectedKeys[0]}
+                    onChange={(e) => setSelectedKeys(e.target.value ? [e.target.value] : [])}
+                    onPressEnter={() => handleSearch(selectedKeys, confirm, dataIndex)}
+                    style={{ marginBottom: 8, display: 'block' }}
+                />
+                <Space>
+                    <Button
+                        type="primary"
+                        onClick={() => handleSearch(selectedKeys, confirm, dataIndex)}
+                        icon={<SearchOutlined />}
+                        size="small"
+                        style={{ width: 90 }}
+                    >
+                        Tìm
+                    </Button>
+                    <Button
+                        onClick={() => clearFilters && handleReset(clearFilters)}
+                        size="small"
+                        style={{ width: 90 }}
+                    >
+                        Xóa
+                    </Button>
+                </Space>
+            </div>
+        ),
+        filterIcon: (filtered) => (
+            <SearchOutlined style={{ color: filtered ? '#1890ff' : undefined }} />
+        ),
+        onFilter: (value, record) => {
+            const keys = dataIndex.split('.');
+            let val = record;
+            for (const key of keys) {
+                val = val?.[key];
+            }
+            return val?.toString().toLowerCase().includes(value.toLowerCase());
+        },
+        onFilterDropdownOpenChange: (visible) => {
+            if (visible) {
+                setTimeout(() => searchInput.current?.select(), 100);
+            }
+        },
+        render: (text) =>
+            searchedColumn === dataIndex ? (
+                <Highlighter
+                    highlightStyle={{ backgroundColor: '#ffc069', padding: 0 }}
+                    searchWords={[searchText]}
+                    autoEscape
+                    textToHighlight={text ? text.toString() : ''}
+                />
+            ) : (
+                text
+            ),
     });
 
     const handleGetDetailItem = async (id) => {
@@ -102,17 +178,20 @@ function WarehouseListPage() {
             title: 'Tên sản phẩm (Kho)',
             dataIndex: 'name',
             key: 'name',
+            ...getColumnSearchProps('name'),
             sorter: (a, b) => a.name?.localeCompare(b.name),
         },
         {
             title: 'Danh mục',
             dataIndex: ['category', 'name'],
             key: 'category',
+            ...getColumnSearchProps('category.name'),
         },
         {
             title: 'Hãng',
             dataIndex: 'brand',
             key: 'brand',
+            ...getColumnSearchProps('brand'),
         },
         {
             title: 'Tồn kho',
@@ -130,6 +209,7 @@ function WarehouseListPage() {
             title: 'Nhà cung cấp',
             dataIndex: ['supplier', 'name'],
             key: 'supplier',
+            ...getColumnSearchProps('supplier.name'),
         },
         {
             title: 'Action',
