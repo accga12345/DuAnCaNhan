@@ -30,6 +30,20 @@ export const WrapperMainImageContainer = styled.div`
     overflow: hidden;
     padding: 10px;
     background: #fff;
+
+    .ant-image {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .ant-image-img {
+        width: 100% !important;
+        height: 100% !important;
+        object-fit: contain;
+    }
 `;
 
 export const WrapperTextRate = styled.span`

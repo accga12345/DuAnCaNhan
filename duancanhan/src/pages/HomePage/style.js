@@ -30,6 +30,25 @@ export const WrapperButtonMore = styled(ButtonComponents)`
   
 `;
 
+export const WrapperSidebar = styled.div`
+    width: 200px;
+    flex-shrink: 0;
+    position: sticky;
+    top: 90px;
+    height: calc(100vh - 110px);
+    overflow-y: auto;
+    padding-right: 4px;
+    
+    /* Hide scrollbar for Chrome, Safari and Opera */
+    &::-webkit-scrollbar {
+        display: none;
+    }
+    
+    /* Hide scrollbar for IE, Edge and Firefox */
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+`;
+
 export const WrapperProductGrid = styled.div`
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));

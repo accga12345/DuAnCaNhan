@@ -15,3 +15,22 @@ export const WrapperProductGrid = styled.div`
     margin-top: 20px;
     width: 100%;
 `;
+
+export const WrapperSidebar = styled.div`
+    width: 200px;
+    flex-shrink: 0;
+    position: sticky;
+    top: 90px;
+    height: calc(100vh - 110px);
+    overflow-y: auto;
+    padding-right: 4px;
+    
+    /* Hide scrollbar for Chrome, Safari and Opera */
+    &::-webkit-scrollbar {
+        display: none;
+    }
+    
+    /* Hide scrollbar for IE, Edge and Firefox */
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+`;

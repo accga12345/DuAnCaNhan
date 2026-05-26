@@ -113,23 +113,8 @@ const getDetailProduct = async (id) => {
 
 const getAllProducts = async (limit, page, sort, filter) => {
     try {
-        const totalProducts = await Product.countDocuments();
-        const totalPages = Math.ceil(totalProducts / limit);
-        if (sort) {
-            const objectSort = {};
-            objectSort[sort[1]] = sort[0];
-            const productsSort = await Product.find({}).sort(objectSort).skip((page - 1) * limit).limit(limit).populate(['supplier', 'warehouseItem', 'category']);
-            return {
-                status: "success",
-                message: "Lay danh sach san pham thanh cong",
-                data: productsSort,
-                totalProducts,
-                totalPages,
-                pageCurrent: page
-            };
-        }
+        let objectFilter = {};
         if (filter) {
-            const objectFilter = {};
             if (Array.isArray(filter)) {
                 for (let i = 0; i < filter.length; i += 2) {
                     if (filter[i] && filter[i + 1]) {
@@ -153,17 +138,21 @@ const getAllProducts = async (limit, page, sort, filter) => {
                     }
                 }
             }
-            const productsFilter = await Product.find(objectFilter).skip((page - 1) * limit).limit(limit).populate(['supplier', 'warehouseItem', 'category']);
-            return {
-                status: "success",
-                message: "Lay danh sach san pham thanh cong",
-                data: productsFilter,
-                totalProducts,
-                totalPages,
-                pageCurrent: page
-            };
         }
-        const products = await Product.find({}).skip((page - 1) * limit).limit(limit).populate(['supplier', 'warehouseItem', 'category']);
+
+        const totalProducts = await Product.countDocuments(objectFilter);
+        const totalPages = Math.ceil(totalProducts / limit);
+        
+        let query = Product.find(objectFilter);
+
+        if (sort) {
+            const objectSort = {};
+            objectSort[sort[1]] = sort[0];
+            query = query.sort(objectSort);
+        }
+
+        const products = await query.skip((page - 1) * limit).limit(limit).populate(['supplier', 'warehouseItem', 'category']);
+
         return {
             status: "success",
             message: "Lay danh sach san pham thanh cong",

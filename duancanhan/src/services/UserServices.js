@@ -3,7 +3,9 @@ import axios from "axios";
 export const axiosJwt = axios.create();
 
 export const loginUser = async (data) => {
-    const res = await axios.post(`${process.env.REACT_APP_API_URL}/user/signin`, data);
+    const res = await axios.post(`${process.env.REACT_APP_API_URL}/user/signin`, data, {
+        withCredentials: true
+    });
     return res.data;
 };
 
@@ -34,7 +36,9 @@ export const refreshToken = async () => {
 };
 
 export const logoutUser = async () => {
-    const res = await axios.post(`${process.env.REACT_APP_API_URL}/user/logout`);
+    const res = await axios.post(`${process.env.REACT_APP_API_URL}/user/logout`, {}, {
+        withCredentials: true
+    });
     return res.data;
 };
 

@@ -7,7 +7,7 @@ import { useEffect } from 'react'
 import { jwtDecode } from 'jwt-decode'
 import { getDetailUser, axiosJwt, refreshToken } from './services/UserServices'
 import { useDispatch } from 'react-redux'
-import { updateUser } from './redux/slides/userSlide'
+import { updateUser, resetUser } from './redux/slides/userSlide'
 import { useState } from 'react'
 import { useSelector } from 'react-redux'
 import LoadingComponent from './components/Loading/LoadingComponent'
@@ -51,6 +51,8 @@ function App() {
     const { storageData, decode } = handleDecode();
     if (storageData && decode) {
       handlegetDetailUser(decode.id, storageData);
+    } else {
+      dispatch(resetUser());
     }
     setLoading(false)
   }, [])
@@ -71,6 +73,8 @@ function App() {
       dispatch(updateUser({ ...res.data, accessToken }));
     } catch (error) {
       console.error(error);
+      dispatch(resetUser());
+      localStorage.removeItem("access_token");
     }
   }
 

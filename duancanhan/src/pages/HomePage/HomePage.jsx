@@ -1,6 +1,6 @@
 import React from "react"
 import TypeProduct from "../../components/TypeProducts/TypeProduct"
-import { WapperHomePage, WrapperButtonMore, WrapperProductGrid, WrapperProductSlider } from "./style"
+import { WapperHomePage, WrapperButtonMore, WrapperProductGrid, WrapperProductSlider, WrapperSidebar } from "./style"
 import SliderComponent from "../../components/SliderComponent/SliderComponent"
 import CommitmentBanner from "../../components/CommitmentBanner/CommitmentBanner"
 import slider1 from "../../assets/images/gearvn-build-pc.png"
@@ -10,6 +10,7 @@ import CardComponent from "../../components/CardComponent/CardComponent"
 import { useQuery } from "@tanstack/react-query"
 import { getAllProduct } from "../../services/ProductService";
 import { getAllCategories } from "../../services/CategoryService";
+import { getAllBrands } from "../../services/BrandService";
 import { useSelector } from "react-redux"
 import { useState, useRef, useEffect, useMemo } from "react"
 import { Card, Radio, Space, Rate } from "antd"
@@ -22,6 +23,7 @@ const HomePage = () => {
   const [limit, setLimit] = useState(12)
   const [sortOption, setSortOption] = useState('')
   const [ratingFilter, setRatingFilter] = useState(0)
+  const [brandFilter, setBrandFilter] = useState('')
   const refSearch = useRef()
   const initialLoad = useRef(true)
 
@@ -38,14 +40,18 @@ const HomePage = () => {
 
   // Map filters to backend array format [field, value]
   const backendFilter = useMemo(() => {
+    let filters = [];
     if (searchDebounce) {
-       return ['name', searchDebounce];
+       filters.push('name', searchDebounce);
     }
     if (ratingFilter > 0) {
-       return ['rating', ratingFilter.toString()];
+       filters.push('rating', ratingFilter.toString());
     }
-    return null;
-  }, [searchDebounce, ratingFilter]);
+    if (brandFilter) {
+       filters.push('brand', brandFilter);
+    }
+    return filters.length > 0 ? filters : null;
+  }, [searchDebounce, ratingFilter, brandFilter]);
 
   const { data: products, isLoading } = useQuery({
     queryKey: ["products", limit, backendSort, backendFilter],
@@ -65,6 +71,14 @@ const HomePage = () => {
   const { data: categories } = useQuery({
     queryKey: ["categories"],
     queryFn: () => getAllCategories(),
+    retry: 3,
+    retryDelay: 1000,
+    placeholderData: (previousData) => previousData,
+  });
+
+  const { data: brands } = useQuery({
+    queryKey: ["brands"],
+    queryFn: () => getAllBrands(),
     retry: 3,
     retryDelay: 1000,
     placeholderData: (previousData) => previousData,
@@ -137,7 +151,7 @@ const HomePage = () => {
 
         <div style={{ display: "flex", gap: "24px", alignItems: 'flex-start' }}>
           {/* Left Sidebar */}
-          <div style={{ width: "200px", flexShrink: 0, position: 'sticky', top: '90px' }}>
+          <WrapperSidebar>
             <Card style={{ padding: "8px", borderRadius: "8px", boxShadow: "0 1px 2px 0 rgba(60,64,67,0.1), 0 2px 6px 2px rgba(60,64,67,0.15)", border: "none", marginBottom: '16px' }} bodyStyle={{ padding: '12px' }}>
               <h3 style={{ marginBottom: "16px", fontWeight: "700", fontSize: '16px', color: 'var(--text-main)' }}>Danh mục</h3>
               <WapperHomePage style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'stretch' }}>
@@ -149,6 +163,18 @@ const HomePage = () => {
                   <TypeProduct name={item.name} id={item._id} key={item._id} />
                 ))}
               </WapperHomePage>
+            </Card>
+
+            <Card style={{ padding: "8px", borderRadius: "8px", boxShadow: "0 1px 2px 0 rgba(60,64,67,0.1), 0 2px 6px 2px rgba(60,64,67,0.15)", border: "none", marginBottom: '16px' }} bodyStyle={{ padding: '12px' }}>
+              <h3 style={{ marginBottom: "16px", fontWeight: "700", fontSize: '16px', color: 'var(--text-main)' }}>Thương hiệu</h3>
+              <Radio.Group onChange={(e) => { setBrandFilter(e.target.value); setLimit(12); }} value={brandFilter}>
+                <Space direction="vertical" style={{ maxHeight: '200px', overflowY: 'auto', display: 'flex' }}>
+                  <Radio value="">Tất cả</Radio>
+                  {brands?.data?.map(brand => (
+                    <Radio key={brand._id} value={brand.name}>{brand.name}</Radio>
+                  ))}
+                </Space>
+              </Radio.Group>
             </Card>
 
             <Card style={{ padding: "8px", borderRadius: "8px", boxShadow: "0 1px 2px 0 rgba(60,64,67,0.1), 0 2px 6px 2px rgba(60,64,67,0.15)", border: "none", marginBottom: '16px' }} bodyStyle={{ padding: '12px' }}>
@@ -175,7 +201,7 @@ const HomePage = () => {
                 </Space>
               </Radio.Group>
             </Card>
-          </div>
+          </WrapperSidebar>
 
           {/* Main Content */}
           <div style={{ flex: 1, minWidth: 0 }}>

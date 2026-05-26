@@ -5,13 +5,15 @@ export const getAllProduct = async (limit, page, sort, filter) => {
     let url = `${process.env.REACT_APP_API_URL}/product/get_all?limit=${limit}&page=${page}`
     
     if (sort) {
-        // sort format expected by backend: array [order, field]
         url += `&sort=${sort[0]}&sort=${sort[1]}`
     }
     
-    if (filter) {
-        // filter format expected by backend: array [field, value]
-        url += `&filter=${filter[0]}&filter=${filter[1]}`
+    if (filter && filter.length > 0) {
+        for (let i = 0; i < filter.length; i += 2) {
+            if (filter[i] && filter[i + 1]) {
+                url += `&filter=${filter[i]}&filter=${filter[i + 1]}`
+            }
+        }
     }
 
     const res = await axios.get(url)
@@ -67,15 +69,19 @@ export const getAllCategoryProduct = async () => {
     return res.data
 }
 
-export const getProductByCategory = async (id, limit, page, sort, ratingFilter) => {
+export const getProductByCategory = async (id, limit, page, sort, filterArray) => {
     let url = `${process.env.REACT_APP_API_URL}/product/get_all?filter=category&filter=${id}&limit=${limit}&page=${page}`
     
     if (sort) {
         url += `&sort=${sort[0]}&sort=${sort[1]}`
     }
     
-    if (ratingFilter) {
-        url += `&filter=rating&filter=${ratingFilter}`
+    if (filterArray && filterArray.length > 0) {
+        for (let i = 0; i < filterArray.length; i += 2) {
+            if (filterArray[i] && filterArray[i + 1]) {
+                url += `&filter=${filterArray[i]}&filter=${filterArray[i + 1]}`
+            }
+        }
     }
 
     const res = await axios.get(url)
