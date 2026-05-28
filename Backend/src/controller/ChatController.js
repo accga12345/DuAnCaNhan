@@ -124,44 +124,77 @@ const handleChat = async (req, res) => {
             ((intent === 'buy_combo' || intent === 'buy_single') && isMissingBudget)) {
             botReply = reply || "Dạ, để mình tư vấn cấu hình chuẩn nhất, bạn cho mình xin mức ngân sách dự kiến hoặc nhu cầu sử dụng (gaming/văn phòng/đồ họa) nhé!";
         }
-        // TRƯỜNG HỢP 2: Luồng tìm mua đúng 1 món linh kiện lẻ
+
+        // TRƯỜNG HỢP 2: Luồng tìm mua đúng 1 món linh kiện lẻ (HỎI NGÂN SÁCH)
+        // =====================================================================
         else if (intent === 'buy_single') {
             const reqItem = requirements && requirements[0];
             if (reqItem && reqItem.category) {
-                let query = applyPreferences({}, brand_preference);
-                if (reqItem.keyword) query.name = { $regex: new RegExp(reqItem.keyword, 'i') };
+                // Kiểm tra xem tin nhắn hiện tại khách có tự gõ số tiền vào không
+                const hasNumberInMessage = /\d+/.test(message);
 
-                const item = await findBestComponent(reqItem.category, budget, query);
-                if (item) {
-                    suggestedProducts.push(item);
-                    botReply = reply ? reply : `Dạ đây là mẫu ${reqItem.category} tối ưu nhất trong tầm giá ${budget.toLocaleString()}đ bạn yêu cầu ạ.`;
-                } else {
-                    botReply = `Dạ xin lỗi bạn, hiện tại kho hàng trong phân khúc giá này đang tạm hết sẵn sản phẩm ${reqItem.category} phù hợp rồi ạ.`;
+                // KỊCH BẢN A: Khách hỏi chung chung, AI bị tràn budget cũ HOẶC budget = 0
+                if (!hasNumberInMessage) {
+                    console.log(`[FLOW CONTROL] Khách hỏi mua lẻ ${reqItem.category} nhưng chưa cho budget. Ngắt tìm kiếm để hỏi lại.`);
+
+                    // Xóa danh sách sản phẩm gợi ý (không hiển thị card sản phẩm đoán mò)
+                    suggestedProducts = [];
+
+                    // Trả về câu hỏi thông minh
+                    botReply = `Dạ, shop có rất nhiều mẫu ${reqItem.category} với đầy đủ phân khúc từ phổ thông đến cao cấp. Không biết bạn dự định đầu tư khoảng tầm bao nhiêu tiền cho chiếc ${reqItem.category} này để mình lọc mã tối ưu nhất cho bạn ạ?`;
+                }
+                // KỊCH BẢN B: Khách có đưa budget rõ ràng trong câu chat hiện tại
+                else {
+                    let query = applyPreferences({}, brand_preference);
+                    if (reqItem.keyword) query.name = { $regex: new RegExp(reqItem.keyword, 'i') };
+
+                    const item = await findBestComponent(reqItem.category, budget, query);
+                    if (item) {
+                        suggestedProducts.push(item);
+                        botReply = reply || `Dạ, đây là mẫu ${reqItem.category} tối ưu nhất trong tầm giá bạn yêu cầu: **${item.name}** (${item.price.toLocaleString()}đ).`;
+                    } else {
+                        botReply = `Dạ xin lỗi bạn, hiện tại kho hàng trong phân khúc giá này đang tạm hết sẵn sản phẩm ${reqItem.category} phù hợp rồi ạ.`;
+                    }
                 }
             } else {
                 botReply = reply || `Bạn muốn tìm mua linh kiện gì cụ thể thế ạ?`;
             }
         }
-        // TRƯỜNG HỢP 3: Luồng mua Combo nhiều món lẻ
+        // =====================================================================
+        // TRƯỜNG HỢP 3: Luồng mua Combo nhiều món lẻ (HỎI NGÂN SÁCH)
+        // =====================================================================
         else if (intent === 'buy_combo') {
             if (!requirements || requirements.length === 0) {
-                botReply = reply || `Bạn muốn kết hợp những linh kiện nào với nhau ạ?`;
+                botReply = reply;
             } else {
-                const perItemBudget = budget / requirements.length;
-                const promises = requirements.map(async (reqItem) => {
-                    let query = applyPreferences({}, brand_preference);
-                    if (reqItem.keyword) query.name = { $regex: new RegExp(reqItem.keyword, 'i') };
-                    return findBestComponent(reqItem.category, perItemBudget * 1.2, query);
-                });
+                const hasNumberInMessage = /\d+/.test(message);
+                const comboNames = requirements.map(r => r.category).join(' + ');
 
-                const results = await Promise.all(promises);
-                suggestedProducts = results.filter(item => item != null);
+                // KỊCH BẢN A: Hỏi combo nhưng không kèm giá tiền
+                if (!hasNumberInMessage) {
+                    console.log(`[FLOW CONTROL] Khách hỏi combo (${comboNames}) nhưng chưa cho budget. Ngắt tìm kiếm để hỏi lại.`);
 
-                if (suggestedProducts.length > 0) {
-                    const totalActual = suggestedProducts.reduce((sum, p) => sum + p.price, 0);
-                    botReply = `Đây là các linh kiện trong combo mình tìm được cho bạn. Tổng chi phí là: **${totalActual.toLocaleString()}đ**.`;
-                } else {
-                    botReply = `Tiếc quá, mình chưa tìm thấy linh kiện nào khớp với combo yêu cầu trong tầm ngân sách này của bạn rồi.`;
+                    suggestedProducts = [];
+                    botReply = `Dạ, để mình chọn được combo [${comboNames}] tương thích tốt và đúng nhu cầu, bạn cho mình xin mức ngân sách dự kiến tối đa cho cả combo này là khoảng bao nhiêu nha!`;
+                }
+                // KỊCH BẢN B: Có budget cụ thể cho combo -> Chia tiền tìm kiếm như cũ
+                else {
+                    const perItemBudget = budget / requirements.length;
+                    const promises = requirements.map(async (reqItem) => {
+                        let query = applyPreferences({}, brand_preference);
+                        if (reqItem.keyword) query.name = { $regex: new RegExp(reqItem.keyword, 'i') };
+                        return findBestComponent(reqItem.category, perItemBudget * 1.1, query);
+                    });
+
+                    const results = await Promise.all(promises);
+                    suggestedProducts = results.filter(item => item != null);
+
+                    if (suggestedProducts.length > 0) {
+                        const totalActual = suggestedProducts.reduce((sum, p) => sum + p.price, 0);
+                        botReply = reply || `Dạ, mình đã phối combo theo tầm giá bạn yêu cầu. Tổng chi phí thực tế là: **${totalActual.toLocaleString()}đ**.`;
+                    } else {
+                        botReply = `Tiếc quá, mình chưa tìm thấy linh kiện nào khớp với combo yêu cầu trong phân khúc ngân sách này của bạn rồi.`;
+                    }
                 }
             }
         }
