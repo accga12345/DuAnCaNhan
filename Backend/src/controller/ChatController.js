@@ -94,17 +94,6 @@ const handleChat = async (req, res) => {
 
         console.log('[NLU_RAW]', JSON.stringify(nluResult));
 
-        // BƯỚC 2: Safeguard reset budget khi chuyển build_pc → buy_single/buy_combo
-        const prevState = getPrevAssistantIntent(history);
-        const prevWasBuild = prevState?.intent === 'build_pc';
-        const nowIsBuy = intent === 'buy_single' || intent === 'buy_combo';
-        if (prevWasBuild && nowIsBuy && budget === prevState.budget && budget > 0) {
-            console.log(`[SAFEGUARD] Reset budget lây nhiễm (${budget}) khi đổi sang ${intent}`);
-            budget = 0;
-            is_action = false;
-            reply = reply || 'Dạ bạn muốn đầu tư bao nhiêu cho món linh kiện này ạ?';
-        }
-
         console.log(`[CONTROLLER] Intent: ${intent} | Budget: ${budget} | is_action: ${is_action}`);
 
         const isMissingBudget = budget <= 0;

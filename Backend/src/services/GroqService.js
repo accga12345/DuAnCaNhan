@@ -77,9 +77,9 @@ const CATEGORY_ALIASES = {
     'cooling': 'Cooling', 'tản nhiệt': 'Cooling', 'fan': 'Cooling',
     'quạt': 'Cooling', 'tản': 'Cooling', 'cooler': 'Cooling', 'heatsink': 'Cooling',
     // Phụ kiện
-    'bàn phím': 'Bàn phím', 'keyboard': 'Bàn phím', 'phím': 'Bàn phím',
-    'chuột': 'Chuột', 'mouse': 'Chuột', 'con chuột': 'Chuột',
-    'tai nghe': 'Tai nghe', 'headset': 'Tai nghe', 'headphone': 'Tai nghe',
+    'bàn phím': 'Keyboard', 'keyboard': 'Keyboard', 'phím': 'Keyboard',
+    'chuột': 'Mouse', 'mouse': 'Mouse', 'con chuột': 'Mouse',
+    'tai nghe': 'Headset', 'headset': 'Headset', 'headphone': 'Headset',
 };
 
 // =====================================================================
@@ -131,20 +131,28 @@ const askGroq = async (userMessage, history = [], _dbContext = "") => {
         content: item.parts?.[0]?.text || item.content || ""
     }));
 
-    // Lấy state trước để inject vào prompt và dùng cho safeguard
-    const lastAssistantJSON = [...history].reverse().find(h => h.role === 'assistant');
+    // Lấy state trước từ history để inject vào prompt và dùng cho safeguard.
+    // Tìm message gần nhất của bot/assistant mà có chứa JSON state (để tránh bị đứt đoạn bởi các câu chat phụ)
+    const botMessages = [...history].reverse().filter(h => h.role === 'assistant' || h.role === 'bot');
     let prevContext = { intent: 'chat', budget: 0 };
-    if (lastAssistantJSON) {
+    
+    for (const msg of botMessages) {
         try {
-            const parsed = JSON.parse(lastAssistantJSON.parts?.[0]?.text || lastAssistantJSON.content || '{}');
-            prevContext.intent = parsed.intent || 'chat';
-            prevContext.budget = normalizeBudget(parsed.budget) || 0;
+            const rawText = msg.parts?.[0]?.text || msg.content || "";
+            if (rawText.trim().startsWith('{')) {
+                const parsed = JSON.parse(rawText);
+                if (parsed.intent) {
+                    prevContext.intent = parsed.intent;
+                    prevContext.budget = normalizeBudget(parsed.budget);
+                    break; 
+                }
+            }
         } catch (_) { }
     }
 
     // ---------------------------------------------------------------
-    // Chỉ inject budget cũ vào prompt khi cùng intent
-    // → Ngăn model tự "nhớ" budget từ luồng khác
+    // Chỉ inject budget cũ vào prompt để model biết trạng thái trước.
+    // Việc kế thừa thực tế được kiểm soát chặt chẽ ở phần POST-PROCESSING.
     // ---------------------------------------------------------------
     const sameIntentHint = prevContext.budget > 0
         ? `\nNGỮ CẢNH: Intent trước = "${prevContext.intent}", budget trước = ${prevContext.budget} VND.\nQuy tắc kế thừa: CHỈ giữ budget cũ nếu intent mới GIỐNG intent cũ VÀ user không nói số tiền mới. Nếu intent đổi sang loại khác → budget = 0, hỏi lại.`
@@ -174,11 +182,13 @@ Mọi trường hợp khác: false.
 ## REPLY
 
 is_action = true → reply = "".
-is_action = false → hỏi ĐÚNG 1 thứ còn thiếu:
-  Thiếu budget → hỏi ngân sách.
-  Có budget, thiếu purpose (build_pc) → hỏi mục đích (gaming / văn phòng / đồ họa / render).
-  intent chat → phản hồi thân thiện.
-NGHIÊM CẤM hỏi: game cụ thể, màn mấy inch, phần mềm gì.
+is_action = false → hỏi ĐÚNG 1 thứ còn thiếu theo ưu tiên:
+  1. Thiếu budget (Tất cả intent): Chỉ hỏi về mức ngân sách (Vd: "Dạ bạn dự định đầu tư tầm bao nhiêu cho món này ạ?").
+  2. Có budget, thiếu purpose (CHỈ dành cho build_pc): Hỏi mục đích sử dụng (gaming / đồ họa / văn phòng).
+  3. Intent "chat": Phản hồi ngắn gọn, thân thiện.
+
+TUYỆT ĐỐI KHÔNG hỏi mục đích (purpose) khi người dùng mua lẻ (buy_single) hoặc combo (buy_combo).
+NGHIÊM CẤM hỏi lan man về: kích thước màn hình, hãng yêu thích, hay phần mềm cụ thể.
 
 ## REQUIREMENTS
 
