@@ -2,17 +2,14 @@ const Groq = require("groq-sdk");
 
 // =====================================================================
 // NORMALIZE BUDGET
-// Xử lý mọi cách user Việt nhập tiền → VND nguyên (số nguyên)
 // =====================================================================
 const normalizeBudget = (raw) => {
     if (!raw || raw === 0) return 0;
     if (typeof raw === 'string') {
         let s = raw.toLowerCase().replace(/\s+/g, '');
-
-        // Tiếng lóng: củ / chai / lít = triệu
         s = s.replace(/củ/g, 'tr').replace(/chai/g, 'tr').replace(/lít/g, 'tr');
 
-        // Dấu chấm kiểu Việt (16.000.000) → xóa dấu chấm phân cách nghìn
+        // Dấu chấm phân cách nghìn kiểu Việt (16.000.000)
         const dotCount = (s.match(/\./g) || []).length;
         const lastDotPos = s.lastIndexOf('.');
         const afterLastDot = lastDotPos >= 0 ? s.slice(lastDotPos + 1).replace(/[^0-9]/g, '') : '';
@@ -20,7 +17,7 @@ const normalizeBudget = (raw) => {
             s = s.replace(/\./g, '');
         }
 
-        // Dấu phẩy kiểu Việt (16,000,000) → xóa; dấu phẩy thập phân → thành .
+        // Dấu phẩy phân cách nghìn (16,000,000)
         const commaCount = (s.match(/,/g) || []).length;
         const lastCommaPos = s.lastIndexOf(',');
         const afterLastComma = lastCommaPos >= 0 ? s.slice(lastCommaPos + 1).replace(/[^0-9]/g, '') : '';
@@ -30,16 +27,13 @@ const normalizeBudget = (raw) => {
             s = s.replace(/,/g, '.');
         }
 
-        // "16tr5" → "16tr.5"
         s = s.replace(/tr(\d)$/, 'tr.$1');
-
         const trMatch = s.match(/([\d.]+)\s*tr(iệu|ieu)?\.?(\d*)/);
         if (trMatch) {
             const main = parseFloat(trMatch[1]);
             const decimal = trMatch[3] ? parseFloat('0.' + trMatch[3]) : 0;
             return Math.round((main + decimal) * 1_000_000);
         }
-
         const kMatch = s.match(/([\d.]+)\s*k$/);
         if (kMatch) return Math.round(parseFloat(kMatch[1]) * 1_000);
 
@@ -47,38 +41,52 @@ const normalizeBudget = (raw) => {
         return parseInt(clean) || 0;
     }
     if (typeof raw === 'number') {
-        if (raw < 1_000) return raw * 1_000_000;   // "16"     → 16tr
-        if (raw < 100_000) return raw * 1_000;        // "16000"  → 16tr
-        return raw;                                     // "16000000" → đúng rồi
+        if (raw < 1_000) return raw * 1_000_000;
+        if (raw < 100_000) return raw * 1_000;
+        return raw;
     }
     return 0;
 };
 
 // =====================================================================
-// CATEGORY ALIASES — map mọi cách user gọi về tên chuẩn trong DB
+// CATEGORY ALIASES
 // =====================================================================
 const CATEGORY_ALIASES = {
-    'màn hình': 'Monitor', 'man hinh': 'Monitor', 'monitor': 'Monitor', 'màn': 'Monitor',
+    // Màn hình
+    'màn hình': 'Monitor', 'man hinh': 'Monitor', 'monitor': 'Monitor',
+    'màn': 'Monitor', 'screen': 'Monitor', 'display': 'Monitor',
+    // CPU
     'cpu': 'CPU', 'chip': 'CPU', 'vi xử lý': 'CPU', 'processor': 'CPU', 'con chip': 'CPU',
-    'mainboard': 'Mainboard', 'main': 'Mainboard', 'bo mạch': 'Mainboard', 'motherboard': 'Mainboard', 'bo mạch chủ': 'Mainboard',
+    // Mainboard
+    'mainboard': 'Mainboard', 'main': 'Mainboard', 'bo mạch': 'Mainboard',
+    'motherboard': 'Mainboard', 'bo mạch chủ': 'Mainboard', 'mobo': 'Mainboard',
+    // RAM
     'ram': 'RAM', 'bộ nhớ': 'RAM', 'memory': 'RAM',
-    'vga': 'VGA', 'card màn hình': 'VGA', 'gpu': 'VGA', 'card đồ họa': 'VGA', 'card': 'VGA',
+    // VGA
+    'vga': 'VGA', 'card màn hình': 'VGA', 'gpu': 'VGA', 'card đồ họa': 'VGA',
+    'card': 'VGA', 'graphics card': 'VGA', 'video card': 'VGA',
+    // SSD
     'ssd': 'SSD', 'ổ cứng': 'SSD', 'hdd': 'SSD', 'nvme': 'SSD', 'ổ ssd': 'SSD',
+    'storage': 'SSD', 'hard drive': 'SSD',
+    // PSU
     'psu': 'PSU', 'nguồn': 'PSU', 'power supply': 'PSU', 'bộ nguồn': 'PSU',
+    // Case
     'case': 'Case', 'vỏ máy': 'Case', 'thùng máy': 'Case', 'vỏ case': 'Case',
-    'cooling': 'Cooling', 'tản nhiệt': 'Cooling', 'fan': 'Cooling', 'quạt': 'Cooling', 'tản': 'Cooling',
+    'pc case': 'Case', 'chassis': 'Case',
+    // Cooling
+    'cooling': 'Cooling', 'tản nhiệt': 'Cooling', 'fan': 'Cooling',
+    'quạt': 'Cooling', 'tản': 'Cooling', 'cooler': 'Cooling', 'heatsink': 'Cooling',
+    // Phụ kiện
     'bàn phím': 'Bàn phím', 'keyboard': 'Bàn phím', 'phím': 'Bàn phím',
     'chuột': 'Chuột', 'mouse': 'Chuột', 'con chuột': 'Chuột',
     'tai nghe': 'Tai nghe', 'headset': 'Tai nghe', 'headphone': 'Tai nghe',
 };
 
 // =====================================================================
-// NORMALIZE REQUIREMENTS
-// Đảm bảo luôn là [{category: string, keyword: string}]
+// NORMALIZE REQUIREMENTS → [{category, keyword}]
 // =====================================================================
 const normalizeRequirements = (raw) => {
     if (!Array.isArray(raw) || raw.length === 0) return [];
-
     return raw.map(item => {
         if (item && typeof item === 'object' && item.category) {
             const normalized = CATEGORY_ALIASES[item.category.toLowerCase()] || item.category;
@@ -86,9 +94,7 @@ const normalizeRequirements = (raw) => {
         }
         if (typeof item === 'string') {
             const lower = item.toLowerCase().trim();
-            // Exact match
             if (CATEGORY_ALIASES[lower]) return { category: CATEGORY_ALIASES[lower], keyword: '' };
-            // Substring match
             for (const [alias, catName] of Object.entries(CATEGORY_ALIASES)) {
                 if (lower.includes(alias)) return { category: catName, keyword: item };
             }
@@ -99,9 +105,22 @@ const normalizeRequirements = (raw) => {
 };
 
 // =====================================================================
+// RULE: Budget có được phép kế thừa từ lượt trước không?
+// Chỉ giữ budget khi cùng intent hoặc khi user đang chỉnh sửa cùng luồng.
+// Mọi trường hợp chuyển intent → budget phải do user nói trong tin mới.
+// =====================================================================
+const INTENT_CAN_INHERIT_BUDGET = {
+    // intent mới → các intent cũ được phép kế thừa budget
+    'build_pc': ['build_pc'],
+    'buy_single': ['buy_single'],
+    'buy_combo': ['buy_combo'],
+    'chat': [],   // chat không bao giờ kế thừa
+};
+
+// =====================================================================
 // GROQ NLU
 // =====================================================================
-const askGroq = async (userMessage, history = [], dbContext = "") => {
+const askGroq = async (userMessage, history = [], _dbContext = "") => {
     const apiKey = process.env.GROQ_API_KEY;
     if (!apiKey) throw new Error("API_KEY_MISSING");
 
@@ -112,57 +131,62 @@ const askGroq = async (userMessage, history = [], dbContext = "") => {
         content: item.parts?.[0]?.text || item.content || ""
     }));
 
-    const lastAssistantJSON = [...history].reverse().find(item => item.role === 'assistant');
-    let prevContext = { intent: "chat", budget: 0 };
+    // Lấy state trước để inject vào prompt và dùng cho safeguard
+    const lastAssistantJSON = [...history].reverse().find(h => h.role === 'assistant');
+    let prevContext = { intent: 'chat', budget: 0 };
     if (lastAssistantJSON) {
         try {
-            const parsed = JSON.parse(lastAssistantJSON.parts?.[0]?.text || lastAssistantJSON.content || "{}");
-            prevContext.intent = parsed.intent || "chat";
+            const parsed = JSON.parse(lastAssistantJSON.parts?.[0]?.text || lastAssistantJSON.content || '{}');
+            prevContext.intent = parsed.intent || 'chat';
             prevContext.budget = normalizeBudget(parsed.budget) || 0;
         } catch (_) { }
     }
 
+    // ---------------------------------------------------------------
+    // Chỉ inject budget cũ vào prompt khi cùng intent
+    // → Ngăn model tự "nhớ" budget từ luồng khác
+    // ---------------------------------------------------------------
+    const sameIntentHint = prevContext.budget > 0
+        ? `\nNGỮ CẢNH: Intent trước = "${prevContext.intent}", budget trước = ${prevContext.budget} VND.\nQuy tắc kế thừa: CHỈ giữ budget cũ nếu intent mới GIỐNG intent cũ VÀ user không nói số tiền mới. Nếu intent đổi sang loại khác → budget = 0, hỏi lại.`
+        : `\nNGỮ CẢNH: Chưa có budget.`;
+
     const systemContent = `Bạn là module NLU cho shop PC & linh kiện. Chỉ xuất JSON, không giải thích.
 
-## INTENT — chọn đúng 1 trong 4
+## INTENT
 
-"chat": chào hỏi, cảm ơn, câu bâng quơ, không có yêu cầu mua hàng hay ráp máy cụ thể.
-"build_pc": muốn ráp nguyên bộ máy hoặc chỉnh sửa cấu hình đang build.
-"buy_single": mua lẻ đúng 1 linh kiện hoặc phụ kiện.
+"chat": chào hỏi, cảm ơn, câu không chứa yêu cầu mua hàng / ráp máy.
+"build_pc": ráp nguyên bộ máy hoặc chỉnh cấu hình đang build.
+"buy_single": mua lẻ đúng 1 linh kiện / phụ kiện.
 "buy_combo": mua combo 2-3 linh kiện đi kèm (không phải nguyên bộ).
 
 ## BUDGET
 
-- Output LUÔN là số nguyên VND. Ví dụ: 16 triệu = 16000000.
-- Cách user nhập: "16tr" / "16 triệu" / "16 củ" / "khoảng 16" / "tầm 16" → tất cả = 16000000.
-- Chưa biết budget → output 0.
+Output LUÔN là số nguyên VND. "16tr" / "16 triệu" / "16 củ" / "tầm 16" = 16000000.
+Chưa biết budget → 0.
+${sameIntentHint}
 
 ## IS_ACTION
 
-- build_pc: true khi budget > 0 VÀ purpose không rỗng.
-- buy_single / buy_combo: true khi budget > 0.
-- Mọi trường hợp còn lại: false.
+build_pc: true khi budget > 0 VÀ purpose không rỗng.
+buy_single / buy_combo: true khi budget > 0.
+Mọi trường hợp khác: false.
 
 ## REPLY
 
-- is_action = true → reply = "" (không hỏi thêm).
-- is_action = false → hỏi ĐÚNG 1 thứ còn thiếu:
-  + Thiếu budget → hỏi ngân sách.
-  + Có budget, thiếu purpose (build_pc) → hỏi mục đích: gaming / văn phòng / đồ họa / render.
-  + intent = chat → phản hồi thân thiện.
-- NGHIÊM CẤM hỏi: game cụ thể, màn mấy inch, phần mềm gì, xem phim gì.
+is_action = true → reply = "".
+is_action = false → hỏi ĐÚNG 1 thứ còn thiếu:
+  Thiếu budget → hỏi ngân sách.
+  Có budget, thiếu purpose (build_pc) → hỏi mục đích (gaming / văn phòng / đồ họa / render).
+  intent chat → phản hồi thân thiện.
+NGHIÊM CẤM hỏi: game cụ thể, màn mấy inch, phần mềm gì.
 
-## REQUIREMENTS — bắt buộc là mảng object
+## REQUIREMENTS
 
-[{"category": "<tên chuẩn>", "keyword": "<từ khóa thêm nếu có>"}]
-Tên category chuẩn: CPU, Mainboard, RAM, VGA, SSD, PSU, Case, Cooling, Màn hình, Bàn phím, Chuột, Tai nghe.
-Ví dụ "mua màn hình gaming 27 inch" → [{"category":"Màn hình","keyword":"gaming 27 inch"}]
-Ví dụ "mua cpu" → [{"category":"CPU","keyword":""}]
+Luôn là mảng object: [{"category":"<tên chuẩn>","keyword":"<từ khóa nếu có>"}]
+Tên chuẩn: CPU, Mainboard, RAM, VGA, SSD, PSU, Case, Cooling, Màn hình, Bàn phím, Chuột, Tai nghe.
+"mua màn gaming 27 inch" → [{"category":"Màn hình","keyword":"gaming 27 inch"}]
+"mua cpu" → [{"category":"CPU","keyword":""}]
 KHÔNG để requirements là mảng string.
-
-## CONTEXT TRƯỚC ĐÓ
-
-Intent cũ: ${prevContext.intent} | Budget cũ: ${prevContext.budget}
 
 ## OUTPUT
 
@@ -175,7 +199,7 @@ Intent cũ: ${prevContext.intent} | Budget cũ: ${prevContext.budget}
     ];
 
     try {
-        const chatCompletion = await groq.chat.completions.create({
+        const completion = await groq.chat.completions.create({
             messages,
             model: "llama-3.3-70b-versatile",
             response_format: { type: "json_object" },
@@ -183,25 +207,32 @@ Intent cũ: ${prevContext.intent} | Budget cũ: ${prevContext.budget}
             max_tokens: 300
         });
 
-        const raw = JSON.parse(chatCompletion.choices[0].message.content);
+        const raw = JSON.parse(completion.choices[0].message.content);
 
-        // POST-PROCESSING (không tin hoàn toàn model)
+        // ---- POST-PROCESSING ----
+
+        // 1. Normalize budget
         raw.budget = normalizeBudget(raw.budget);
+
+        // 2. Normalize requirements
         raw.requirements = normalizeRequirements(raw.requirements);
 
-        // Safeguard reset budget khi chuyển build_pc → buy_single/buy_combo
-        const prevWasBuild = prevContext.intent === "build_pc";
-        const nowIsBuy = raw.intent === "buy_single" || raw.intent === "buy_combo";
-        if (prevWasBuild && nowIsBuy && raw.budget === prevContext.budget && prevContext.budget > 0) {
+        // 3. SAFEGUARD: reset budget khi intent đổi loại
+        //    Model đôi khi vẫn kế thừa budget dù đã dặn trong prompt
+        const allowedPrevIntents = INTENT_CAN_INHERIT_BUDGET[raw.intent] || [];
+        const prevIntentAllowed = allowedPrevIntents.includes(prevContext.intent);
+
+        if (!prevIntentAllowed && raw.budget === prevContext.budget && prevContext.budget > 0) {
+            console.log(`[SAFEGUARD] Budget ${raw.budget} bị reset — intent đổi từ "${prevContext.intent}" sang "${raw.intent}"`);
             raw.budget = 0;
             raw.is_action = false;
-            raw.reply = raw.reply || "Dạ bạn muốn đầu tư bao nhiêu cho món này ạ?";
+            raw.reply = raw.reply || 'Dạ bạn muốn đầu tư bao nhiêu cho nhu cầu này ạ?';
         }
 
-        // Đảm bảo is_action không bao giờ true khi budget = 0
+        // 4. Đảm bảo is_action không true khi budget = 0
         if (raw.budget <= 0 && raw.is_action === true) {
             raw.is_action = false;
-            if (!raw.reply) raw.reply = "Dạ bạn có thể cho biết ngân sách dự kiến không ạ?";
+            if (!raw.reply) raw.reply = 'Dạ bạn có thể cho biết ngân sách dự kiến không ạ?';
         }
 
         return raw;
@@ -209,9 +240,9 @@ Intent cũ: ${prevContext.intent} | Budget cũ: ${prevContext.budget}
     } catch (e) {
         console.error("❌ Lỗi NLU Groq:", e.message);
         return {
-            intent: "chat", budget: 0, purpose: "", is_action: false,
+            intent: 'chat', budget: 0, purpose: '', is_action: false,
             requirements: [], brand_preference: [],
-            reply: "Dạ hệ thống đang bận, bạn có thể nói lại nhu cầu được không ạ?"
+            reply: 'Dạ hệ thống đang bận, bạn có thể nói lại nhu cầu được không ạ?'
         };
     }
 };

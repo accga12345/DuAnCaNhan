@@ -2,7 +2,7 @@ const GroqService = require('../services/GroqService');
 const ChatService = require('../services/ChatService');
 const ProductModel = require('../models/ProductModel');
 const CategoryModel = require('../models/CategoryModel');
-const { normalizeBudget, normalizeRequirements } = require('../services/GroqService');
+const { normalizeBudget, normalizeRequirements, CATEGORY_ALIASES } = require('../services/GroqService');
 
 // =====================================================================
 // HELPERS
@@ -124,11 +124,17 @@ const handleChat = async (req, res) => {
             // Lấy category từ requirements (đã được normalize thành [{category, keyword}])
             let reqItem = requirements?.[0];
 
-            // Rescue: nếu category rỗng, thử scan keyword qua CATEGORY_ALIASES
+            // Rescue: scan message qua CATEGORY_ALIASES (match dài nhất trước)
             if (!reqItem?.category) {
-                const normalized = normalizeRequirements([message]);
-                reqItem = normalized[0]?.category ? normalized[0] : null;
-                if (reqItem) console.log('[RESCUE] Category từ scan message:', reqItem.category);
+                const lower = message.toLowerCase();
+                const sorted = Object.entries(CATEGORY_ALIASES).sort((a, b) => b[0].length - a[0].length);
+                for (const [alias, catName] of sorted) {
+                    if (lower.includes(alias)) {
+                        reqItem = { category: catName, keyword: '' };
+                        console.log('[RESCUE] Category từ scan message:', catName);
+                        break;
+                    }
+                }
             }
 
             if (reqItem?.category) {
