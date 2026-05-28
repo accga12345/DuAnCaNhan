@@ -20,14 +20,37 @@ const applyPreferences = (query, brandPreference) => {
     return query;
 };
 
+/**
+ * Hàm tìm kiếm linh kiện tối ưu kèm cơ chế Fallback (Linh kiện vạn năng)
+ */
 const findBestComponent = async (categoryName, budgetAllowed, extraQuery = {}) => {
-    const cat = await CategoryModel.findOne({ name: new RegExp(`^${categoryName}$`, 'i') });
+    // Tìm danh mục theo cơ chế nới lỏng chứa từ khóa (VGA, Card màn hình, Bộ xử lý...)
+    const cat = await CategoryModel.findOne({ name: new RegExp(categoryName, 'i') });
     if (!cat) return null;
 
-    const query = { category: cat._id, ...extraQuery };
-    if (budgetAllowed && budgetAllowed > 0) query.price = { $lte: budgetAllowed };
+    let query = { category: cat._id, ...extraQuery };
 
-    return await ProductModel.findOne(query).sort({ price: budgetAllowed > 0 ? -1 : 1 });
+    // Bước 1: Tìm sản phẩm tối ưu kịch khung trong phân khúc ngân sách cho phép
+    let priceQuery = { ...query };
+    if (budgetAllowed && budgetAllowed > 0) priceQuery.price = { $lte: budgetAllowed };
+    let item = await ProductModel.findOne(priceQuery).sort({ price: -1 });
+
+    // Bước 2: [TƯ DUY LINH KIỆN VẠN NĂNG]
+    // Nếu không tìm thấy do filter strict quá (hoặc do Mainboard ép socket nhưng DB thiếu thông số)
+    if (!item && Object.keys(extraQuery).length > 0) {
+        console.log(`[FALLBACK] Bỏ bộ lọc thông số nghiêm ngặt cho danh mục ${categoryName} (Xem như linh kiện vạn năng).`);
+        let fallbackQuery = { category: cat._id }; // Chỉ giữ lại category
+        if (budgetAllowed && budgetAllowed > 0) fallbackQuery.price = { $lte: budgetAllowed };
+        item = await ProductModel.findOne(fallbackQuery).sort({ price: -1 });
+    }
+
+    // Bước 3: Nếu ngân sách quá thấp không mua nổi món nào thấp nhất phân khúc
+    if (!item && budgetAllowed > 0) {
+        console.log(`[FALLBACK] Ngân sách quá thấp cho ${categoryName}. Tự động lấy món rẻ nhất có sẵn trong kho.`);
+        item = await ProductModel.findOne({ category: cat._id }).sort({ price: 1 });
+    }
+
+    return item;
 };
 
 /**
@@ -89,12 +112,8 @@ const handleChat = async (req, res) => {
 
         console.log(`[EXPERT ENGINE] Phân tích -> Intent: ${intent} | Budget gốc từ AI: ${budget} | Action: ${is_action}`);
 
-        // ĐÃ XÓA CHỐT CHẶN TỰ HỦY TIỀN Ở ĐÂY
-
         const isMissingBudget = !budget || budget <= 0;
         const isMissingPurpose = intent === 'build_pc' && (!purpose || purpose.trim() === "");
-
-        console.log(`[EXPERT ENGINE] Dòng tiền thực tế: ${budget}đ | Mục đích: ${purpose || 'CHƯA RÕ'}`);
 
         // TRƯỜNG HỢP 1.1: Luồng chat giao tiếp bình thường
         if (intent === 'chat') {
@@ -103,7 +122,7 @@ const handleChat = async (req, res) => {
         // TRƯỜNG HỢP 1.2: Luồng mua sắm nhưng bị thiếu ngân sách/mục đích
         else if ((intent === 'build_pc' && (isMissingBudget || isMissingPurpose)) ||
             ((intent === 'buy_combo' || intent === 'buy_single') && isMissingBudget)) {
-            botReply = reply || "Dạ, để hệ thống lọc mã chuẩn xác nhất, bạn có thể chia sẻ thêm về mức ngân sách dự kiến hoặc nhu cầu sử dụng cụ thể không ạ?";
+            botReply = reply || "Dạ, để mình tư vấn cấu hình chuẩn nhất, bạn cho mình xin mức ngân sách dự kiến hoặc nhu cầu sử dụng (gaming/văn phòng/đồ họa) nhé!";
         }
         // TRƯỜNG HỢP 2: Luồng tìm mua đúng 1 món linh kiện lẻ
         else if (intent === 'buy_single') {
@@ -146,82 +165,61 @@ const handleChat = async (req, res) => {
                 }
             }
         }
-        // TRƯỜNG HỢP 4: THUẬT TOÁN PHỐI CẤU HÌNH PC ĐÃ ĐỦ TIỀN VÀ MỤC ĐÍCH
+        // TRƯỜNG HỢP 4: THUẬT TOÁN PHỐI CẤU HÌNH PC
         else if (intent === 'build_pc') {
             const ratios = {
                 gaming: { CPU: 0.18, Mainboard: 0.12, RAM: 0.09, VGA: 0.35, SSD: 0.08, PSU: 0.07, Case: 0.06, Cooling: 0.05 },
                 work: { CPU: 0.28, Mainboard: 0.14, RAM: 0.14, VGA: 0.18, SSD: 0.10, PSU: 0.07, Case: 0.05, Cooling: 0.04 },
                 office: { CPU: 0.38, Mainboard: 0.18, RAM: 0.14, VGA: 0.00, SSD: 0.14, PSU: 0.08, Case: 0.08, Cooling: 0.00 }
             };
-            const ratio = ratios[purpose] || ratios.gaming;
+
+            const purposeKey = purpose.trim().toLowerCase();
+            const ratio = ratios[purposeKey] || ratios.gaming;
             const prefQuery = applyPreferences({}, brand_preference);
             let build = {};
 
-            build.CPU = await findBestComponent("CPU", budget * ratio.CPU, prefQuery);
-            if (!build.CPU) build.CPU = await findBestComponent("CPU", budget * 0.25, prefQuery);
-            if (!build.CPU) build.CPU = await findBestComponent("CPU", budget * 0.1, prefQuery);
+            // Xác định danh sách linh kiện BẮT BUỘC phải có dựa trên mục đích sử dụng
+            const components = ["CPU", "Mainboard", "RAM", "VGA", "SSD", "PSU", "Case", "Cooling"];
+            const requiredComponents = components.filter(comp => ratio[comp] > 0);
 
-            const cpuSocket = getSpec(build.CPU, 'Socket');
-            let qMain = { ...prefQuery };
-            if (cpuSocket) {
-                qMain["specifications"] = {
-                    $elemMatch: { key: { $regex: /Socket/i }, value: { $regex: new RegExp(cpuSocket, 'i') } }
-                };
+            for (const comp of requiredComponents) {
+                const compBudget = budget * ratio[comp];
+                let query = { ...prefQuery };
+
+                // Xử lý đặc thù đồng bộ Socket giữa Mainboard và CPU
+                if (comp === "Mainboard" && build.CPU) {
+                    const cpuSocket = getSpec(build.CPU, 'Socket');
+                    if (cpuSocket) {
+                        query["specifications"] = {
+                            $elemMatch: {
+                                key: { $regex: /Socket/i },
+                                value: { $regex: new RegExp(cpuSocket, 'i') }
+                            }
+                        };
+                    }
+                }
+
+                // Tìm kiếm linh kiện kèm fallback vạn năng bên trong hàm helper
+                build[comp] = await findBestComponent(comp, compBudget, query);
             }
 
-            build.Mainboard = await findBestComponent("Mainboard", budget * ratio.Mainboard, qMain);
-            if (!build.Mainboard) {
-                build.Mainboard = await findBestComponent("Mainboard", budget * ratio.Mainboard * 1.4, prefQuery);
-            }
-
-            build.RAM = await findBestComponent("RAM", budget * ratio.RAM * 1.3, prefQuery);
-            if (ratio.VGA > 0) {
-                build.VGA = await findBestComponent("VGA", budget * ratio.VGA, prefQuery);
-            }
-            build.SSD = await findBestComponent("SSD", budget * ratio.SSD * 1.3, prefQuery);
-
-            build.PSU = await findBestComponent("PSU", budget * ratio.PSU * 1.4, prefQuery);
-            if (!build.PSU) build.PSU = await findBestComponent("PSU", budget * 0.05, prefQuery);
-
-            build.Case = await findBestComponent("Case", budget * ratio.Case * 1.5, prefQuery);
-            if (!build.Case) build.Case = await findBestComponent("Case", budget * 0.05, prefQuery);
-
-            if (ratio.Cooling > 0) {
-                build.Cooling = await findBestComponent("Cooling", budget * ratio.Cooling * 1.5, prefQuery);
-                if (!build.Cooling) build.Cooling = await findBestComponent("Cooling", budget * 0.05, prefQuery);
-            }
-
+            // Đóng gói mảng linh kiện tìm thấy thực tế
             suggestedProducts = Object.values(build).filter(item => item != null);
             let currentTotal = suggestedProducts.reduce((sum, p) => sum + p.price, 0);
 
-            if (currentTotal > budget) {
-                if (build.VGA) {
-                    build.VGA = await findBestComponent("VGA", (budget * ratio.VGA) * 0.8, prefQuery);
-                    suggestedProducts = Object.values(build).filter(item => item != null);
-                    currentTotal = suggestedProducts.reduce((sum, p) => sum + p.price, 0);
-                }
-            }
+            // --- KIỂM TRA ĐỦ LINH KIỆN & GỢI Ý TĂNG NGÂN SÁCH KHÔN KHÉO ---
+            const missingComponents = requiredComponents.filter(comp => !build[comp]);
 
-            const missingComponents = [];
-            if (!build.CPU) missingComponents.push("CPU");
-            if (!build.Mainboard) missingComponents.push("Mainboard");
-            if (!build.RAM) missingComponents.push("RAM");
-            if (!build.SSD) missingComponents.push("Ổ cứng SSD");
-            if (!build.PSU) missingComponents.push("Nguồn máy tính (PSU)");
-            if (!build.Case) missingComponents.push("Vỏ máy tính (Case)");
-            if (!build.Cooling) missingComponents.push("Tản nhiệt (Cooling)");
-
-            if (missingComponents.length > 0) {
-                suggestedProducts = [];
-                botReply = `Dạ với ngân sách ${budget.toLocaleString()}đ, hệ thống chưa thể cân đối đủ tiền để lên một bộ máy hoàn chỉnh (hiện đang bị thiếu kinh phí hoặc hết mã cho **${missingComponents.join(', ')}**). Bạn có thể cân nhắc nâng thêm ngân sách lên một chút để mình ráp full cấu hình tối ưu nhất cho bạn nhé!`;
+            if (missingComponents.length > 0 || currentTotal > budget * 1.15) {
+                const missingListStr = missingComponents.join(', ');
+                botReply = reply ? reply : `Mình đã cố gắng build cấu hình tốt nhất cho nhu cầu ${purpose === 'work' ? 'làm việc' : purpose} của bạn. Tuy nhiên, do mức ngân sách ${budget.toLocaleString()}đ khá hạn chế nên hệ thống hiện tại đang bị thiếu một số linh kiện quan trọng (${missingListStr}) hoặc phải chọn linh kiện giá rẻ không tối ưu được hiệu năng của CPU. Để có một bộ PC hoàn chỉnh, chạy mượt mà và bền bỉ nhất, bạn có thể cân nhắc nâng thêm ngân sách lên khoảng tầm **${Math.ceil((currentTotal * 1.1) / 500000) * 500000}đ** để mình phối lại một cấu hình chuẩn chỉnh nhất không ạ?`;
             } else {
-                botReply = `Mình đã cân đối dòng tiền và lên cấu hình hoàn chỉnh tối ưu nhất trong tầm giá **${currentTotal.toLocaleString()}đ** đúng theo nhu cầu của bạn. Bạn xem chi tiết bên dưới nhé!`;
+                botReply = reply || `Mình đã phối cấu hình tốt nhất dựa trên tỷ lệ ngân sách cho nhu cầu của bạn. Tổng chi phí thực tế là: **${currentTotal.toLocaleString()}đ**.`;
             }
         }
 
         // --- CHỐT CHẶN CUỐI CÙNG CHỐNG TIN NHẮN TRẮNG ---
         if (!botReply || botReply.trim() === "") {
-            console.log(`[EXPERT WARNING] BotReply rỗng do lọt điều kiện! Intent: ${intent}`);
             botReply = reply || "Hệ thống đang kiểm tra yêu cầu của bạn, bạn có thể nói chi tiết hơn được không ạ?";
         }
 
