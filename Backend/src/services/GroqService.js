@@ -1,8 +1,11 @@
 const Groq = require("groq-sdk");
 
 // =====================================================================
-// NORMALIZE BUDGET
+// NORMALIZE BUDGET & DETECTION
 // =====================================================================
+const HAS_BUDGET_REGEX = /(\d+)\s*(triệu|tr|củ|m|k|đồng|d)/i;
+const hasBudgetExpression = (message) => HAS_BUDGET_REGEX.test(message);
+
 const normalizeBudget = (raw) => {
     if (!raw || raw === 0) return 0;
     if (typeof raw === 'string') {
@@ -179,6 +182,14 @@ build_pc: true khi budget > 0 VÀ purpose không rỗng.
 buy_single / buy_combo: true khi budget > 0.
 Mọi trường hợp khác: false.
 
+## PURPOSE (CHỈ dùng cho build_pc)
+Phân loại mục đích sử dụng của user vào ĐÚNG 1 trong 4 từ khóa tiếng Anh sau:
+- "gaming": Chơi game
+- "office": Văn phòng, học tập cơ bản, lướt web
+- "render": Đồ họa, thiết kế, edit video, render 3D
+- "work": Làm việc nặng, code, giả lập
+Nếu không rõ, để trống "".
+
 ## REPLY
 
 is_action = true → reply = "".
@@ -239,7 +250,15 @@ KHÔNG để requirements là mảng string.
             raw.reply = raw.reply || 'Dạ bạn muốn đầu tư bao nhiêu cho nhu cầu này ạ?';
         }
 
-        // 4. Đảm bảo is_action không true khi budget = 0
+        // 4. Reset budget nếu buy_single/buy_combo mà user không nhắc tới tiền
+        if ((raw.intent === 'buy_single' || raw.intent === 'buy_combo') && !hasBudgetExpression(userMessage)) {
+            console.log(`[SAFEGUARD] Reset budget vì user không nhắc tới tiền trong tin nhắn mới`);
+            raw.budget = 0;
+            raw.is_action = false;
+            raw.reply = raw.reply || 'Dạ bạn muốn đầu tư bao nhiêu cho món này ạ?';
+        }
+
+        // 5. Đảm bảo is_action không true khi budget = 0
         if (raw.budget <= 0 && raw.is_action === true) {
             raw.is_action = false;
             if (!raw.reply) raw.reply = 'Dạ bạn có thể cho biết ngân sách dự kiến không ạ?';
