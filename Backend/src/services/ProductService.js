@@ -214,14 +214,20 @@ const getAllCategoryProduct = async () => {
 };
 
 const getCompatibleProducts = async (categoryName, currentBuild, replacedProduct) => {
+    console.log(`[DEBUG] getCompatibleProducts called with:`, categoryName);
     try {
         let cat;
         if (mongoose.Types.ObjectId.isValid(categoryName)) {
             cat = await Category.findById(categoryName);
+            console.log(`[DEBUG] Search by ID found:`, cat ? cat.name : 'null');
         } else {
             cat = await Category.findOne({ name: new RegExp(`^${categoryName}$`, 'i') });
+            console.log(`[DEBUG] Search by Name found:`, cat ? cat.name : 'null');
         }
-        if (!cat) return { status: 'error', message: 'Category not found' };
+        if (!cat) {
+            console.log(`[DEBUG] Category NOT found for input:`, categoryName);
+            return { status: 'error', message: 'Category not found' };
+        }
 
         const query = { category: cat._id };
 

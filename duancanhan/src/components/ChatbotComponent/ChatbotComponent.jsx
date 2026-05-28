@@ -107,34 +107,34 @@ const ChatbotComponent = () => {
         }]);
         setReplaceMode(null);
     };
+const handleReplaceClick = async (product) => {
+    setIsLoading(true);
+    try {
+        const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+        const lastBuildMsg = [...messages].reverse().find(msg => msg.products && msg.products.length > 0 && msg.type === 'build');
 
-    const handleReplaceClick = async (product) => {
-        setIsLoading(true);
-        try {
-            const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
-            const lastBuildMsg = [...messages].reverse().find(msg => msg.products && msg.products.length > 0 && msg.type === 'build');
+        // Chỉ gửi ID của category đi
+        const categoryId = product.category?._id || product.category;
 
-            // Gọi API mới (sẽ triển khai sau) hoặc tận dụng 1 endpoint hiện có để lấy sản phẩm cùng category/tương thích
-            const res = await axios.post(`${apiUrl}/product/get-compatible`, {
-                categoryName: product.category,
-                currentBuild: lastBuildMsg ? lastBuildMsg.products : [],
-                replacedProduct: product
-            });
+        const res = await axios.post(`${apiUrl}/product/get-compatible`, {
+            categoryName: categoryId,
+            currentBuild: lastBuildMsg ? lastBuildMsg.products : [],
+            replacedProduct: product
+        });
 
-            setMessages(prev => [...prev, {
-                sender: 'bot',
-                text: `Gợi ý các linh kiện thay thế cho ${product.name}:`,
-                products: res.data.data,
-                type: 'suggestions'
-            }]);
-            setReplaceMode({ step: 'select', product: product });
-        } catch (e) {
-            setMessages(prev => [...prev, { sender: 'bot', text: 'Lỗi tìm linh kiện thay thế.', products: [] }]);
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
+        setMessages(prev => [...prev, {
+            sender: 'bot',
+            text: `Gợi ý các linh kiện thay thế cho ${product.name}:`,
+            products: res.data.data,
+            type: 'suggestions'
+        }]);
+        setReplaceMode({ step: 'select', product: product });
+    } catch (e) {
+        setMessages(prev => [...prev, { sender: 'bot', text: 'Lỗi tìm linh kiện thay thế.', products: [] }]);
+    } finally {
+        setIsLoading(false);
+    }
+};
     return (
         <div style={{ position: 'fixed', bottom: 20, right: 20, zIndex: 9999, fontFamily: 'Arial' }}>
             <button onClick={() => setIsOpen(!isOpen)} style={{ width: 60, height: 60, borderRadius: '50%', background: '#ff4d4f', border: 'none', color: '#fff', cursor: 'pointer', fontSize: 24 }}>💬</button>

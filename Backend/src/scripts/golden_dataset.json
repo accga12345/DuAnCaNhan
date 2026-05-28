@@ -1,0 +1,202 @@
+[
+    {
+        "input": "Build cho mình bộ PC gaming tầm 20 triệu",
+        "expectedIntent": "build_pc"
+    },
+    {
+        "input": "Ráp bộ máy văn phòng 10tr",
+        "expectedIntent": "build_pc"
+    },
+    {
+        "input": "Tư vấn máy render 50 triệu",
+        "expectedIntent": "build_pc"
+    },
+    {
+        "input": "Build cấu hình code 15 triệu",
+        "expectedIntent": "build_pc"
+    },
+    {
+        "input": "Tôi cần máy chơi game 30 củ",
+        "expectedIntent": "build_pc"
+    },
+    {
+        "input": "Ráp máy tầm 8 triệu cho học sinh",
+        "expectedIntent": "build_pc"
+    },
+    {
+        "input": "PC đồ họa nặng 40 triệu",
+        "expectedIntent": "build_pc"
+    },
+    {
+        "input": "Máy tính văn phòng giá rẻ nhất có thể",
+        "expectedIntent": "build_pc"
+    },
+    {
+        "input": "Cấu hình gaming 25 triệu",
+        "expectedIntent": "build_pc"
+    },
+    {
+        "input": "Build pc render 60tr",
+        "expectedIntent": "build_pc"
+    },
+    {
+        "input": "Mua lẻ con chuột gaming",
+        "expectedIntent": "buy_single"
+    },
+    {
+        "input": "Bán cho mình cái màn hình 24 inch",
+        "expectedIntent": "buy_single"
+    },
+    {
+        "input": "Tôi muốn mua CPU i5",
+        "expectedIntent": "buy_single"
+    },
+    {
+        "input": "Có bàn phím cơ nào 1 triệu không",
+        "expectedIntent": "buy_single"
+    },
+    {
+        "input": "Tìm SSD 500GB",
+        "expectedIntent": "buy_single"
+    },
+    {
+        "input": "Mua cái vỏ case máy tính",
+        "expectedIntent": "buy_single"
+    },
+    {
+        "input": "VGA rẻ nhất hiện nay",
+        "expectedIntent": "buy_single"
+    },
+    {
+        "input": "Tai nghe gaming shop còn hàng không",
+        "expectedIntent": "buy_single"
+    },
+    {
+        "input": "Mình muốn mua nguồn 650W",
+        "expectedIntent": "buy_single"
+    },
+    {
+        "input": "Ram 16GB giá sao",
+        "expectedIntent": "buy_single"
+    },
+    {
+        "input": "Báo giá cho tôi combo Mainboard và RAM",
+        "expectedIntent": "buy_combo"
+    },
+    {
+        "input": "Combo phím chuột 500k",
+        "expectedIntent": "buy_combo"
+    },
+    {
+        "input": "Cần bộ combo CPU và Mainboard chơi game 10tr",
+        "expectedIntent": "buy_combo"
+    },
+    {
+        "input": "Combo nguồn và vỏ case giá tầm 2 triệu",
+        "expectedIntent": "buy_combo"
+    },
+    {
+        "input": "Mua combo 3 món: màn hình, bàn phím, chuột 5 triệu",
+        "expectedIntent": "buy_combo"
+    },
+    {
+        "input": "Combo Main, RAM, SSD tầm 6 triệu",
+        "expectedIntent": "buy_combo"
+    },
+    {
+        "input": "Bộ đôi bàn phím tai nghe giá tốt",
+        "expectedIntent": "buy_combo"
+    },
+    {
+        "input": "Combo CPU VGA dưới 15tr",
+        "expectedIntent": "buy_combo"
+    },
+    {
+        "input": "Mainboard và CPU tầm 8tr",
+        "expectedIntent": "buy_combo"
+    },
+    {
+        "input": "Chuột và lót chuột giá bao nhiêu",
+        "expectedIntent": "buy_combo"
+    },
+    {
+        "input": "Chào shop",
+        "expectedIntent": "chat"
+    },
+    {
+        "input": "Shop ở đâu vậy",
+        "expectedIntent": "chat"
+    },
+    {
+        "input": "Cảm ơn bạn",
+        "expectedIntent": "chat"
+    },
+    {
+        "input": "Hôm nay shop có khuyến mãi gì không",
+        "expectedIntent": "chat"
+    },
+    {
+        "input": "Thời gian làm việc thế nào",
+        "expectedIntent": "chat"
+    },
+    {
+        "input": "Shop có ship tỉnh không",
+        "expectedIntent": "chat"
+    },
+    {
+        "input": "Số hotline của shop là gì",
+        "expectedIntent": "chat"
+    },
+    {
+        "input": "Cho hỏi về chính sách bảo hành",
+        "expectedIntent": "chat"
+    },
+    {
+        "input": "Tạm biệt nhé",
+        "expectedIntent": "chat"
+    },
+    {
+        "input": "Ok hiểu rồi",
+        "expectedIntent": "chat"
+    },
+    {
+        "input": "Bao nhiêu tiền thì build được máy?",
+        "expectedIntent": "build_pc"
+    },
+    {
+        "input": "Mấy cái linh kiện linh tinh",
+        "expectedIntent": "chat"
+    },
+    {
+        "input": "Build pc cấu hình siêu mạnh 1 tỷ",
+        "expectedIntent": "build_pc"
+    },
+    {
+        "input": "Chuột loại nào xịn nhất",
+        "expectedIntent": "buy_single"
+    },
+    {
+        "input": "Mainboard gì tương thích với chip i9",
+        "expectedIntent": "buy_single"
+    },
+    {
+        "input": "Shop sửa máy tính không",
+        "expectedIntent": "chat"
+    },
+    {
+        "input": "Ráp bộ máy 1 đồng",
+        "expectedIntent": "build_pc"
+    },
+    {
+        "input": "Mua cái gì cũng được",
+        "expectedIntent": "chat"
+    },
+    {
+        "input": "Build pc gaming bằng con chip cũ của mình",
+        "expectedIntent": "build_pc"
+    },
+    {
+        "input": "Tại sao con chip này đắt thế?",
+        "expectedIntent": "chat"
+    }
+]
