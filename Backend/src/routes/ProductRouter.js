@@ -10,6 +10,7 @@ router.get('/get_all', productController.getAllProducts)
 router.delete('/delete_product/:id', authMiddleware, productController.deleteProduct)
 router.delete('/delete_many_product', authMiddleware, productController.deleteManyProduct)
 router.get('/get_all_category_product', productController.getAllCategoryProduct)
+router.post('/get-compatible', productController.getCompatibleProducts)
 
 
 module.exports = router

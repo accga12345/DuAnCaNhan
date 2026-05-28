@@ -42,7 +42,23 @@ const PCBuilderPage = () => {
     const handleSelect = (configId, categoryName, product) => {
         setConfigs(prev => prev.map(c => {
             if (c.id === configId) {
-                const newSelection = { ...c.selection, [categoryName]: product };
+                let newSelection = { ...c.selection, [categoryName]: product };
+                
+                // BUG FIX: Kiểm tra và xóa linh kiện không tương thích khi thay đổi linh kiện mới
+                if (categoryName === 'CPU' && newSelection.Mainboard) {
+                    const newCpuSocket = getSpec(product, 'socket');
+                    const mbSocket = getSpec(newSelection.Mainboard, 'socket');
+                    if (newCpuSocket && mbSocket && newCpuSocket !== mbSocket) {
+                        delete newSelection.Mainboard;
+                    }
+                } else if (categoryName === 'Mainboard' && newSelection.CPU) {
+                    const newMbSocket = getSpec(product, 'socket');
+                    const cpuSocket = getSpec(newSelection.CPU, 'socket');
+                    if (newMbSocket && cpuSocket && newMbSocket !== cpuSocket) {
+                        delete newSelection.CPU;
+                    }
+                }
+
                 let total = 0;
                 Object.values(newSelection).forEach(p => { if(p) total += p.price; });
                 return { ...c, selection: newSelection, totalPrice: total };
@@ -57,10 +73,26 @@ const PCBuilderPage = () => {
 
     const getAvailableProducts = (config, catName, allProducts) => {
         let filtered = allProducts;
+        
+        // BUG FIX: Lọc tương thích: khớp spec HOẶC không có spec key (vạn năng)
         if (catName === 'Mainboard' && config.selection.CPU) {
             const cpuSocket = getSpec(config.selection.CPU, 'socket');
-            if (cpuSocket) filtered = filtered.filter(p => getSpec(p, 'socket') === cpuSocket);
+            if (cpuSocket) {
+                filtered = filtered.filter(p => {
+                    const pSocket = getSpec(p, 'socket');
+                    return !pSocket || pSocket === cpuSocket; // Khớp hoặc không có socket
+                });
+            }
+        } else if (catName === 'CPU' && config.selection.Mainboard) {
+            const mbSocket = getSpec(config.selection.Mainboard, 'socket');
+            if (mbSocket) {
+                filtered = filtered.filter(p => {
+                    const pSocket = getSpec(p, 'socket');
+                    return !pSocket || pSocket === mbSocket; // Khớp hoặc không có socket
+                });
+            }
         }
+        
         return filtered;
     };
 

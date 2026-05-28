@@ -102,6 +102,17 @@ const getAllCategoryProduct = async (req, res) => {
 }
 
 
+const getCompatibleProducts = async (req, res) => {
+    try {
+        const { categoryName, currentBuild, replacedProduct } = req.body;
+        // Logic tìm sản phẩm cùng category và kiểm tra tương thích (ví dụ: socket)
+        const products = await ProductService.getCompatibleProducts(categoryName, currentBuild, replacedProduct);
+        return res.status(200).json(products);
+    } catch (error) {
+        return res.status(500).json({ message: error.message });
+    }
+}
+
 module.exports = {
     createProduct,
     updateProduct,
@@ -109,5 +120,6 @@ module.exports = {
     getAllProducts,
     deleteProduct,
     deleteManyProduct,
-    getAllCategoryProduct
+    getAllCategoryProduct,
+    getCompatibleProducts
 };

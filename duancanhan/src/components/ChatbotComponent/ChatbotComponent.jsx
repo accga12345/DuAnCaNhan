@@ -85,34 +85,54 @@ const ChatbotComponent = () => {
         }
     };
 
-    const handleSelectReplacement = async (newProduct) => {
+    const handleSelectReplacement = (newProduct) => {
+        const lastBuildMsg = [...messages].reverse().find(msg => msg.products && msg.products.length > 0 && msg.type === 'build');
+        if (!lastBuildMsg) return;
+
+        // Sử dụng _id của category để so sánh cho chính xác
+        const targetCategoryId = replaceMode.product.category?._id || replaceMode.product.category;
+
+        const updatedBuild = lastBuildMsg.products.map(p => {
+            const pCategoryId = p.category?._id || p.category;
+            return (pCategoryId === targetCategoryId) ? newProduct : p;
+        });
+
+        const totalActual = updatedBuild.reduce((s, p) => s + p.price, 0);
+
+        setMessages(prev => [...prev, {
+            sender: 'bot',
+            text: `Đã thay thế thành công. Tổng cấu hình mới: **${totalActual.toLocaleString('vi-VN')}đ**.`,
+            products: updatedBuild,
+            type: 'build'
+        }]);
+        setReplaceMode(null);
+    };
+
+    const handleReplaceClick = async (product) => {
+        setIsLoading(true);
         try {
             const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
             const lastBuildMsg = [...messages].reverse().find(msg => msg.products && msg.products.length > 0 && msg.type === 'build');
 
-            const resUpdate = await axios.post(`${apiUrl}/chat/replace`, {
-                categoryName: replaceMode.product.categoryName,
-                newProductId: newProduct._id,
-                currentBuild: lastBuildMsg ? lastBuildMsg.products : []
+            // Gọi API mới (sẽ triển khai sau) hoặc tận dụng 1 endpoint hiện có để lấy sản phẩm cùng category/tương thích
+            const res = await axios.post(`${apiUrl}/product/get-compatible`, {
+                categoryName: product.category,
+                currentBuild: lastBuildMsg ? lastBuildMsg.products : [],
+                replacedProduct: product
             });
 
             setMessages(prev => [...prev, {
                 sender: 'bot',
-                text: resUpdate.data.message,
-                products: resUpdate.data.data,
-                type: 'build'
+                text: `Gợi ý các linh kiện thay thế cho ${product.name}:`,
+                products: res.data.data,
+                type: 'suggestions'
             }]);
-            setReplaceMode(null);
-        } catch (e) { alert('Lỗi thay thế'); }
-    };
-
-    const handleReplaceClick = (product) => {
-        setReplaceMode({ step: 'budget', product: product });
-        setMessages(prev => [...prev, {
-            sender: 'bot',
-            text: `Bạn muốn thay ${product.name} với ngân sách khoảng bao nhiêu? (Ví dụ: 2 triệu)`,
-            products: []
-        }]);
+            setReplaceMode({ step: 'select', product: product });
+        } catch (e) {
+            setMessages(prev => [...prev, { sender: 'bot', text: 'Lỗi tìm linh kiện thay thế.', products: [] }]);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     return (

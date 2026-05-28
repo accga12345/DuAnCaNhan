@@ -213,6 +213,57 @@ const getAllCategoryProduct = async () => {
     }
 };
 
+const getCompatibleProducts = async (categoryName, currentBuild, replacedProduct) => {
+    try {
+        let cat;
+        if (mongoose.Types.ObjectId.isValid(categoryName)) {
+            cat = await Category.findById(categoryName);
+        } else {
+            cat = await Category.findOne({ name: new RegExp(`^${categoryName}$`, 'i') });
+        }
+        if (!cat) return { status: 'error', message: 'Category not found' };
+
+        const query = { category: cat._id };
+
+        // Logic tương thích mới:
+        // Tìm sản phẩm cùng category mà:
+        // 1. Có thông số (VD: Socket) GIỐNG với sản phẩm đang bị thay thế
+        // 2. HOẶC không có thông số đó (Sản phẩm vạn năng)
+        
+        const importantKeys = ['socket', 'chipset', 'loại ram'];
+        const specToMatch = replacedProduct?.specifications?.find(s => 
+            importantKeys.some(key => s.key.toLowerCase().includes(key))
+        );
+
+        if (specToMatch) {
+            const keyRegex = new RegExp(specToMatch.key, 'i');
+            query['$or'] = [
+                { 
+                    specifications: { 
+                        $elemMatch: { 
+                            key: keyRegex, 
+                            value: { $regex: new RegExp(specToMatch.value, 'i') } 
+                        } 
+                    } 
+                },
+                { 
+                    specifications: { 
+                        $not: { $elemMatch: { key: keyRegex } } 
+                    } 
+                }
+            ];
+        }
+
+        const products = await Product.find(query).populate('category');
+        return {
+            status: 'success',
+            data: products
+        };
+    } catch (e) {
+        throw e;
+    }
+};
+
 module.exports = {
     createProduct,
     updateProduct,
@@ -220,5 +271,6 @@ module.exports = {
     getAllProducts,
     deleteProduct,
     deleteManyProduct,
-    getAllCategoryProduct
+    getAllCategoryProduct,
+    getCompatibleProducts
 };

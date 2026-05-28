@@ -55,7 +55,7 @@ const CardComponent = (props) => {
                 <WrapperNameText>{name}</WrapperNameText>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <div style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 500 }}>
+                    <div style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 500, height: '16px', overflow: 'hidden' }}>
                         {category?.name}
                     </div>
 
@@ -76,9 +76,9 @@ const CardComponent = (props) => {
             </WrapperCardStyle>
 
             {onReplace && (
-                <button onClick={(e) => { 
-                    e.stopPropagation(); 
-                    onReplace(); 
+                <button onClick={(e) => {
+                    e.stopPropagation();
+                    onReplace();
                 }} style={{ marginTop: 10, padding: 8, background: replaceLabel === 'Chọn' ? '#52c41a' : '#1890ff', color: '#fff', border: 'none', borderRadius: 5, cursor: 'pointer' }}>
                     {replaceLabel}
                 </button>

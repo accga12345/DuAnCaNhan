@@ -28,27 +28,29 @@ const findBestComponent = async (categoryName, budgetAllowed, extraQuery = {}) =
         return null;
     }
 
-    const baseQuery = { category: cat._id };
-    const fullQuery = { ...baseQuery, ...extraQuery };
+    const strictQuery = { category: cat._id, ...extraQuery };
+    const universalQuery = { category: cat._id }; // Không filter thông số
 
-    // Thử đúng ngân sách + filter thông số
+    // 1. Ưu tiên 1: Khớp Thông số + Khớp Ngân sách (ưu tiên giá cao nhất trong tầm giá)
     if (budgetAllowed > 0) {
-        const item = await ProductModel.findOne({ ...fullQuery, price: { $lte: budgetAllowed } }).sort({ price: -1 });
-        if (item) return item;
+        const itemBest = await ProductModel.findOne({ ...strictQuery, price: { $lte: budgetAllowed } }).populate('category').sort({ price: -1 });
+        if (itemBest) return itemBest;
     }
 
-    // Fallback 1: bỏ filter thông số
-    if (Object.keys(extraQuery).length > 0) {
-        console.log(`[FALLBACK-1] Bỏ filter thông số cho: ${categoryName}`);
-        if (budgetAllowed > 0) {
-            const item = await ProductModel.findOne({ ...baseQuery, price: { $lte: budgetAllowed } }).sort({ price: -1 });
-            if (item) return item;
-        }
+    // 2. Ưu tiên 2: Vạn năng (không filter thông số, sản phẩm phổ biến) + Khớp Ngân sách
+    if (budgetAllowed > 0) {
+        const itemUniversal = await ProductModel.findOne({ ...universalQuery, price: { $lte: budgetAllowed } }).populate('category').sort({ rating: -1, selled: -1 });
+        if (itemUniversal) return itemUniversal;
     }
 
-    // Fallback 2: ngân sách không đủ → lấy rẻ nhất
-    console.log(`[FALLBACK-2] Ngân sách quá thấp cho: ${categoryName}`);
-    return await ProductModel.findOne(baseQuery).sort({ price: 1 });
+    // 3. Ưu tiên 3: Khớp Thông số hoặc vạn năng + Rẻ nhất (fallback cuối cùng)
+    const itemStrictCheapest = await ProductModel.findOne(strictQuery).populate('category').sort({ price: 1 });
+    const itemUnivCheapest = await ProductModel.findOne(universalQuery).populate('category').sort({ price: 1 });
+    
+    if (itemStrictCheapest && itemUnivCheapest) {
+        return itemStrictCheapest.price <= itemUnivCheapest.price ? itemStrictCheapest : itemUnivCheapest;
+    }
+    return itemStrictCheapest || itemUnivCheapest;
 };
 
 /**
