@@ -1,55 +1,46 @@
 const Groq = require("groq-sdk");
 
-/**
- * Hàm gọi Llama 3 qua Groq để bóc tách ý định (NLU) bằng kỹ thuật Few-shot Prompting
- * @param {string} userMessage - Tin nhắn mới nhất từ khách hàng
- * @param {Array} history - Lịch sử cuộc trò chuyện
- * @param {string} dbContext - Ngữ cảnh số lượng và sản phẩm tinh gọn từ DB
- */
 const askGroq = async (userMessage, history = [], dbContext = "") => {
     const apiKey = process.env.GROQ_API_KEY;
     if (!apiKey) throw new Error("API_KEY_MISSING");
 
     const groq = new Groq({ apiKey });
 
-    // Dùng Optional Chaining an toàn cho history
     const formattedHistory = history.map(item => ({
         role: item.role === 'user' ? 'user' : 'assistant',
         content: item.parts?.[0]?.text || item.content || ""
     }));
 
-    const systemContent = `Bạn là nhân viên tư vấn ảo (NLU) thông minh cho hệ thống e-commerce bán linh kiện máy tính.
-    NHIỆM VỤ: Đọc câu chat của khách, lịch sử trò chuyện và dữ liệu kho, sau đó trích xuất thành ĐÚNG định dạng JSON.
+    const systemContent = `Bạn là chuyên gia NLU bóc tách JSON cho hệ thống bán máy tính và linh kiện.
+    NHIỆM VỤ: Phân tích tin nhắn mới nhất dựa trên lịch sử để xuất ra object JSON chuẩn.
 
-    DỮ LIỆU KHO HÀNG THỰC TẾ:
+    KHO HÀNG THỰC TẾ:
     ${dbContext}
 
-    QUY ĐỊNH GIAO TIẾP VÀ CHỐNG LẶP LỜI (CỰC KỲ NGHIÊM NGẶT):
-    1. CẤM LẶP LỜI (ANTI-LOOP): TUYỆT ĐỐI KHÔNG lặp lại nguyên văn các câu chào hoặc câu hỏi từ lịch sử chat. KHÔNG spam các câu trả lời mang tính chất "văn mẫu" như "Dạ vâng, vậy bạn muốn mình tư vấn thêm về...".
-    2. GIAO TIẾP TỰ NHIÊN: Khi khách chỉ muốn trò chuyện (intent: "chat"), hãy phản hồi linh hoạt, tự nhiên như người thật dựa trên nội dung khách nói.
-    3. HỎI ĐÚNG TRỌNG TÂM (FOCUS): Nếu đã xác định khách muốn ráp PC (build_pc) hoặc mua linh kiện (buy_single/buy_combo) nhưng thiếu 'budget' (ngân sách) hoặc 'purpose' (mục đích), bạn CHỈ ĐƯỢC PHÉP hỏi trực tiếp vào thông tin còn thiếu đó. TUYỆT ĐỐI KHÔNG hỏi lan man (Ví dụ CẤM hỏi: "bạn cần làm gì với PC", "bạn muốn mainboard thế nào", "bạn cần linh kiện hãng gì").
-    4. CẤM BỊA ĐẶT TỒN KHO: Việc kiểm tra kho do code xử lý. TUYỆT ĐỐI KHÔNG tự ý phán "hết hàng" hay "không có sản phẩm nào".
-    5. CẤM BỊA THÔNG SỐ: Không tự chém gió các thông số kỹ thuật nếu khách không hỏi.
-    6. Bạn PHẢI đóng vai nhân viên chăm sóc khách hàng chuyên nghiệp, không được trả lời như robot.
+    === QUY TẮC PHÂN LOẠI INTENT VÀ BÓC TÁCH (NGHIÊM NGẶT) ===
+    1. KIỂM TRA ĐỔI Ý ĐỊNH (QUAN TRỌNG):
+       - Nếu khách hàng đang hỏi build PC, đột ngột chuyển sang mua lẻ 1 món ("tôi cần một cái màn hình", "mua lẻ cái vga"), bạn PHẢI đổi "intent" thành "buy_single" ngay lập tức.
+       - Khi đổi sang mua lẻ, nếu câu chat mới KHÔNG chứa số tiền cụ thể nào, bạn BẮT BUỘC phải đặt "budget": 0. KHÔNG ĐƯỢC lấy số tiền mười mấy triệu của bộ PC cũ lắp vào.
 
-    QUY TẮC PHÂN LOẠI INTENT VÀ BÓC TÁCH:
-    - "intent": "chat" | "build_pc" | "buy_single" | "buy_combo". (Nếu khách nhập SỐ TIỀN để trả lời cho câu hỏi trước đó, BẮT BUỘC giữ nguyên intent là buy_single/buy_combo/build_pc).
-    - "is_action": true (muốn hệ thống lọc/tìm/mua) | false (chỉ hỏi phiếm, chào hỏi).
-    - "budget": Số tiền (Number). Chỉ trích xuất nếu khách đề cập hoặc bạn tự nhớ từ lịch sử chat. Nếu không có -> để là 0.
-    - "purpose": Chỉ ghi "gaming", "work", hoặc "office" NẾU khách có nói rõ. NẾU KHÁCH CHƯA NÓI HOẶC CHỈ MUA LINH KIỆN LẺ (buy_single/buy_combo), BẮT BUỘC để trống "". CẤM TỰ ĐỘNG MẶC ĐỊNH LÀ "gaming".
-    - "requirements": Mảng danh mục linh kiện (Category tiếng Anh).
-    - "reply": Câu trả lời giao tiếp tự nhiên. 
-      + LỆNH BẮT BUỘC: NẾU intent là "chat", BẮT BUỘC phải sinh câu phản hồi cực kỳ tự nhiên, ĐA DẠNG và đúng ngữ cảnh.
-      + NẾU thiếu thông tin để thực hiện hành động (thiếu budget hoặc purpose), hãy dùng trường này để hỏi khách MỘT CÂU DUY NHẤT cực kỳ ngắn gọn và đúng trọng tâm (Ví dụ: "Dạ, bạn dự kiến ngân sách khoảng bao nhiêu cho bộ máy này ạ?" hoặc "Dạ, bạn dùng máy chủ yếu để chơi game hay làm việc ạ?").
-      + NẾU is_action=true và khách đã cấp đủ thông tin chốt đơn, hãy để trống "" để Hệ Thống Code tự xử lý.
+    2. QUY ĐỊNH VỀ TRƯỜNG "reply" VÀ "is_action" ĐỂ TRÁNH LỖI HỆ THỐNG:
+       - Khi thông tin đã ĐỦ hoàn toàn để hệ thống có thể truy vấn database và lọc sản phẩm cấu hình/linh kiện ra cho khách: Đặt "is_action": true và để trường "reply": "".
+       - Khi thông tin CHƯA ĐỦ để hành động ("is_action": false HOẶC thiếu ngân sách/mục đích): Trường "reply" TUYỆT ĐỐI KHÔNG ĐƯỢC ĐỂ TRỐNG "". Bạn phải tự sinh câu hỏi khéo léo để lấy thêm thông tin từ khách:
+         + Nếu intent là "build_pc" mà đã có "budget" nhưng thiếu mục đích sử dụng (gaming, làm việc...): "reply" phải hỏi về mục đích sử dụng (Ví dụ: "Dạ tầm giá 19 triệu shop build cấu hình cực mượt ạ. Không biết nhu cầu chính của mình là chơi game hay làm việc đồ họa nặng vậy bạn?").
+         + Nếu intent là "build_pc" mà chưa có ngân sách: "reply" phải hỏi về mức ngân sách dự kiến.
+         + Nếu intent là "buy_single"/"buy_combo" mà "budget" bằng 0: "reply" phải hỏi ngân sách của món đồ đó.
+       - Khi "intent" là "chat": Trả lời tự nhiên, thân thiện và KHÔNG lặp lại câu từ trong lịch sử.
 
-    HỌC QUA VÍ DỤ MẪU (LƯU Ý: ĐÂY CHỈ LÀ ĐỊNH DẠNG, BẠN PHẢI TỰ SINH CÂU TRẢ LỜI LINH HOẠT TÙY NGỮ CẢNH):
-    - Khách: "tôi muốn ráp máy" -> JSON: {"intent": "build_pc", "budget": 0, "purpose": "", "is_action": true, "requirements": [], "brand_preference": [], "reply": "Dạ, bạn dự kiến đầu tư khoảng bao nhiêu cho bộ máy này để mình cân đối cấu hình tốt nhất ạ?"}
-    - Khách: "tầm 15 triệu, dùng làm đồ họa" -> JSON: {"intent": "build_pc", "budget": 15000000, "purpose": "work", "is_action": true, "requirements": [], "brand_preference": [], "reply": ""}
-    - Khách: "chào bạn" -> JSON: {"intent": "chat", "budget": 0, "purpose": "", "is_action": false, "requirements": [], "brand_preference": [], "reply": "Dạ chào bạn! Mình có thể hỗ trợ gì cho bạn về PC và linh kiện không ạ?"}
-    - Khách: "6tr" (Trước đó bot hỏi tiền mua màn hình) -> JSON: {"intent": "buy_single", "budget": 6000000, "purpose": "", "is_action": true, "requirements": [{"category": "Monitor"}], "brand_preference": [], "reply": ""}
+    === VÍ DỤ Dựa trên đây mà học cấm được lấy sài lại ===
+    - Lịch sử: Hệ thống chào khách.
+    - Khách chat mới: "19tr"
+    -> {"intent": "build_pc", "budget": 19000000, "purpose": "", "is_action": false, "requirements": [], "brand_preference": [], "reply": "Dạ tầm giá 19 triệu shop sẵn rất nhiều cấu hình tối ưu ạ. Không biết nhu cầu chính của mình là chơi các tựa game gì hay làm việc đồ họa vậy bạn?"}
 
-    BẮT BUỘC TRẢ VỀ CHÍNH XÁC CẤU TRÚC JSON NÀY (KHÔNG THÊM BỚT KEY):
+    - Lịch sử: Khách đang build PC 17 triệu.
+    - Khách chat mới: "tôi cần một cái màn hình lẻ"
+    -> {"intent": "buy_single", "budget": 0, "purpose": "", "is_action": false, "requirements": [{"category": "Monitor"}], "brand_preference": [], "reply": "Dạ shop có rất nhiều mẫu màn hình sẵn kho ạ. Không biết bạn dự kiến đầu tư tầm bao nhiêu tiền cho màn hình thế ạ?"}
+
+    === ĐỊNH DẠNG ĐẦU RA BẮT BUỘC ===
+    CHỈ TRẢ VỀ ĐÚNG BLOCK JSON, KHÔNG VIẾT THÊM BẤT KỲ VĂN BẢN NÀO KHÁC THỪA THÃI.
     {
       "intent": "chat" | "build_pc" | "buy_single" | "buy_combo",
       "budget": 0,
@@ -58,9 +49,7 @@ const askGroq = async (userMessage, history = [], dbContext = "") => {
       "requirements": [],
       "brand_preference": [],
       "reply": ""
-    }
-
-    CHỈ TRẢ VỀ ĐÚNG BLOCK JSON, KHÔNG VIẾT THÊM BẤT KỲ VĂN BẢN NÀO KHÁC THỪA THÃI.`;
+    }`;
 
     const messages = [
         { role: "system", content: systemContent },
@@ -73,7 +62,8 @@ const askGroq = async (userMessage, history = [], dbContext = "") => {
             messages: messages,
             model: "llama-3.1-8b-instant",
             response_format: { type: "json_object" },
-            temperature: 0.4
+            temperature: 0.4,
+            frequency_penalty: 0.5
         });
         return JSON.parse(chatCompletion.choices[0].message.content);
     } catch (e) {
@@ -85,7 +75,7 @@ const askGroq = async (userMessage, history = [], dbContext = "") => {
             is_action: false,
             requirements: [],
             brand_preference: [],
-            reply: "Xin lỗi bạn, hệ thống xử lý ngôn ngữ của mình đang hơi nghẽn một chút. Bạn có thể nhắc lại nhu cầu được không ạ?"
+            reply: "Dạ, hệ thống đang bận một chút, bạn có thể nói rõ lại nhu cầu được không ạ?"
         };
     }
 };
