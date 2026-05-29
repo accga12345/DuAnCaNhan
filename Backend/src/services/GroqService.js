@@ -138,7 +138,7 @@ const askGroq = async (userMessage, history = [], _dbContext = "") => {
     // Tìm message gần nhất của bot/assistant mà có chứa JSON state (để tránh bị đứt đoạn bởi các câu chat phụ)
     const botMessages = [...history].reverse().filter(h => h.role === 'assistant' || h.role === 'bot');
     let prevContext = { intent: 'chat', budget: 0 };
-    
+
     for (const msg of botMessages) {
         try {
             const rawText = msg.parts?.[0]?.text || msg.content || "";
@@ -147,7 +147,7 @@ const askGroq = async (userMessage, history = [], _dbContext = "") => {
                 if (parsed.intent) {
                     prevContext.intent = parsed.intent;
                     prevContext.budget = normalizeBudget(parsed.budget);
-                    break; 
+                    break;
                 }
             }
         } catch (_) { }
@@ -222,7 +222,7 @@ KHÔNG để requirements là mảng string.
     try {
         const completion = await groq.chat.completions.create({
             messages,
-            model: "llama-3.3-70b-versatile",
+            model: "llama-3.1-8b-instant",
             response_format: { type: "json_object" },
             temperature: 0.0,
             max_tokens: 300
