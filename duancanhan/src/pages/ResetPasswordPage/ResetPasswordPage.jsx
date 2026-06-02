@@ -66,7 +66,10 @@ function ResetPasswordPage() {
                             <Form.Item
                                 label="Mật khẩu mới"
                                 name="password"
-                                rules={[{ required: true, message: 'Vui lòng nhập mật khẩu mới!' }]}
+                                rules={[
+                                    { required: true, message: 'Vui lòng nhập mật khẩu mới!' },
+                                    { min: 6, message: 'Mật khẩu phải có tối thiểu 6 ký tự' }
+                                ]}
                             >
                                 <Input.Password placeholder="Nhập mật khẩu mới" />
                             </Form.Item>

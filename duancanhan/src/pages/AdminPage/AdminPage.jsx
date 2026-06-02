@@ -15,8 +15,8 @@ import {
 import { Layout, Menu, Button, theme } from 'antd';
 import { useSelector } from 'react-redux';
 import { useQuery } from '@tanstack/react-query';
-import styled from 'styled-components';
 
+import { StyledLayout, LogoContainer } from './style';
 import DashboardStats from '../../components/DashboardStats/DashboardStats';
 import UserListPage from '../UserListPage/UserListPage';
 import UserAddPage from '../UserAddPage/UserAddPage';
@@ -38,24 +38,6 @@ import { getAllOrder } from '../../services/OrderService';
 
 const { Header, Sider, Content } = Layout;
 
-const StyledLayout = styled(Layout)`
-    min-height: 100vh;
-`;
-
-const LogoContainer = styled.div`
-    height: 64px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 16px;
-    background: #001529;
-    color: white;
-    font-size: 18px;
-    font-weight: bold;
-    overflow: hidden;
-    white-space: nowrap;
-`;
-
 function AdminPage() {
     const user = useSelector((state) => state.user);
     const [collapsed, setCollapsed] = useState(false);
@@ -70,17 +52,16 @@ function AdminPage() {
     } = theme.useToken();
 
     const items = [
-        { key: 'dashboard', icon: <DashboardOutlined />, label: 'Tổng quan' },
-        user?.isAdmin && (
-            {
-                key: '1',
-                icon: <UserOutlined />,
-                label: 'Người dùng',
-                children: [
-                    { key: '11', label: 'Danh sách người dùng' },
-                    { key: '12', label: 'Thêm người dùng' },
-                ],
-            }),
+        { key: 'dashboard', icon: <DashboardOutlined />, label: 'Dashboard' },
+        {
+            key: '1',
+            icon: <UserOutlined />,
+            label: 'Người dùng',
+            children: [
+                { key: '11', label: 'Danh sách người dùng' },
+                { key: '12', label: 'Thêm người dùng' },
+            ],
+        },
         {
             key: '2',
             icon: <AppstoreOutlined />,
@@ -90,53 +71,44 @@ function AdminPage() {
                 { key: '22', label: 'Thêm sản phẩm' },
             ],
         },
+        { key: 'order', icon: <FileTextOutlined />, label: 'Đơn hàng' },
         {
-            key: '3',
-            icon: <FileTextOutlined />,
-            label: 'Đơn hàng',
+            key: '4',
+            icon: <TagsOutlined />,
+            label: 'Danh mục',
             children: [
-                { key: '31', label: 'Danh sách đơn hàng' },
+                { key: '41', label: 'Danh sách danh mục' },
+                { key: '42', label: 'Thêm danh mục' },
             ],
         },
-        ...(user?.isEmployee ? [] : [
-            {
-                key: '4',
-                icon: <TagsOutlined />,
-                label: 'Danh mục',
-                children: [
-                    { key: '41', label: 'Danh sách danh mục' },
-                    { key: '42', label: 'Thêm danh mục' },
-                ],
-            },
-            {
-                key: '5',
-                icon: <CrownOutlined />,
-                label: 'Thương hiệu',
-                children: [
-                    { key: '51', label: 'Danh sách thương hiệu' },
-                    { key: '52', label: 'Thêm thương hiệu' },
-                ],
-            },
-            {
-                key: '6',
-                icon: <SolutionOutlined />,
-                label: 'Nhà cung cấp',
-                children: [
-                    { key: '61', label: 'Danh sách nhà cung cấp' },
-                    { key: '62', label: 'Thêm nhà cung cấp' },
-                ],
-            },
-            {
-                key: '7',
-                icon: <DatabaseOutlined />,
-                label: 'Quản lý Kho',
-                children: [
-                    { key: '71', label: 'Tồn kho nội bộ' },
-                    { key: '72', label: 'Nhập hàng vào kho' },
-                ],
-            },
-            { key: 'cost-management', icon: <DollarCircleOutlined />, label: 'Quản lý chi phí' }
-        ])
+        {
+            key: '5',
+            icon: <CrownOutlined />,
+            label: 'Thương hiệu',
+            children: [
+                { key: '51', label: 'Danh sách thương hiệu' },
+                { key: '52', label: 'Thêm thương hiệu' },
+            ],
+        },
+        {
+            key: '6',
+            icon: <SolutionOutlined />,
+            label: 'Nhà cung cấp',
+            children: [
+                { key: '61', label: 'Danh sách nhà cung cấp' },
+                { key: '62', label: 'Thêm nhà cung cấp' },
+            ],
+        },
+        {
+            key: '7',
+            icon: <DatabaseOutlined />,
+            label: 'Quản lý Kho',
+            children: [
+                { key: '71', label: 'Tồn kho nội bộ' },
+                { key: '72', label: 'Nhập hàng vào kho' },
+            ],
+        },
+        { key: 'cost-management', icon: <DollarCircleOutlined />, label: 'Quản lý chi phí' }
     ];
 
     const handleOnClick = (e) => {
@@ -146,6 +118,7 @@ function AdminPage() {
     const getPageTitle = (key) => {
         if (key === 'dashboard') return 'Tổng quan hệ thống';
         if (key === 'cost-management') return 'Quản lý chi phí vận hành';
+        if (key === 'order') return 'Quản lý đơn hàng';
         for (const item of items) {
             if (item.children) {
                 const child = item.children.find(c => c.key === key);
@@ -160,6 +133,7 @@ function AdminPage() {
     const handleRenderPage = (key) => {
         if (key === 'dashboard') return <DashboardStats orders={orders} products={products} users={users} />;
         if (key === 'cost-management') return <OperatingCostPage />;
+        if (key === 'order') return <OrderAdmin />;
         switch (key) {
             case '11':
                 return <UserListPage />;
@@ -169,8 +143,6 @@ function AdminPage() {
                 return <ProductListPage />;
             case '22':
                 return <ProductAddPage />;
-            case '31':
-                return <OrderAdmin />;
             case '41':
                 return <CategoryListPage />;
             case '42':
@@ -196,12 +168,12 @@ function AdminPage() {
         <StyledLayout>
             <Sider trigger={null} collapsible collapsed={collapsed} width={256} theme="dark">
                 <LogoContainer>
-                    {collapsed ? 'TS' : 'TECH SHOP ADMIN'}
+                    <div style={{ padding: '16px', color: 'white', fontSize: '18px', fontWeight: 'bold' }}>TECH SHOP ADMIN</div>
                 </LogoContainer>
                 <Menu
                     theme="dark"
                     mode="inline"
-                    defaultSelectedKeys={[stateCurrentKey]}
+                    defaultSelectedKeys={['dashboard']}
                     onClick={handleOnClick}
                     items={items}
                 />

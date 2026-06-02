@@ -10,22 +10,9 @@ import { useSelector } from 'react-redux';
 import LoadingComponent from '../../components/Loading/LoadingComponent';
 import { getBase64, exportExcel } from '../../ultil';
 import Highlighter from 'react-highlight-words';
-import styled from 'styled-components';
+import { PageHeader, ActionToolbar } from './style';
 
 const { Title } = Typography;
-
-const PageHeader = styled.div`
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 24px;
-    width: 100%;
-`;
-
-const ActionToolbar = styled.div`
-    display: flex;
-    gap: 12px;
-`;
 
 function UserListPage() {
     const [form] = Form.useForm();
@@ -348,7 +335,11 @@ function UserListPage() {
                         <Form.Item
                             name="phone"
                             label="Số điện thoại"
-                            rules={[{ required: true, message: 'Vui lòng nhập số điện thoại' }]}
+                            rules={[
+                                { required: true, message: 'Vui lòng nhập số điện thoại' },
+                                { len: 10, message: 'Số điện thoại phải có đúng 10 chữ số' },
+                                { pattern: /^[0-9]+$/, message: 'Số điện thoại chỉ được chứa chữ số' }
+                            ]}
                             style={{ flex: 1 }}
                         >
                             <Input placeholder="Nhập số điện thoại" />

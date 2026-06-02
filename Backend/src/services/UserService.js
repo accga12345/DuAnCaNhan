@@ -1,14 +1,77 @@
 const User = require('../models/UserModel');
 const bcrypt = require('bcrypt');
 const { generateToken, generateRefreshToken } = require('./JwtService');
-const { sendEmailResetPassword } = require('./EmailService');
+const { sendEmailResetPassword, sendEmailVerificationOtp } = require('./EmailService');
 const jwt = require('jsonwebtoken');
 const dotenv = require('dotenv');
 dotenv.config();
 
+const otpStore = new Map(); // maps email -> { otp, expiresAt }
+
+const sendRegistrationOtp = async (email) => {
+    try {
+        const checkUser = await User.findOne({ email });
+
+        if (checkUser) {
+            return {
+                status: "error",
+                message: "Email đã tồn tại"
+            };
+        }
+
+        // Generate 6-digit random OTP
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes validity
+
+        // Store OTP
+        otpStore.set(email, { otp, expiresAt });
+
+        // Send OTP email
+        await sendEmailVerificationOtp(email, otp);
+
+        return {
+            status: "success",
+            message: "Mã OTP đã được gửi đến email của bạn"
+        };
+    } catch (error) {
+        throw error;
+    }
+};
+
 const createUser = async (newUser) => {
     try {
-        const { email, password } = newUser;
+        const { email, password, otp } = newUser;
+
+        // Check OTP
+        if (!otp) {
+            return {
+                status: "error",
+                message: "Vui lòng nhập mã xác thực OTP"
+            };
+        }
+
+        const record = otpStore.get(email);
+        if (!record) {
+            return {
+                status: "error",
+                message: "Không tìm thấy mã OTP cho email này. Vui lòng gửi lại mã."
+            };
+        }
+
+        if (Date.now() > record.expiresAt) {
+            otpStore.delete(email); // clean up expired OTP
+            return {
+                status: "error",
+                message: "Mã OTP đã hết hạn. Vui lòng gửi lại mã mới."
+            };
+        }
+
+        if (record.otp !== otp) {
+            return {
+                status: "error",
+                message: "Mã OTP không chính xác"
+            };
+        }
 
         const checkUser = await User.findOne({ email });
 
@@ -24,6 +87,9 @@ const createUser = async (newUser) => {
         newUser.password = hashedPassword;
 
         const user = await User.create(newUser);
+
+        // Delete OTP after successful registration
+        otpStore.delete(email);
 
         return {
             status: "success",
@@ -264,5 +330,6 @@ module.exports = {
     refreshTokenService,
     deleteManyUser,
     forgotPassword,
-    resetPassword
+    resetPassword,
+    sendRegistrationOtp
 }

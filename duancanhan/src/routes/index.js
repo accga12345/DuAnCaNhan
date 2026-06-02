@@ -16,74 +16,86 @@ import ResetPasswordPage from "../pages/ResetPasswordPage/ResetPasswordPage";
 
 const routes = [
     {
-        path: "/",
-        page: HomePage,
-        isShowHeader: true
+        path: "/", page: HomePage,
+        isShowHeader: true,
+        isShowFooter: true
     },
     {
         path: "/xay-dung-cau-hinh",
         page: PCBuilderPage,
-        isShowHeader: true
+        isShowHeader: true,
+        isShowFooter: true
     },
     {
         path: "/cam-ket",
         page: CommitmentPage,
-        isShowHeader: true
+        isShowHeader: true,
+        isShowFooter: true
     },
     {
         path: "/order",
         page: OrderPage,
-        isShowHeader: true
+        isShowHeader: true,
+        isShowFooter: true
     },
     {
         path: "/my-order",
         page: MyOrderPage,
-        isShowHeader: true
+        isShowHeader: true,
+        isShowFooter: true
     },
     {
         path: "/orderSuccess",
         page: OrderSuccessPage,
-        isShowHeader: true
+        isShowHeader: true,
+        isShowFooter: true
     },
     {
         path: "/product/category/:slug",
         page: TypeProductPage,
-        isShowHeader: true
+        isShowHeader: true,
+        isShowFooter: true
     },
     {
         path: "/productdetail/:id",
         page: ProductDetailPage,
-        isShowHeader: true
+        isShowHeader: true,
+        isShowFooter: true
     },
     {
         path: "/signin",
         page: SignInPage,
-        isShowHeader: false
+        isShowHeader: false,
+        isShowFooter: false
     },
     {
         path: "/signup",
         page: SignUpPage,
-        isShowHeader: false
+        isShowHeader: false,
+        isShowFooter: false
     },
     {
         path: "/forgot-password",
-        page: ForgotPasswordPage,
-        isShowHeader: false
+        page: ForgotPasswordPage, isShowHeader: false,
+        isShowFooter: false
     },
     {
         path: "/reset-password",
         page: ResetPasswordPage,
-        isShowHeader: false
+        isShowHeader: false,
+        isShowFooter: false
     },
     {
         path: "/profile",
         page: ProfilePage,
-        isShowHeader: true
+        isShowHeader: true,
+        isShowFooter: true
     },
     {
         path: "/system",
         page: AdminPage,
         isShowHeader: true,
+        isShowFooter: false,
         isPrivate: true,
         isHiddenSearch: true,
         isCart: true,

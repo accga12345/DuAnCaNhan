@@ -35,20 +35,25 @@ export const WrapperSidebar = styled.div`
     flex-shrink: 0;
     position: sticky;
     top: 90px;
-    height: calc(100vh - 110px);
+    max-height: calc(100vh - 110px);
     overflow-y: auto;
     padding-right: 4px;
-    
-    /* Hide scrollbar for Chrome, Safari and Opera */
-    &::-webkit-scrollbar {
-        display: none;
-    }
-    
-    /* Hide scrollbar for IE, Edge and Firefox */
-    -ms-overflow-style: none;  /* IE and Edge */
-    scrollbar-width: none;  /* Firefox */
-`;
 
+    /* Custom thin scrollbar */
+    &::-webkit-scrollbar {
+        width: 4px;
+    }
+    &::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    &::-webkit-scrollbar-thumb {
+        background: #ccc;
+        border-radius: 4px;
+    }
+    &::-webkit-scrollbar-thumb:hover {
+        background: #aaa;
+    }
+`;
 export const WrapperProductGrid = styled.div`
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));

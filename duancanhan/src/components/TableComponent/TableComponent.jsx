@@ -2,26 +2,7 @@ import { Table, Button, Space } from 'antd';
 import { DeleteOutlined } from '@ant-design/icons';
 import React from 'react';
 import { useState } from 'react';
-import styled from 'styled-components';
-
-const TableWrapper = styled.div`
-    .ant-table-wrapper {
-        background: #fff;
-        border-radius: 8px;
-    }
-    .ant-table-thead > tr > th {
-        background: #fafafa;
-        font-weight: 600;
-    }
-`;
-
-const Toolbar = styled.div`
-    margin-bottom: 16px;
-    display: flex;
-    justify-content: flex-start;
-    align-items: center;
-    gap: 16px;
-`;
+import { TableWrapper, Toolbar } from './style';
 
 const TableComponent = (props) => {
     const { selectionType = 'checkbox', data = [], columns = [], handleDeleteMany } = props

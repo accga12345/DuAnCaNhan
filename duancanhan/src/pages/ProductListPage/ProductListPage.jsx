@@ -10,25 +10,12 @@ import TableComponent from '../../components/TableComponent/TableComponent';
 import { useMutationHook } from '../../hooks/useMutationHook';
 import { useSelector } from 'react-redux';
 import { getBase64, exportExcel } from '../../ultil';
-import { showSuccess } from "../../components/MessageComponent/MessageComponent";
+import { showSuccess, showError } from "../../components/MessageComponent/MessageComponent";
 import LoadingComponent from '../../components/Loading/LoadingComponent';
 import Highlighter from 'react-highlight-words';
-import styled from 'styled-components';
+import { PageHeader, ActionToolbar } from './style';
 
 const { Title } = Typography;
-
-const PageHeader = styled.div`
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 24px;
-    width: 100%;
-`;
-
-const ActionToolbar = styled.div`
-    display: flex;
-    gap: 12px;
-`;
 
 function ProductListPage() {
     const user = useSelector((state) => state.user);
@@ -56,7 +43,7 @@ function ProductListPage() {
         queryFn: () => getAllSuppliers(),
         refetchOnWindowFocus: false,
     });
-    const { data: warehouseData } = useQuery({
+    const { data: warehouseData, refetch: refetchWarehouse } = useQuery({
         queryKey: ['warehouseItems'],
         queryFn: () => getAllWarehouseItems(),
         refetchOnWindowFocus: false,
@@ -72,7 +59,7 @@ function ProductListPage() {
         (data) => updateProduct(product._id, data, user.accessToken)
     );
 
-    const { data: updateData, isSuccess: updateSuccess, isPending: updateLoading } = mutationUpdate;
+    const { data: updateData, isSuccess: updateSuccess, isPending: updateLoading, isError: isUpdateError, error: updateErrorObj } = mutationUpdate;
 
     const onUpdateProduct = () => {
         const values = form.getFieldsValue();
@@ -81,11 +68,18 @@ function ProductListPage() {
 
     useEffect(() => {
         if (updateSuccess && updateData) {
-            showSuccess(updateData.message);
-            refetch();
-            setOpenModal(false);
+            if (updateData.status === 'error' || updateData.status === 'ERR') {
+                showError(updateData.message);
+            } else {
+                showSuccess(updateData.message || "Cập nhật thành công");
+                refetch();
+                refetchWarehouse(); 
+                setOpenModal(false);
+            }
+        } else if (isUpdateError) {
+            showError(updateErrorObj?.response?.data?.message || updateErrorObj?.message || "Có lỗi xảy ra khi cập nhật!");
         }
-    }, [updateSuccess, updateData, refetch]);
+    }, [updateSuccess, updateData, isUpdateError, updateErrorObj, refetch, refetchWarehouse]);
 
     const mutationDelete = useMutationHook(
         (id) => deleteProduct(id, user.accessToken)
@@ -127,6 +121,8 @@ function ProductListPage() {
                 brand: product.brand,
                 supplier: product.supplier?._id || product.supplier,
                 warehouseItem: product.warehouseItem?._id || product.warehouseItem,
+                warehouseQuantity: product.warehouseItem?.quantity || 0,
+                description: product.description,
             });
             const catId = product.category?._id || product.category;
             const category = categoriesData?.data?.find(item => item._id === catId);
@@ -297,7 +293,7 @@ function ProductListPage() {
             ...getColumnSearchProps('brand'),
         },
         {
-            title: 'Tồn kho',
+            title: 'Số lượng',
             dataIndex: 'countInStock',
             key: 'countInStock',
             sorter: (a, b) => a.countInStock - b.countInStock,
@@ -349,7 +345,7 @@ function ProductListPage() {
             "Giá": product.price,
             "Loại": product.category?.name || "N/A",
             "Hãng": product.brand,
-            "Tồn kho": product.countInStock,
+            "Số lượng": product.countInStock,
             "Đã bán": product.selled
         }))
         exportExcel(excelData, "Danh_sach_san_pham", "Products")
@@ -408,7 +404,7 @@ function ProductListPage() {
                     </Row>
 
                     <Row gutter={16}>
-                        <Col span={8}>
+                        <Col span={6}>
                             <Form.Item label="Danh mục" name="category" rules={[{ required: true, message: 'Vui lòng chọn danh mục' }]}>
                                 <Select
                                     disabled
@@ -420,7 +416,7 @@ function ProductListPage() {
                                 />
                             </Form.Item>
                         </Col>
-                        <Col span={8}>
+                        <Col span={6}>
                             <Form.Item label="Thương hiệu" name="brand" rules={[{ required: true, message: 'Vui lòng chọn thương hiệu' }]}>
                                 <Select
                                     disabled
@@ -432,9 +428,22 @@ function ProductListPage() {
                                 />
                             </Form.Item>
                         </Col>
-                        <Col span={8}>
-                            <Form.Item label="Tồn kho" name="countInStock" rules={[{ required: true, message: 'Vui lòng nhập số lượng' }]}>
+                        <Col span={6}>
+                            <Form.Item label="Số lượng" name="countInStock" rules={[{ required: true, message: 'Nhập số lượng' }]}>
                                 <InputNumber min={0} style={{ width: '100%' }} />
+                            </Form.Item>
+                        </Col>
+                        <Col span={6}>
+                            <Form.Item label="Số lượng trong kho" name="warehouseQuantity">
+                                <InputNumber disabled style={{ width: '100%', fontWeight: 'bold', color: '#000' }} />
+                            </Form.Item>
+                        </Col>
+                    </Row>
+
+                    <Row gutter={16}>
+                        <Col span={24}>
+                            <Form.Item label="Mô tả sản phẩm" name="description">
+                                <Input.TextArea rows={4} placeholder="Nhập mô tả chi tiết sản phẩm..." />
                             </Form.Item>
                         </Col>
                     </Row>

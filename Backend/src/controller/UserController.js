@@ -2,30 +2,60 @@ const UserService = require('../services/UserService');
 
 const createUser = async (req, res) => {
     try {
-        const { email, password, confirmPassword } = req.body;
+        const { email, password, confirmPassword, otp } = req.body;
         const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         const isEmailValid = regex.test(email);
-        if (!email || !password || !confirmPassword) {
+        if (!email || !password || !confirmPassword || !otp) {
             return res.status(400).json({
                 status: "error",
-                message: "Vui lòng nhập đầy đủ thông tin",
+                message: "Vui lòng nhập đầy đủ thông tin bao gồm cả mã OTP",
             });
         }
         if (!isEmailValid) {
             return res.status(400).json({
                 status: "error",
-                message: "Vui lòng nhập email hợp lệ",
+                message: "Vui lòng nhập email hợp lệ",
             });
         } 
         if (password !== confirmPassword) {
             return res.status(400).json({
                 status: "error",
-                message: "Mật khẩu không khớp",
+                message: "Mật khẩu không khớp",
             });
         }
         const data = await UserService.createUser(req.body);
         if (data.status === "error") {
-            if (data.message === "Email da ton tai") {
+            if (data.message === "Email da ton tai" || data.message === "Email đã tồn tại") {
+                return res.status(409).json(data);
+            }
+            return res.status(400).json(data);
+        }
+        return res.status(200).json(data);
+    } catch (error) {
+        return res.status(500).json({ message: error.message });
+    }
+}
+
+const sendOtp = async (req, res) => {
+    try {
+        const { email } = req.body;
+        const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        const isEmailValid = regex.test(email);
+        if (!email) {
+            return res.status(400).json({
+                status: "error",
+                message: "Vui lòng cung cấp email"
+            });
+        }
+        if (!isEmailValid) {
+            return res.status(400).json({
+                status: "error",
+                message: "Vui lòng cung cấp email hợp lệ"
+            });
+        }
+        const data = await UserService.sendRegistrationOtp(email);
+        if (data.status === "error") {
+            if (data.message === "Email đã tồn tại") {
                 return res.status(409).json(data);
             }
             return res.status(400).json(data);
@@ -219,5 +249,6 @@ module.exports = {
     logoutUser,
     deleteManyUser,
     forgotPassword,
-    resetPassword
+    resetPassword,
+    sendOtp
 }

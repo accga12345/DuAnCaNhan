@@ -16,7 +16,7 @@ import { useQuery } from "@tanstack/react-query"
 import { useState, useEffect, useMemo } from "react"
 import { useSelector } from "react-redux"
 import { useDebounce } from "../../hooks/useDebounce"
-import { Card, Radio, Space, Rate } from "antd"
+import { Card, Radio, Space, Rate, Select } from "antd"
 
 const TypeProductPage = () => {
   const { slug } = useParams();
@@ -103,7 +103,7 @@ const TypeProductPage = () => {
   const currentCategoryName = categories?.data?.find(c => c._id === categoryId)?.name || 'Sản phẩm';
 
   return (
-    <div style={{ backgroundColor: "var(--bg-color)", padding: "20px 0", minHeight: '100vh' }}>
+    <div style={{ backgroundColor: "var(--bg-color)", padding: "8px 0", minHeight: '100vh' }}>
       <div style={{ maxWidth: "1440px", margin: "0 auto", padding: "0 24px" }}>
         
         <CommitmentBanner />
@@ -124,7 +124,7 @@ const TypeProductPage = () => {
             <Card style={{ padding: "8px", borderRadius: "8px", boxShadow: "0 1px 2px 0 rgba(60,64,67,0.1), 0 2px 6px 2px rgba(60,64,67,0.15)", border: "none", marginBottom: '16px' }} bodyStyle={{ padding: '12px' }}>
               <h3 style={{ marginBottom: "16px", fontWeight: "700", fontSize: '16px', color: 'var(--text-main)' }}>Thương hiệu</h3>
               <Radio.Group onChange={(e) => setBrandFilter(e.target.value)} value={brandFilter}>
-                <Space direction="vertical" style={{ maxHeight: '200px', overflowY: 'auto', display: 'flex' }}>
+                <Space direction="vertical" style={{ display: 'flex' }}>
                   <Radio value="">Tất cả</Radio>
                   {brands?.data?.map(brand => (
                     <Radio key={brand._id} value={brand.name}>{brand.name}</Radio>
@@ -133,7 +133,7 @@ const TypeProductPage = () => {
               </Radio.Group>
             </Card>
 
-            <Card style={{ padding: "8px", borderRadius: "8px", boxShadow: "0 1px 2px 0 rgba(60,64,67,0.1), 0 2px 6px 2px rgba(60,64,67,0.15)", border: "none", marginBottom: '16px' }} bodyStyle={{ padding: '12px' }}>
+            <Card style={{ padding: "8px", borderRadius: "8px", boxShadow: "0 1px 2px 0 rgba(60,64,67,0.1), 0 2px 6px 2px rgba(60,64,67,0.15)", border: "none" }} bodyStyle={{ padding: '12px' }}>
               <h3 style={{ marginBottom: "16px", fontWeight: "700", fontSize: '16px', color: 'var(--text-main)' }}>Đánh giá</h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                   {renderStarFilter(5)}
@@ -144,47 +144,54 @@ const TypeProductPage = () => {
                   {renderStarFilter(0)}
               </div>
             </Card>
-
-            <Card style={{ padding: "8px", borderRadius: "8px", boxShadow: "0 1px 2px 0 rgba(60,64,67,0.1), 0 2px 6px 2px rgba(60,64,67,0.15)", border: "none" }} bodyStyle={{ padding: '12px' }}>
-              <h3 style={{ marginBottom: "16px", fontWeight: "700", fontSize: '16px', color: 'var(--text-main)' }}>Sắp xếp theo</h3>
-              <Radio.Group onChange={(e) => setSortOption(e.target.value)} value={sortOption}>
-                <Space direction="vertical">
-                  <Radio value="">Mặc định</Radio>
-                  <Radio value="priceAsc">Giá thấp đến cao</Radio>
-                  <Radio value="priceDesc">Giá cao đến thấp</Radio>
-                  <Radio value="ratingDesc">Đánh giá tốt nhất</Radio>
-                  <Radio value="selledDesc">Bán chạy nhất</Radio>
-                </Space>
-              </Radio.Group>
-            </Card>
           </WrapperSidebar>
 
           {/* Main Content */}
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ borderRadius: '16px', overflow: 'hidden', boxShadow: 'var(--shadow-soft)', marginBottom: '24px' }}>
-              <SliderComponent arrImgs={[slider1, slider2, slider3]} />
-            </div>
+          {/* Main Content */}
+          <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', minHeight: '850px' }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ borderRadius: '16px', overflow: 'hidden', boxShadow: 'var(--shadow-soft)', marginBottom: '24px' }}>
+                <SliderComponent arrImgs={[slider1, slider2, slider3]} />
+              </div>
 
-            <div>
-              <h2 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '16px', color: 'var(--text-main)', paddingLeft: '8px' }}>{currentCategoryName}</h2>
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', paddingLeft: '8px' }}>
+                  <h2 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-main)', margin: 0 }}>{currentCategoryName}</h2>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '15px', color: 'var(--text-main)', fontWeight: 500 }}>Sắp xếp:</span>
+                    <Select
+                      value={sortOption}
+                      onChange={(value) => { setSortOption(value); }}
+                      style={{ width: 180 }}
+                      placeholder="Mặc định"
+                      options={[
+                        { value: '', label: 'Mặc định' },
+                        { value: 'priceAsc', label: 'Giá thấp đến cao' },
+                        { value: 'priceDesc', label: 'Giá cao đến thấp' },
+                        { value: 'ratingDesc', label: 'Đánh giá tốt nhất' },
+                        { value: 'selledDesc', label: 'Bán chạy nhất' },
+                      ]}
+                    />
+                  </div>
+                </div>
 
-              <WrapperProductGrid>
-              {products?.data?.map((product) => (
-                <CardComponent key={product._id}
-                  name={product.name}
-                  image={product.image}
-                  category={product.category}
-                  price={product.price}
-                  countInStock={product.countInStock}
-                  rating={product.rating}
-                  description={product.description}
-                  selled={product.selled}
-                  discount={product.discount}
-                  id={product._id}
-                />
-              ))}
-              </WrapperProductGrid>
-
+                <WrapperProductGrid>
+                {products?.data?.map((product) => (
+                  <CardComponent key={product._id}
+                    name={product.name}
+                    image={product.image}
+                    category={product.category}
+                    price={product.price}
+                    countInStock={product.countInStock}
+                    rating={product.rating}
+                    description={product.description}
+                    selled={product.selled}
+                    discount={product.discount}
+                    id={product._id}
+                  />
+                ))}
+                </WrapperProductGrid>
+              </div>
             </div>
           </div>
         </div>

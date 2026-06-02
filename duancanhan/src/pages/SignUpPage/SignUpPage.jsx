@@ -13,12 +13,23 @@ import { showSuccess, showError } from "../../components/MessageComponent/Messag
 
 function SignUpPage() {
     const navigate = useNavigate();
+    const [form] = Form.useForm();
+    const [isSendingOtp, setIsSendingOtp] = React.useState(false);
+    const [countdown, setCountdown] = React.useState(0);
 
     const mutation = useMutationHook(
         data => UserService.registerUser(data)
     );
 
     const { isSuccess, isError, isPending, data } = mutation;
+
+    useEffect(() => {
+        let timer;
+        if (countdown > 0) {
+            timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+        }
+        return () => clearTimeout(timer);
+    }, [countdown]);
 
     useEffect(() => {
         if (isSuccess && data) {
@@ -31,16 +42,42 @@ function SignUpPage() {
 
         if (isError) {
             showError(
-                mutation.error?.response?.data?.message || "Đăng nhập thất bại"
+                mutation.error?.response?.data?.message || "Đăng ký thất bại"
             );
         }
     }, [isSuccess, isError]);
+
+    const handleSendOtp = async () => {
+        try {
+            const email = form.getFieldValue("email");
+            const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!email || !regex.test(email)) {
+                showError("Vui lòng nhập email hợp lệ trước khi gửi mã!");
+                return;
+            }
+            setIsSendingOtp(true);
+            const res = await UserService.sendOtp({ email });
+            if (res.status === "success") {
+                showSuccess(res.message);
+                setCountdown(60);
+            } else {
+                showError(res.message || "Gửi mã thất bại!");
+            }
+        } catch (error) {
+            showError(
+                error?.response?.data?.message || "Gửi mã thất bại. Vui lòng thử lại!"
+            );
+        } finally {
+            setIsSendingOtp(false);
+        }
+    };
 
     const onFinish = (values) => {
         mutation.mutate({
             email: values.email,
             password: values.password,
-            confirmPassword: values.confirmPassword
+            confirmPassword: values.confirmPassword,
+            otp: values.otp
         });
     };
 
@@ -57,6 +94,7 @@ function SignUpPage() {
                 <WrapperSignInPage>
                     <div style={{ flex: 1, padding: "20px" }}>
                         <Form
+                            form={form}
                             name="basic"
                             layout="vertical"
                             initialValues={{ remember: true }}
@@ -67,18 +105,48 @@ function SignUpPage() {
                             <WrapperTextCreateAccount>Đăng ký</WrapperTextCreateAccount>
                             <Form.Item
                                 label="Email"
-                                name="email"
-                                placeholder="abc@gmail.com"
-                                rules={[{ required: true, message: 'Vui lòng nhập tài khoản' }]}
+                                style={{ marginBottom: '5px' }}
+                                required
+                            >
+                                <div style={{ display: "flex", gap: "8px" }}>
+                                    <Form.Item
+                                        name="email"
+                                        noStyle
+                                        rules={[
+                                            { required: true, message: 'Vui lòng nhập email!' },
+                                            { type: 'email', message: 'Email không hợp lệ!' }
+                                        ]}
+                                    >
+                                        <Input placeholder="abc@gmail.com" />
+                                    </Form.Item>
+                                    <Button 
+                                        type="primary" 
+                                        onClick={handleSendOtp} 
+                                        disabled={countdown > 0}
+                                        loading={isSendingOtp}
+                                        style={{ minWidth: "90px" }}
+                                    >
+                                        {countdown > 0 ? `${countdown}s` : "Gửi mã"}
+                                    </Button>
+                                </div>
+                            </Form.Item>
+
+                            <Form.Item
+                                label="Mã xác thực (OTP)"
+                                name="otp"
+                                rules={[{ required: true, message: 'Vui lòng nhập mã OTP!' }]}
                                 style={{ marginBottom: '5px' }}
                             >
-                                <Input />
+                                <Input placeholder="Nhập mã 6 chữ số từ email" maxLength={6} />
                             </Form.Item>
 
                             <Form.Item
                                 label="Mật khẩu"
                                 name="password"
-                                rules={[{ required: true, message: 'Vui lòng nhập mật khẩu' }]}
+                                rules={[
+                                    { required: true, message: 'Vui lòng nhập mật khẩu' },
+                                    { min: 6, message: 'Mật khẩu phải có tối thiểu 6 ký tự' }
+                                ]}
                                 style={{ marginBottom: '5px' }}
                             >
                                 <Input.Password />
@@ -92,7 +160,7 @@ function SignUpPage() {
                             >
                                 <Input.Password />
                             </Form.Item>
-                            {isError && <div style={{ color: "red" }}>{mutation.error.response.data.message}</div>}
+                            {isError && <div style={{ color: "red" }}>{mutation.error?.response?.data?.message || "Đăng ký thất bại"}</div>}
                             <Form.Item name="remember" valuePropName="checked" label={null}>
                                 <Checkbox>Remember me</Checkbox>
                             </Form.Item>

@@ -55,9 +55,7 @@ function ProfilePage() {
 
   const updateField = (field) => {
     const value = form.getFieldValue(field);
-
     mutation.mutate({ [field]: value });
-
     setEditing((prev) => ({
       ...prev,
       [field]: false,
@@ -150,13 +148,22 @@ function ProfilePage() {
 
           {/* PHONE */}
           <div style={{ display: "flex", gap: 8, alignItems: "flex-end", marginBottom: 16 }}>
-            <Form.Item label="Số điện thoại" name="phone" style={{ flex: 1, marginBottom: 0 }}>
+            <Form.Item 
+              label="Số điện thoại" 
+              name="phone" 
+              style={{ flex: 1, marginBottom: 0 }}
+              rules={[
+                { required: true, message: 'Vui lòng nhập số điện thoại' },
+                { len: 10, message: 'Số điện thoại phải có đúng 10 chữ số' },
+                { pattern: /^[0-9]+$/, message: 'Số điện thoại chỉ được chứa chữ số' }
+              ]}
+            >
               <Input disabled={!editing.phone} />
             </Form.Item>
             <Button onClick={() =>
               editing.phone
                 ? updateField("phone")
-                : setEditing({ ...editing, phone: true })
+                : setEditing((prev) => ({ ...prev, phone: true }))
             }>
               {editing.phone ? "Lưu" : "Cập nhật"}
             </Button>
@@ -182,14 +189,14 @@ function ProfilePage() {
                 <Image
                   styles={{ root: { display: 'none' } }}
                   preview={{
-                    open: previewOpen,
-                    onOpenChange: visible => setPreviewOpen(visible),
+                    visible: previewOpen,
+                    onVisibleChange: visible => setPreviewOpen(visible),
                     afterOpenChange: visible => !visible && setPreviewImage(''),
                   }}
                   src={previewImage}
                 />
               )}
-              <Button onClick={() =>
+              <Button style={{ marginTop: "8px" }} onClick={() =>
                 editing.avatar
                   ? updateField("avatar")
                   : setEditing({ ...editing, avatar: true })

@@ -1,7 +1,7 @@
-import { Button, Form, Input, Upload, Select } from 'antd';
+import { Button, Form, Input, Upload, Select, Space } from 'antd';
 import { useMutationHook } from "../../hooks/useMutationHook";
 import { showSuccess, showError } from "../../components/MessageComponent/MessageComponent";
-import { registerUser } from "../../services/UserServices";
+import { registerUser, sendOtp } from "../../services/UserServices";
 import { useState, useEffect } from 'react';
 import { getBase64 } from '../../ultil';
 import { PlusOutlined } from '@ant-design/icons';
@@ -10,6 +10,9 @@ import { useSelector } from 'react-redux';
 function UserAddPage() {
     const user = useSelector((state) => state.user);
     const [form] = Form.useForm();
+    const [isSendingOtp, setIsSendingOtp] = useState(false);
+    const [countdown, setCountdown] = useState(0);
+
     const mutation = useMutationHook(
         data => {
             const { type, ...rest } = data;
@@ -24,6 +27,39 @@ function UserAddPage() {
 
     const { isSuccess, isError, isPending, data } = mutation;
 
+    useEffect(() => {
+        let timer;
+        if (countdown > 0) {
+            timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+        }
+        return () => clearTimeout(timer);
+    }, [countdown]);
+
+    const handleSendOtp = async () => {
+        try {
+            const email = form.getFieldValue("email");
+            const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!email || !regex.test(email)) {
+                showError("Vui lòng nhập email hợp lệ trước khi gửi mã!");
+                return;
+            }
+            setIsSendingOtp(true);
+            const res = await sendOtp({ email });
+            if (res.status === "success" || res.status === "OK") {
+                showSuccess(res.message);
+                setCountdown(60);
+            } else {
+                showError(res.message || "Gửi mã thất bại!");
+            }
+        } catch (error) {
+            showError(
+                error?.response?.data?.message || "Gửi mã thất bại. Vui lòng thử lại!"
+            );
+        } finally {
+            setIsSendingOtp(false);
+        }
+    };
+
     const onFinish = (values) => {
         mutation.mutate({
             name: values.name,
@@ -34,17 +70,21 @@ function UserAddPage() {
             address: values.address,
             avatar: form.getFieldValue("avatar"),
             type: values.type,
+            otp: values.otp,
         });
     };
 
     useEffect(() => {
         if (isSuccess && data) {
-            showSuccess(data.message || "Tạo tài khoản thành công");
-            form.resetFields();
-            setFileList([]);
-            setPreviewImage('');
-        } else if (isSuccess && data?.status === 'ERR') {
-            showError(data.message);
+            if (data.status === 'ERR') {
+                showError(data.message);
+            } else {
+                showSuccess(data.message || "Tạo tài khoản thành công");
+                form.resetFields();
+                setFileList([]);
+                setPreviewImage('');
+                setCountdown(0);
+            }
         }
 
         if (isError) {
@@ -108,19 +148,46 @@ function UserAddPage() {
 
                 <Form.Item
                     label="Email"
-                    name="email"
-                    rules={[
-                        { required: true, message: 'Please input email!' },
-                        { type: 'email', message: 'The input is not valid E-mail!' }
-                    ]}
+                    required
                 >
-                    <Input />
+                    <Space.Compact style={{ width: '100%' }}>
+                        <Form.Item
+                            name="email"
+                            noStyle
+                            rules={[
+                                { required: true, message: 'Please input email!' },
+                                { type: 'email', message: 'The input is not valid E-mail!' }
+                            ]}
+                        >
+                            <Input placeholder="abc@gmail.com" />
+                        </Form.Item>
+                        <Button 
+                            type="primary" 
+                            onClick={handleSendOtp} 
+                            disabled={countdown > 0}
+                            loading={isSendingOtp}
+                            style={{ minWidth: "90px" }}
+                        >
+                            {countdown > 0 ? `${countdown}s` : "Gửi mã"}
+                        </Button>
+                    </Space.Compact>
+                </Form.Item>
+
+                <Form.Item
+                    label="Mã xác thực (OTP)"
+                    name="otp"
+                    rules={[{ required: true, message: 'Vui lòng nhập mã OTP!' }]}
+                >
+                    <Input placeholder="Nhập mã 6 chữ số từ email" maxLength={6} />
                 </Form.Item>
 
                 <Form.Item
                     label="Mật khẩu"
                     name="password"
-                    rules={[{ required: true, message: 'Please input password!' }]}
+                    rules={[
+                        { required: true, message: 'Please input password!' },
+                        { min: 6, message: 'Mật khẩu phải có tối thiểu 6 ký tự' }
+                    ]}
                 >
                     <Input.Password />
                 </Form.Item>
@@ -146,6 +213,11 @@ function UserAddPage() {
                 <Form.Item
                     label="Số điện thoại"
                     name="phone"
+                    rules={[
+                        { required: true, message: 'Vui lòng nhập số điện thoại' },
+                        { len: 10, message: 'Số điện thoại phải có đúng 10 chữ số' },
+                        { pattern: /^[0-9]+$/, message: 'Số điện thoại chỉ được chứa chữ số' }
+                    ]}
                 >
                     <Input />
                 </Form.Item>

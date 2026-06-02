@@ -16,6 +16,7 @@ import { io } from "socket.io-client";
 import { BellOutlined } from "@ant-design/icons";
 import { notification as antdNotification, Popover, List } from "antd";
 import axios from "axios";
+import { showSuccess, showError } from "../MessageComponent/MessageComponent";
 
 const HeaderComponent = ({ isHiddenSearch, isCart }) => {
   const [pending, setPending] = useState(false);
@@ -265,20 +266,37 @@ const HeaderComponent = ({ isHiddenSearch, isCart }) => {
             Đang diễn ra ({activeChats.length})
           </div>
           <List
-            itemLayout="horizontal"
-            dataSource={activeChats}
-            renderItem={(item) => (
-              <List.Item
-                style={{ padding: "10px", background: '#fff' }}
-                actions={[<Button type="primary" ghost size="small" onClick={() => { setSelectedChat(item); setIsChatOpen(true); }}>Mở</Button>]}
-              >
-                <List.Item.Meta
-                  title={item.customerName}
-                  description="Bạn đang tư vấn"
-                />
-              </List.Item>
-            )}
-          />
+              itemLayout="horizontal"
+              dataSource={activeChats}
+              renderItem={(item) => (
+                <List.Item
+                  style={{ padding: "10px", background: '#fff' }}
+                  actions={[
+                    <Button 
+                      type="primary" 
+                      ghost 
+                      size="small" 
+                      onClick={() => {
+                        if (!openChats.includes(item.customerId)) {
+                          if (openChats.length < 3) {
+                            setOpenChats(prev => [...prev, item.customerId]);
+                          } else {
+                            showError('Bạn chỉ có thể mở tối đa 3 khung chat cùng lúc. Hãy đóng bớt 1 khung.');
+                          }
+                        }
+                      }}
+                    >
+                      Mở
+                    </Button>
+                  ]}
+                >
+                  <List.Item.Meta
+                    title={item.customerName}
+                    description="Bạn đang tư vấn"
+                  />
+                </List.Item>
+              )}
+            />
         </div>
       )}
       <div style={{ fontWeight: 'bold', padding: '5px 10px', background: '#f5f5f5' }}>
@@ -424,9 +442,15 @@ const HeaderComponent = ({ isHiddenSearch, isCart }) => {
             {user.accessToken && (
               <>
                 <div className="divider"></div>
-                <Popover content={notificationContent} title="Thông báo" trigger="click" placement="bottomRight">
+                <Popover 
+                  content={notificationContent} 
+                  title="Thông báo" 
+                  trigger="click" 
+                  placement="bottomRight"
+                  getPopupContainer={(triggerNode) => triggerNode.parentNode}
+                >
                   <div className="item" style={{ cursor: 'pointer' }}>
-                    <Badge count={unreadCount + pendingChats.length} size="small">
+                    <Badge count={unreadCount + pendingChats.length} size="small" style={{ pointerEvents: 'none' }}>
                       <BellOutlined style={{ fontSize: '16px' }} />
                     </Badge>
                   </div>

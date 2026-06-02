@@ -1,0 +1,356 @@
+{
+  "total": 50,
+  "passed": 43,
+  "accuracy": "86.00%",
+  "report": [
+    {
+      "input": "Build cho mình bộ PC gaming tầm 20 triệu",
+      "expected_intent": "build_pc",
+      "actual_intent": "build_pc",
+      "actual_response": "Đây là cấu hình tối ưu cho nhu cầu **gaming** trong tầm giá của bạn. Tổng thực tế: **17.442.500đ**.",
+      "result": "PASS"
+    },
+    {
+      "input": "Ráp bộ máy văn phòng 10tr",
+      "expected_intent": "build_pc",
+      "actual_intent": "build_pc",
+      "actual_response": "Đây là cấu hình tối ưu cho nhu cầu **office** trong tầm giá của bạn. Tổng thực tế: **10.281.250đ**.",
+      "result": "PASS"
+    },
+    {
+      "input": "Tư vấn máy render 50 triệu",
+      "expected_intent": "build_pc",
+      "actual_intent": "build_pc",
+      "actual_response": "Dạ bạn cần hỗ trợ gì thêm ạ?",
+      "result": "PASS"
+    },
+    {
+      "input": "Build cấu hình code 15 triệu",
+      "expected_intent": "build_pc",
+      "actual_intent": "build_pc",
+      "actual_response": "Dạ bạn cần hỗ trợ gì thêm ạ?",
+      "result": "PASS"
+    },
+    {
+      "input": "Tôi cần máy chơi game 30 củ",
+      "expected_intent": "build_pc",
+      "actual_intent": "build_pc",
+      "actual_response": "Dạ bạn cần hỗ trợ gì thêm ạ?",
+      "result": "PASS"
+    },
+    {
+      "input": "Ráp máy tầm 8 triệu cho học sinh",
+      "expected_intent": "build_pc",
+      "actual_intent": "build_pc",
+      "actual_response": "Dạ bạn cần hỗ trợ gì thêm ạ?",
+      "result": "PASS"
+    },
+    {
+      "input": "PC đồ họa nặng 40 triệu",
+      "expected_intent": "build_pc",
+      "actual_intent": "build_pc",
+      "actual_response": "Dạ bạn cần hỗ trợ gì thêm ạ?",
+      "result": "PASS"
+    },
+    {
+      "input": "Máy tính văn phòng giá rẻ nhất có thể",
+      "expected_intent": "build_pc",
+      "actual_intent": "build_pc",
+      "actual_response": "Dạ bạn dự định đầu tư tầm bao nhiêu cho máy tính văn phòng này ạ?",
+      "result": "PASS"
+    },
+    {
+      "input": "Cấu hình gaming 25 triệu",
+      "expected_intent": "build_pc",
+      "actual_intent": "build_pc",
+      "actual_response": "Đây là cấu hình tối ưu cho nhu cầu **gaming** trong tầm giá của bạn. Tổng thực tế: **22.481.250đ**.",
+      "result": "PASS"
+    },
+    {
+      "input": "Build pc render 60tr",
+      "expected_intent": "build_pc",
+      "actual_intent": "build_pc",
+      "actual_response": "Đây là cấu hình tối ưu cho nhu cầu **render** trong tầm giá của bạn. Tổng thực tế: **42.617.500đ**.",
+      "result": "PASS"
+    },
+    {
+      "input": "Mua lẻ con chuột gaming",
+      "expected_intent": "buy_single",
+      "actual_intent": "buy_single",
+      "actual_response": "Dạ bạn dự định đầu tư tầm bao nhiêu cho món này ạ?",
+      "result": "PASS"
+    },
+    {
+      "input": "Bán cho mình cái màn hình 24 inch",
+      "expected_intent": "buy_single",
+      "actual_intent": "buy_single",
+      "actual_response": "Dạ bạn dự định đầu tư tầm bao nhiêu cho món này ạ?",
+      "result": "PASS"
+    },
+    {
+      "input": "Tôi muốn mua CPU i5",
+      "expected_intent": "buy_single",
+      "actual_intent": "buy_single",
+      "actual_response": "Dạ bạn dự định đầu tư tầm bao nhiêu cho CPU ạ?",
+      "result": "PASS"
+    },
+    {
+      "input": "Có bàn phím cơ nào 1 triệu không",
+      "expected_intent": "buy_single",
+      "actual_intent": "buy_single",
+      "actual_response": "Xin lỗi bạn, kho hàng hiện chưa có **Keyboard** phù hợp trong phân khúc này ạ.",
+      "result": "PASS"
+    },
+    {
+      "input": "Tìm SSD 500GB",
+      "expected_intent": "buy_single",
+      "actual_intent": "buy_single",
+      "actual_response": "Dạ bạn dự định đầu tư tầm bao nhiêu cho SSD này ạ?",
+      "result": "PASS"
+    },
+    {
+      "input": "Mua cái vỏ case máy tính",
+      "expected_intent": "buy_single",
+      "actual_intent": "buy_single",
+      "actual_response": "Dạ bạn dự định đầu tư tầm bao nhiêu cho vỏ case máy tính ạ?",
+      "result": "PASS"
+    },
+    {
+      "input": "VGA rẻ nhất hiện nay",
+      "expected_intent": "buy_single",
+      "actual_intent": "buy_single",
+      "actual_response": "Dạ bạn dự định đầu tư tầm bao nhiêu cho VGA ạ?",
+      "result": "PASS"
+    },
+    {
+      "input": "Tai nghe gaming shop còn hàng không",
+      "expected_intent": "buy_single",
+      "actual_intent": "buy_single",
+      "actual_response": "Dạ bạn dự định mua tai nghe gaming ạ? Chúng tôi có sẵn các mẫu tai nghe gaming từ các thương hiệu nổi tiếng như HyperX, SteelSeries, Sennheiser...",
+      "result": "PASS"
+    },
+    {
+      "input": "Mình muốn mua nguồn 650W",
+      "expected_intent": "buy_single",
+      "actual_intent": "buy_single",
+      "actual_response": "Dạ bạn dự định đầu tư tầm bao nhiêu cho nguồn 650W này ạ?",
+      "result": "PASS"
+    },
+    {
+      "input": "Ram 16GB giá sao",
+      "expected_intent": "buy_single",
+      "actual_intent": "buy_single",
+      "actual_response": "Dạ bạn dự định đầu tư tầm bao nhiêu cho món này ạ?",
+      "result": "PASS"
+    },
+    {
+      "input": "Báo giá cho tôi combo Mainboard và RAM",
+      "expected_intent": "buy_combo",
+      "actual_intent": "buy_combo",
+      "actual_response": "Dạ bạn muốn đầu tư bao nhiêu cho món này ạ?",
+      "result": "PASS"
+    },
+    {
+      "input": "Combo phím chuột 500k",
+      "expected_intent": "buy_combo",
+      "actual_intent": "buy_combo",
+      "actual_response": "Tiếc quá, chưa tìm thấy linh kiện nào khớp combo trong phân khúc này rồi ạ.",
+      "result": "PASS"
+    },
+    {
+      "input": "Cần bộ combo CPU và Mainboard chơi game 10tr",
+      "expected_intent": "buy_combo",
+      "actual_intent": "buy_combo",
+      "actual_response": "Mình đã phối combo theo tầm giá của bạn. Tổng thực tế: **9.143.750đ**.",
+      "result": "PASS"
+    },
+    {
+      "input": "Combo nguồn và vỏ case giá tầm 2 triệu",
+      "expected_intent": "buy_combo",
+      "actual_intent": "buy_combo",
+      "actual_response": "Mình đã phối combo theo tầm giá của bạn. Tổng thực tế: **3.400.000đ**.",
+      "result": "PASS"
+    },
+    {
+      "input": "Mua combo 3 món: màn hình, bàn phím, chuột 5 triệu",
+      "expected_intent": "buy_combo",
+      "actual_intent": "buy_combo",
+      "actual_response": "Mình đã phối combo theo tầm giá của bạn. Tổng thực tế: **3.718.750đ**.",
+      "result": "PASS"
+    },
+    {
+      "input": "Combo Main, RAM, SSD tầm 6 triệu",
+      "expected_intent": "buy_combo",
+      "actual_intent": "buy_combo",
+      "actual_response": "Mình đã phối combo theo tầm giá của bạn. Tổng thực tế: **5.380.000đ**.",
+      "result": "PASS"
+    },
+    {
+      "input": "Bộ đôi bàn phím tai nghe giá tốt",
+      "expected_intent": "buy_combo",
+      "actual_intent": "buy_combo",
+      "actual_response": "Dạ bạn dự định đầu tư tầm bao nhiêu cho bộ đôi này ạ?",
+      "result": "PASS"
+    },
+    {
+      "input": "Combo CPU VGA dưới 15tr",
+      "expected_intent": "buy_combo",
+      "actual_intent": "buy_combo",
+      "actual_response": "Mình đã phối combo theo tầm giá của bạn. Tổng thực tế: **10.940.000đ**.",
+      "result": "PASS"
+    },
+    {
+      "input": "Mainboard và CPU tầm 8tr",
+      "expected_intent": "buy_combo",
+      "actual_intent": "buy_single",
+      "actual_response": "Đây là mẫu **Mainboard** tối ưu trong tầm giá của bạn: **Gigabyte Z790 Aorus Elite** — 7.968.750đ.",
+      "result": "FAIL"
+    },
+    {
+      "input": "Chuột và lót chuột giá bao nhiêu",
+      "expected_intent": "buy_combo",
+      "actual_intent": "buy_single",
+      "actual_response": "Dạ bạn dự định đầu tư tầm bao nhiêu cho chuột này ạ?",
+      "result": "FAIL"
+    },
+    {
+      "input": "Chào shop",
+      "expected_intent": "chat",
+      "actual_intent": "chat",
+      "actual_response": "Xin chào! Bạn cần hỗ trợ gì hôm nay?",
+      "result": "PASS"
+    },
+    {
+      "input": "Shop ở đâu vậy",
+      "expected_intent": "chat",
+      "actual_intent": "chat",
+      "actual_response": "Chào mừng đến với shop PC & linh kiện của chúng tôi! Chúng tôi chuyên cung cấp các sản phẩm PC và linh kiện chất lượng cao. Bạn cần gì hôm nay?",
+      "result": "PASS"
+    },
+    {
+      "input": "Cảm ơn bạn",
+      "expected_intent": "chat",
+      "actual_intent": "chat",
+      "actual_response": "Chào mừng đến với shop PC & linh kiện của chúng tôi!",
+      "result": "PASS"
+    },
+    {
+      "input": "Hôm nay shop có khuyến mãi gì không",
+      "expected_intent": "chat",
+      "actual_intent": "chat",
+      "actual_response": "Hôm nay shop có khuyến mãi 10% cho các sản phẩm đồ họa và 5% cho các sản phẩm gaming. Bạn có muốn biết thêm thông tin không?",
+      "result": "PASS"
+    },
+    {
+      "input": "Thời gian làm việc thế nào",
+      "expected_intent": "chat",
+      "actual_intent": "chat",
+      "actual_response": "Chúng tôi hoạt động từ 8h đến 18h, từ thứ 2 đến thứ 6. Bạn cần gì?",
+      "result": "PASS"
+    },
+    {
+      "input": "Shop có ship tỉnh không",
+      "expected_intent": "chat",
+      "actual_intent": "chat",
+      "actual_response": "Cảm ơn bạn đã quan tâm đến shop của chúng tôi! Chúng tôi có hỗ trợ ship hàng toàn quốc, bao gồm cả tỉnh thành.",
+      "result": "PASS"
+    },
+    {
+      "input": "Số hotline của shop là gì",
+      "expected_intent": "chat",
+      "actual_intent": "chat",
+      "actual_response": "Số hotline của shop là 090 123 4567, bạn cần gì không?",
+      "result": "PASS"
+    },
+    {
+      "input": "Cho hỏi về chính sách bảo hành",
+      "expected_intent": "chat",
+      "actual_intent": "chat",
+      "actual_response": "Chính sách bảo hành của chúng tôi là 2 năm cho các linh kiện chính và 1 năm cho phụ kiện. Bạn có muốn biết thêm thông tin không?",
+      "result": "PASS"
+    },
+    {
+      "input": "Tạm biệt nhé",
+      "expected_intent": "chat",
+      "actual_intent": "chat",
+      "actual_response": "Tạm biệt nhé!",
+      "result": "PASS"
+    },
+    {
+      "input": "Ok hiểu rồi",
+      "expected_intent": "chat",
+      "actual_response": "Dạ bạn cần hỗ trợ gì thêm ạ?",
+      "result": "FAIL"
+    },
+    {
+      "input": "Bao nhiêu tiền thì build được máy?",
+      "expected_intent": "build_pc",
+      "actual_intent": "build_pc",
+      "actual_response": "Dạ bạn dự định đầu tư tầm bao nhiêu cho món này ạ?",
+      "result": "PASS"
+    },
+    {
+      "input": "Mấy cái linh kiện linh tinh",
+      "expected_intent": "chat",
+      "actual_intent": "buy_single",
+      "actual_response": "Dạ bạn dự định mua bàn phím, chuột, tai nghe tầm bao nhiêu ạ?",
+      "result": "FAIL"
+    },
+    {
+      "input": "Build pc cấu hình siêu mạnh 1 tỷ",
+      "expected_intent": "build_pc",
+      "actual_intent": "build_pc",
+      "actual_response": "Đây là cấu hình tối ưu cho nhu cầu **gaming** trong tầm giá của bạn. Tổng thực tế: **131.018.750đ**.",
+      "result": "PASS"
+    },
+    {
+      "input": "Chuột loại nào xịn nhất",
+      "expected_intent": "buy_single",
+      "actual_intent": "chat",
+      "actual_response": "Chuột xịn nhất hiện nay là chuột quang Logitech G502, nhưng có nhiều lựa chọn khác tùy theo nhu cầu và ngân sách của bạn.",
+      "result": "FAIL"
+    },
+    {
+      "input": "Mainboard gì tương thích với chip i9",
+      "expected_intent": "buy_single",
+      "actual_intent": "build_pc",
+      "actual_response": "Dạ bạn dự định đầu tư tầm bao nhiêu cho mainboard và các linh kiện khác ạ?",
+      "result": "FAIL"
+    },
+    {
+      "input": "Shop sửa máy tính không",
+      "expected_intent": "chat",
+      "actual_intent": "chat",
+      "actual_response": "Chào mừng đến với shop sửa máy tính của chúng tôi! Chúng tôi sẵn sàng giúp đỡ bạn với mọi vấn đề về máy tính.",
+      "result": "PASS"
+    },
+    {
+      "input": "Ráp bộ máy 1 đồng",
+      "expected_intent": "build_pc",
+      "actual_intent": "build_pc",
+      "actual_response": "Dạ bạn dự định đầu tư tầm bao nhiêu cho món này ạ?",
+      "result": "PASS"
+    },
+    {
+      "input": "Mua cái gì cũng được",
+      "expected_intent": "chat",
+      "actual_intent": "buy_single",
+      "actual_response": "Dạ bạn dự định đầu tư tầm bao nhiêu cho món này ạ?",
+      "result": "FAIL"
+    },
+    {
+      "input": "Build pc gaming bằng con chip cũ của mình",
+      "expected_intent": "build_pc",
+      "actual_intent": "build_pc",
+      "actual_response": "Đây là cấu hình tối ưu cho nhu cầu **gaming** trong tầm giá của bạn. Tổng thực tế: **15.891.250đ**.",
+      "result": "PASS"
+    },
+    {
+      "input": "Tại sao con chip này đắt thế?",
+      "expected_intent": "chat",
+      "actual_intent": "chat",
+      "actual_response": "Dạ bạn muốn biết lý do con chip này đắt thế ạ?",
+      "result": "PASS"
+    }
+  ]
+}

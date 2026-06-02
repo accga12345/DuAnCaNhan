@@ -1,24 +1,18 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { getAllOrder, updateOrder } from '../../services/OrderService';
 import { useSelector } from 'react-redux';
 import { Space, Button, Tag, Typography, Tooltip, Modal, List, Image, Input } from 'antd';
 import { CheckCircleOutlined, CarOutlined, CloseCircleOutlined, SyncOutlined, EyeOutlined, SearchOutlined } from '@ant-design/icons';
+import Highlighter from 'react-highlight-words';
+
+import { getAllOrder, updateOrder } from '../../services/OrderService';
 import TableComponent from '../../components/TableComponent/TableComponent';
 import LoadingComponent from '../../components/Loading/LoadingComponent';
 import { useMutationHook } from '../../hooks/useMutationHook';
 import * as message from '../../components/MessageComponent/MessageComponent';
-import styled from 'styled-components';
-import Highlighter from 'react-highlight-words';
+import { PageHeader } from './style';
 
 const { Title, Text } = Typography;
-
-const PageHeader = styled.div`
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 24px;
-`;
 
 const OrderAdmin = () => {
     const user = useSelector((state) => state.user);

@@ -11,6 +11,7 @@ import { updateUser, resetUser } from './redux/slides/userSlide'
 import { useState } from 'react'
 import { useSelector } from 'react-redux'
 import LoadingComponent from './components/Loading/LoadingComponent'
+import { MessageComponent } from './components/MessageComponent/MessageComponent'
 
 
 axiosJwt.interceptors.request.use(
@@ -80,27 +81,29 @@ function App() {
 
   return (
     <LoadingComponent isPending={loading}>
-      <Router>
-        <Routes>
-          {routes.map((route) => {
-            const Page = route.page
-            const isCheckAuth = !route.isPrivate || user.isAdmin || user.isEmployee
-            const Layout = route.isShowHeader ? DefaultComponent : React.Fragment
+      <MessageComponent>
+        <Router>
+          <Routes>
+            {routes.map((route) => {
+              const Page = route.page
+              const isCheckAuth = !route.isPrivate || user.isAdmin || user.isEmployee
+              const Layout = route.isShowHeader ? DefaultComponent : React.Fragment
 
-            return (
-              <Route
-                key={route.path}
-                path={isCheckAuth ? route.path : "/"}
-                element={
-                  <Layout isHiddenSearch={route.isHiddenSearch} isCart={route.isCart}>
-                    <Page />
-                  </Layout>
-                }
-              />
-            )
-          })}
-        </Routes>
-      </Router>
+              return (
+                <Route
+                  key={route.path}
+                  path={isCheckAuth ? route.path : "/"}
+                  element={
+                    <Layout isHiddenSearch={route.isHiddenSearch} isCart={route.isCart} isShowFooter={route.isShowFooter}>
+                            <Page />
+                    </Layout>
+                  }
+                />
+              )
+            })}
+          </Routes>
+        </Router>
+      </MessageComponent>
     </LoadingComponent>
   )
 }

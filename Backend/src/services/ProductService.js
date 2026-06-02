@@ -4,93 +4,95 @@ const Category = require("../models/CategoryModel");
 const mongoose = require('mongoose');
 
 const createProduct = async (newProduct) => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
     try {
         const { name, warehouseItem, countInStock } = newProduct;
-        const checkProduct = await Product.findOne({ name });
+        const checkProduct = await Product.findOne({ name }).session(session);
         if (checkProduct) {
-            return {
-                status: "error",
-                message: "San pham da ton tai",
-            };
+            await session.abortTransaction();
+            session.endSession();
+            return { status: "error", message: "San pham da ton tai" };
         }
 
-
         if (warehouseItem) {
-            const warehouse = await Warehouse.findById(warehouseItem);
+            const warehouse = await Warehouse.findById(warehouseItem).session(session);
             if (warehouse) {
-                const otherProducts = await Product.find({ warehouseItem });
-                const usedStock = otherProducts.reduce((sum, p) => sum + p.countInStock, 0);
-                const availableStock = warehouse.quantity - usedStock;
-
-                if (Number(countInStock) > availableStock) {
+                if (Number(countInStock) > warehouse.quantity) {
+                    await session.abortTransaction();
+                    session.endSession();
                     return {
                         status: "error",
-                        message: `So luong vuot qua gioi han kho. Kho con trong ${availableStock} (Tong ${warehouse.quantity}, da dung ${usedStock})`
+                        message: `So luong vuot qua gioi han kho. Kho con trong ${warehouse.quantity} (Tong ${warehouse.quantity}, da dung 0)`
                     };
                 }
+                // Option 2: Deduct from Warehouse immediately
+                warehouse.quantity -= Number(countInStock);
+                await warehouse.save({ session });
             }
         }
 
-        const product = await (await Product.create(newProduct)).populate(['supplier', 'warehouseItem', 'category']);
+        const product = await Product.create([newProduct], { session });
+        await session.commitTransaction();
+        session.endSession();
+        
         return {
             status: "success",
             message: "Tao san pham moi thanh cong",
-            data: product,
+            data: product[0],
         };
     } catch (error) {
+        await session.abortTransaction();
+        session.endSession();
         console.error("DEBUG: Error in createProduct:", error);
         throw error;
     }
 };
 
 const updateProduct = async (id, data) => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
     try {
-        const checkProduct = await Product.findOne({ _id: id });
+        const checkProduct = await Product.findOne({ _id: id }).session(session);
         if (!checkProduct) {
-            return {
-                status: "error",
-                message: "Khong tim thay san pham",
-            };
-        } else if (checkProduct.name !== data.name) {
-            const checkProduct = await Product.findOne({ name: data.name });
-            if (checkProduct) {
-                return {
-                    status: "error",
-                    message: "San pham da ton tai",
-                };
-            }
+            await session.abortTransaction();
+            session.endSession();
+            return { status: "error", message: "Khong tim thay san pham" };
         }
 
+        const newCount = data.countInStock !== undefined ? Number(data.countInStock) : checkProduct.countInStock;
+        const oldCount = checkProduct.countInStock;
+        const diff = newCount - oldCount;
 
-        const warehouseItem = data.warehouseItem || checkProduct.warehouseItem;
-        const countInStock = data.countInStock !== undefined ? data.countInStock : checkProduct.countInStock;
-
-        if (warehouseItem) {
-            const warehouse = await Warehouse.findById(warehouseItem);
+        if (diff !== 0 && checkProduct.warehouseItem) {
+            const warehouse = await Warehouse.findById(checkProduct.warehouseItem).session(session);
             if (warehouse) {
-                const otherProducts = await Product.find({
-                    warehouseItem,
-                    _id: { $ne: id }
-                });
-                const usedStockByOthers = otherProducts.reduce((sum, p) => sum + p.countInStock, 0);
-                const availableStock = warehouse.quantity - usedStockByOthers;
-
-                if (Number(countInStock) > availableStock) {
+                if (diff > warehouse.quantity) {
+                    await session.abortTransaction();
+                    session.endSession();
                     return {
                         status: "error",
-                        message: `So luong vuot qua gioi han kho. Kho con trong ${availableStock} (Tong ${warehouse.quantity}, da dung ${usedStockByOthers})`
+                        message: `So luong nhap them (${diff}) vuot qua ton kho (${warehouse.quantity})`
                     };
                 }
+                // Adjust warehouse stock based on the difference
+                warehouse.quantity -= diff;
+                await warehouse.save({ session });
             }
         }
 
-        const product = await Product.findOneAndUpdate({ _id: id }, data, { new: true }).populate(['supplier', 'warehouseItem', 'category']);
+        const product = await Product.findOneAndUpdate({ _id: id }, data, { new: true, session }).populate(['supplier', 'warehouseItem', 'category']);
+        await session.commitTransaction();
+        session.endSession();
+
         return {
             status: "success",
             message: "Cap nhat san pham thanh cong",
             data: product,
         };
     } catch (error) {
+        await session.abortTransaction();
+        session.endSession();
         console.error("DEBUG: Error in updateProduct:", error);
         throw error;
     }
@@ -214,52 +216,18 @@ const getAllCategoryProduct = async () => {
 };
 
 const getCompatibleProducts = async (categoryName, currentBuild, replacedProduct) => {
-    console.log(`[DEBUG] getCompatibleProducts called with:`, categoryName);
     try {
         let cat;
         if (mongoose.Types.ObjectId.isValid(categoryName)) {
             cat = await Category.findById(categoryName);
-            console.log(`[DEBUG] Search by ID found:`, cat ? cat.name : 'null');
         } else {
             cat = await Category.findOne({ name: new RegExp(`^${categoryName}$`, 'i') });
-            console.log(`[DEBUG] Search by Name found:`, cat ? cat.name : 'null');
         }
         if (!cat) {
-            console.log(`[DEBUG] Category NOT found for input:`, categoryName);
             return { status: 'error', message: 'Category not found' };
         }
 
         const query = { category: cat._id };
-
-        // Logic tương thích mới:
-        // Tìm sản phẩm cùng category mà:
-        // 1. Có thông số (VD: Socket) GIỐNG với sản phẩm đang bị thay thế
-        // 2. HOẶC không có thông số đó (Sản phẩm vạn năng)
-        
-        const importantKeys = ['socket', 'chipset', 'loại ram'];
-        const specToMatch = replacedProduct?.specifications?.find(s => 
-            importantKeys.some(key => s.key.toLowerCase().includes(key))
-        );
-
-        if (specToMatch) {
-            const keyRegex = new RegExp(specToMatch.key, 'i');
-            query['$or'] = [
-                { 
-                    specifications: { 
-                        $elemMatch: { 
-                            key: keyRegex, 
-                            value: { $regex: new RegExp(specToMatch.value, 'i') } 
-                        } 
-                    } 
-                },
-                { 
-                    specifications: { 
-                        $not: { $elemMatch: { key: keyRegex } } 
-                    } 
-                }
-            ];
-        }
-
         const products = await Product.find(query).populate('category');
         return {
             status: 'success',

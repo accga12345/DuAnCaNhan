@@ -90,3 +90,8 @@ export const resetPassword = async (data) => {
     const res = await axios.post(`${process.env.REACT_APP_API_URL}/user/reset-password`, data);
     return res.data;
 };
+
+export const sendOtp = async (data) => {
+    const res = await axios.post(`${process.env.REACT_APP_API_URL}/user/send-otp`, data);
+    return res.data;
+};
