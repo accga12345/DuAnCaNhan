@@ -1,8 +1,9 @@
 import React from "react"
 import TypeProduct from "../../components/TypeProducts/TypeProduct"
-import { WapperHomePage, WrapperButtonMore, WrapperProductGrid, WrapperProductSlider, WrapperSidebar } from "./style"
+import { WapperHomePage, WrapperButtonMore, WrapperProductGrid, WrapperProductSlider } from "./style"
 import SliderComponent from "../../components/SliderComponent/SliderComponent"
 import CommitmentBanner from "../../components/CommitmentBanner/CommitmentBanner"
+import SidebarComponent from "../../components/SidebarComponent/SidebarComponent"
 import slider1 from "../../assets/images/gearvn-build-pc.png"
 import slider2 from "../../assets/images/gearvn-build-pc.png"
 import slider3 from "../../assets/images/gearvn-build-pc.png"
@@ -13,7 +14,7 @@ import { getAllCategories } from "../../services/CategoryService";
 import { getAllBrands } from "../../services/BrandService";
 import { useSelector } from "react-redux"
 import { useState, useRef, useEffect, useMemo } from "react"
-import { Card, Radio, Space, Rate, Select } from "antd"
+import { Select } from "antd"
 import { useDebounce } from "../../hooks/useDebounce"
 import Slider from "react-slick"
 
@@ -94,21 +95,6 @@ const HomePage = () => {
     }
   }, [products])
 
-  const renderStarFilter = (stars) => (
-    <div
-      style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', padding: '4px 0' }}
-      onClick={() => {
-        setRatingFilter(ratingFilter === stars ? 0 : stars);
-        setLimit(12); // Reset limit on filter change
-      }}
-    >
-      <Rate disabled defaultValue={stars} style={{ fontSize: '14px', color: ratingFilter === stars ? '#1890ff' : '#fadb14' }} />
-      <span style={{ fontSize: '14px', color: ratingFilter === stars ? '#1890ff' : 'var(--text-main)', fontWeight: ratingFilter === stars ? 600 : 400 }}>
-        từ {stars} sao
-      </span>
-    </div>
-  );
-
   const bestSellingSliderSettings = {
     dots: true,
     infinite: true,
@@ -151,50 +137,24 @@ const HomePage = () => {
 
         <div style={{ display: "flex", gap: "24px", alignItems: 'flex-start' }}>
           {/* Left Sidebar */}
-          <WrapperSidebar>
-            <Card style={{ padding: "8px", borderRadius: "8px", boxShadow: "0 1px 2px 0 rgba(60,64,67,0.1), 0 2px 6px 2px rgba(60,64,67,0.15)", border: "none", marginBottom: '16px' }} bodyStyle={{ padding: '12px' }}>
-              <h3 style={{ marginBottom: "16px", fontWeight: "700", fontSize: '16px', color: 'var(--text-main)' }}>Danh mục</h3>
-              <WapperHomePage style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'stretch' }}>
-                <div style={{ padding: '8px', border: '1px solid #1890ff', borderRadius: '4px', textAlign: 'center', marginBottom: '8px', cursor: 'pointer' }} onClick={() => window.location.href = '/xay-dung-cau-hinh'}>
-                  <span style={{ fontWeight: "700", color: "#1890ff" }}>🛠 Xây dựng cấu hình PC</span>
-                </div>
-
-                {categories?.data?.map((item) => (
-                  <TypeProduct name={item.name} id={item._id} key={item._id} />
-                ))}
-              </WapperHomePage>
-            </Card>
-
-            <Card style={{ padding: "8px", borderRadius: "8px", boxShadow: "0 1px 2px 0 rgba(60,64,67,0.1), 0 2px 6px 2px rgba(60,64,67,0.15)", border: "none", marginBottom: '16px' }} bodyStyle={{ padding: '12px' }}>
-              <h3 style={{ marginBottom: "16px", fontWeight: "700", fontSize: '16px', color: 'var(--text-main)' }}>Thương hiệu</h3>
-              <Radio.Group onChange={(e) => { setBrandFilter(e.target.value); setLimit(12); }} value={brandFilter}>
-                <Space direction="vertical" style={{ display: 'flex' }}>
-                  <Radio value="">Tất cả</Radio>
-                  {brands?.data?.map(brand => (
-                    <Radio key={brand._id} value={brand.name}>{brand.name}</Radio>
-                  ))}
-                </Space>
-              </Radio.Group>
-            </Card>
-
-            <Card style={{ padding: "8px", borderRadius: "8px", boxShadow: "0 1px 2px 0 rgba(60,64,67,0.1), 0 2px 6px 2px rgba(60,64,67,0.15)", border: "none" }} bodyStyle={{ padding: '12px' }}>
-              <h3 style={{ marginBottom: "16px", fontWeight: "700", fontSize: '16px', color: 'var(--text-main)' }}>Đánh giá</h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                {renderStarFilter(5)}
-                {renderStarFilter(4)}
-                {renderStarFilter(3)}
-                {renderStarFilter(2)}
-                {renderStarFilter(1)}
-                {renderStarFilter(0)}
-              </div>
-            </Card>
-          </WrapperSidebar>
+          <SidebarComponent 
+            categories={categories}
+            brands={brands}
+            brandFilter={brandFilter}
+            setBrandFilter={setBrandFilter}
+            ratingFilter={ratingFilter}
+            setRatingFilter={setRatingFilter}
+            sortOption={sortOption}
+            setSortOption={setSortOption}
+            setLimit={setLimit}
+            showPCBuilder={true}
+          />
 
           {/* Main Content */}
           <div style={{ flex: 1, minWidth: 0 }}>
             <div>
               <div style={{ borderRadius: '16px', overflow: 'hidden', boxShadow: 'var(--shadow-soft)', marginBottom: '24px' }}>
-                <SliderComponent arrImgs={[slider1, slider2, slider3]} />
+                <SliderComponent />
               </div>
 
               <div>

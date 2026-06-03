@@ -1,17 +1,21 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Space, Button, Modal, Form, Input, InputNumber, Select, Popconfirm } from 'antd';
+import { Space, Button, Modal, Form, Input, InputNumber, Select, Popconfirm, Typography } from 'antd';
 import { getAllWarehouseItems, deleteWarehouseItem, getDetailWarehouseItem, updateWarehouseItem } from '../../services/WarehouseService';
 import { getAllCategories } from '../../services/CategoryService';
 import { getAllSuppliers } from '../../services/SupplierService';
 import { getAllBrands } from '../../services/BrandService';
 import { useQuery } from '@tanstack/react-query';
-import { SearchOutlined } from '@ant-design/icons';
+import { SearchOutlined, FileExcelOutlined } from '@ant-design/icons';
 import TableComponent from '../../components/TableComponent/TableComponent';
 import { showSuccess, showError } from '../../components/MessageComponent/MessageComponent';
 import { useMutationHook } from '../../hooks/useMutationHook';
 import { useSelector } from 'react-redux';
 import LoadingComponent from '../../components/Loading/LoadingComponent';
 import Highlighter from 'react-highlight-words';
+import { exportExcel } from '../../ultil';
+import { PageHeader, ActionToolbar } from './style';
+
+const { Title } = Typography;
 
 function WarehouseListPage() {
     const [form] = Form.useForm();
@@ -26,6 +30,18 @@ function WarehouseListPage() {
         queryKey: ['warehouseItems'],
         queryFn: () => getAllWarehouseItems(),
     });
+
+    const handleExportExcel = () => {
+        const data = items?.data.map((item) => ({
+            "Tên sản phẩm (Kho)": item.name,
+            "Danh mục": item.category?.name,
+            "Hãng": item.brand,
+            "Tồn kho": item.quantity,
+            "Giá nhập": item.costPrice,
+            "Nhà cung cấp": item.supplier?.name,
+        }));
+        exportExcel(data, "Danh_sach_ton_kho_noi_bo", "Warehouse");
+    };
 
     const { data: categoriesData } = useQuery({
         queryKey: ['categories'],
@@ -165,6 +181,8 @@ function WarehouseListPage() {
         if (deleteSuccess && deleteData?.status === "success") {
             showSuccess(deleteData?.message || "Xóa thành công");
             refetch();
+        } else if (deleteData?.status === "error") {
+             showError(deleteData?.message || "Xóa thất bại");
         }
     }, [deleteSuccess, deleteData, refetch]);
 
@@ -230,12 +248,24 @@ function WarehouseListPage() {
 
     return (
         <div>
-            <h2 style={{ marginTop: '20px' }}>Tồn kho nội bộ</h2>
+            <PageHeader>
+                <Title level={4} style={{ margin: 0 }}>Tồn kho nội bộ</Title>
+                <ActionToolbar>
+                    <Button
+                        type="primary"
+                        icon={<FileExcelOutlined />}
+                        onClick={handleExportExcel}
+                    >
+                        Xuất Excel
+                    </Button>
+                </ActionToolbar>
+            </PageHeader>
             <LoadingComponent isPending={itemsLoading || updateLoading || deleteLoading}>
                 <TableComponent
                     columns={columns}
                     data={items?.data}
                     rowKey="_id"
+                    pagination={{ pageSize: 10 }}
                 />
             </LoadingComponent>
             <Modal

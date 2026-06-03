@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Space, Button, Modal, Form, Input, Popconfirm } from 'antd';
+import { Space, Button, Modal, Form, Input, Popconfirm, Typography } from 'antd';
 import { getAllSuppliers, deleteSupplier, getDetailSupplier, updateSupplier } from '../../services/SupplierService';
 import { useQuery } from '@tanstack/react-query';
 import TableComponent from '../../components/TableComponent/TableComponent';
@@ -7,8 +7,12 @@ import { showSuccess, showError } from '../../components/MessageComponent/Messag
 import { useMutationHook } from '../../hooks/useMutationHook';
 import { useSelector } from 'react-redux';
 import LoadingComponent from '../../components/Loading/LoadingComponent';
-import { SearchOutlined } from '@ant-design/icons';
+import { SearchOutlined, FileExcelOutlined } from '@ant-design/icons';
 import Highlighter from 'react-highlight-words';
+import { exportExcel } from '../../ultil';
+import { PageHeader, ActionToolbar } from './style';
+
+const { Title } = Typography;
 
 function SupplierListPage() {
     const [form] = Form.useForm();
@@ -23,6 +27,17 @@ function SupplierListPage() {
         queryKey: ['suppliers'],
         queryFn: () => getAllSuppliers(),
     });
+
+    const handleExportExcel = () => {
+        const data = suppliers?.data.map((item) => ({
+            "Tên nhà cung cấp": item.name,
+            "Số điện thoại": item.phone,
+            "Email": item.email,
+            "Địa chỉ": item.address,
+            "Ghi chú": item.description,
+        }));
+        exportExcel(data, "Danh_sach_nha_cung_cap", "Suppliers");
+    };
 
     const [editing, setEditing] = useState({
         name: false,
@@ -198,13 +213,23 @@ function SupplierListPage() {
 
     return (
         <div>
-            <h2 style={{ marginTop: '20px' }}>Danh sách nhà cung cấp</h2>
+            <PageHeader>
+                <Title level={4} style={{ margin: 0 }}>Danh sách nhà cung cấp</Title>
+                <ActionToolbar>
+                    <Button
+                        icon={<FileExcelOutlined />}
+                        onClick={handleExportExcel}
+                    >
+                        Xuất Excel
+                    </Button>
+                </ActionToolbar>
+            </PageHeader>
             <LoadingComponent isPending={suppliersLoading || updateLoading || deleteLoading}>
                 <TableComponent
                     columns={columns}
                     data={suppliers?.data}
                     rowKey="_id"
-                    pagination={{ pageSize: 8 }}
+                    pagination={{ pageSize: 10 }}
                 />
             </LoadingComponent>
             <Modal

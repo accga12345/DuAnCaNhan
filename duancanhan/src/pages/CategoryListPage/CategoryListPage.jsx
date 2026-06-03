@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Space, Button, Modal, Form, Input, Popconfirm, Select, Upload } from 'antd';
+import { Space, Button, Modal, Form, Input, Popconfirm, Select, Upload, Typography } from 'antd';
 import { getAllCategories, deleteCategory, getDetailCategory, updateCategory } from '../../services/CategoryService';
 import { getAllBrands } from '../../services/BrandService';
 import { useQuery } from '@tanstack/react-query';
@@ -8,9 +8,12 @@ import { showSuccess, showError } from '../../components/MessageComponent/Messag
 import { useMutationHook } from '../../hooks/useMutationHook';
 import { useSelector } from 'react-redux';
 import LoadingComponent from '../../components/Loading/LoadingComponent';
-import { SearchOutlined, PlusOutlined } from '@ant-design/icons';
+import { SearchOutlined, PlusOutlined, FileExcelOutlined } from '@ant-design/icons';
 import Highlighter from 'react-highlight-words';
-import { getBase64 } from '../../ultil';
+import { getBase64, exportExcel } from '../../ultil';
+import { PageHeader, ActionToolbar } from './style';
+
+const { Title } = Typography;
 
 function CategoryListPage() {
     const [form] = Form.useForm();
@@ -232,15 +235,33 @@ function CategoryListPage() {
         },
     ];
 
+    const handleExportExcel = () => {
+        const excelData = categories?.data?.map((cat) => ({
+            "Tên danh mục": cat.name,
+            "Hãng": cat.brands?.map(b => b.name).join(', ')
+        }))
+        exportExcel(excelData, "Danh_sach_danh_muc", "Categories")
+    }
+
     return (
         <div>
-            <h2 style={{ marginTop: '20px' }}>Danh sách danh mục</h2>
+            <PageHeader>
+                <Title level={4} style={{ margin: 0 }}>Danh sách danh mục</Title>
+                <ActionToolbar>
+                    <Button
+                        icon={<FileExcelOutlined />}
+                        onClick={handleExportExcel}
+                    >
+                        Xuất Excel
+                    </Button>
+                </ActionToolbar>
+            </PageHeader>
             <LoadingComponent isPending={categoriesLoading || updateLoading || deleteLoading}>
                 <TableComponent
                     columns={columns}
                     data={categories?.data}
                     rowKey="_id"
-                    pagination={{ pageSize: 8 }}
+                    pagination={{ pageSize: 10 }}
                 />
             </LoadingComponent>
             <Modal

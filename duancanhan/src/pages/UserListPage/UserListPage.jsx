@@ -292,7 +292,7 @@ function UserListPage() {
                     columns={columns}
                     data={users?.data}
                     rowKey="_id"
-                    pagination={{ pageSize: 8 }}
+                    pagination={{ pageSize: 10 }}
                 />
             </LoadingComponent>
 

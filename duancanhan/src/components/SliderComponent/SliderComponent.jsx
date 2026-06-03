@@ -1,8 +1,28 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Slider from "react-slick";
-import { Image } from "antd";
+import { Image, message } from "antd";
+import axios from "axios";
 
 const SliderComponent = ({ arrImgs }) => {
+  const [sliderImages, setSliderImages] = useState(arrImgs || []);
+  const maxSlides = parseInt(localStorage.getItem('sliderMaxSlides')) || 5;
+  const autoSpeed = parseInt(localStorage.getItem('sliderAutoSpeed')) || 3000;
+
+  useEffect(() => {
+    if (arrImgs) return; // Use props if provided
+
+    const fetchImages = async () => {
+        try {
+            const res = await axios.get(`${process.env.REACT_APP_API_URL}/slider/get-all`);
+            const data = Array.isArray(res.data) ? res.data : (res.data.data || []);
+            setSliderImages(data);
+        } catch (error) {
+            console.error("Failed to load sliders", error);
+        }
+    };
+    fetchImages();
+  }, [arrImgs]);
+
   const settings = {
     dots: true,
     infinite: true,
@@ -10,13 +30,15 @@ const SliderComponent = ({ arrImgs }) => {
     slidesToShow: 1,
     slidesToScroll: 1,
     autoplay: true,
-    autoplaySpeed: 3000,
+    autoplaySpeed: autoSpeed,
   };
+
+  if (!sliderImages || sliderImages.length === 0) return null;
 
   return (
     <Slider {...settings}>
-      {arrImgs.map((imgSrc) => (
-          <Image src={imgSrc} alt={"Slider"} width= "100%" height= "274px" preview={false} />
+      {sliderImages.slice(0, maxSlides).map((item, index) => (
+          <Image key={index} src={item.image || item} alt={"Slider"} width= "100%" height= "274px" preview={false} />
       ))}
     </Slider>
   );

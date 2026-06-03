@@ -13,34 +13,6 @@ import { useSelector } from 'react-redux'
 import LoadingComponent from './components/Loading/LoadingComponent'
 import { MessageComponent } from './components/MessageComponent/MessageComponent'
 
-
-axiosJwt.interceptors.request.use(
-  async (config) => {
-    let token = localStorage.getItem("access_token");
-
-    if (token && isJsonString(token)) {
-      token = JSON.parse(token);
-      const decode = jwtDecode(token);
-
-      if (decode.exp * 1000 < Date.now()) {
-        try {
-          let data = await refreshToken();
-          token = data.accessToken;
-          localStorage.setItem("access_token", JSON.stringify(token));
-        } catch (err) {
-          localStorage.removeItem("access_token");
-          return Promise.reject(err);
-        }
-      }
-
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
-
 function App() {
   const dispatch = useDispatch()
   const user = useSelector((state) => state.user)
@@ -95,7 +67,7 @@ function App() {
                   path={isCheckAuth ? route.path : "/"}
                   element={
                     <Layout isHiddenSearch={route.isHiddenSearch} isCart={route.isCart} isShowFooter={route.isShowFooter}>
-                            <Page />
+                      <Page />
                     </Layout>
                   }
                 />

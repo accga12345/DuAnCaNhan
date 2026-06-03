@@ -1,6 +1,35 @@
 import axios from "axios";
+import { jwtDecode } from 'jwt-decode';
+import { isJsonString } from '../ultil';
 
 export const axiosJwt = axios.create();
+
+axiosJwt.interceptors.request.use(
+    async (config) => {
+      let token = localStorage.getItem("access_token");
+  
+      if (token && isJsonString(token)) {
+        token = JSON.parse(token);
+        const decode = jwtDecode(token);
+  
+        if (decode.exp * 1000 < Date.now()) {
+          try {
+            let data = await refreshToken();
+            token = data.accessToken;
+            localStorage.setItem("access_token", JSON.stringify(token));
+          } catch (err) {
+            localStorage.removeItem("access_token");
+            return Promise.reject(err);
+          }
+        }
+  
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+  
+      return config;
+    },
+    (error) => Promise.reject(error)
+);
 
 export const loginUser = async (data) => {
     const res = await axios.post(`${process.env.REACT_APP_API_URL}/user/signin`, data, {

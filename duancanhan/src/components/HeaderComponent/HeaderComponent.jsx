@@ -409,7 +409,11 @@ const HeaderComponent = ({ isHiddenSearch, isCart }) => {
                   <div className="item">
                     {user?.avatar ? (
                       <WapperAvatar>
-                        <img src={user.avatar} alt="avatar" />
+                        <img 
+                          src={user.avatar} 
+                          alt="avatar" 
+                          onError={(e) => { e.target.onerror = null; e.target.src = '/default-avatar.png'; }} 
+                        />
                       </WapperAvatar>
                     ) : (
                       <SmileOutlined />

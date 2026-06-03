@@ -299,6 +299,12 @@ function ProductListPage() {
             sorter: (a, b) => a.countInStock - b.countInStock,
         },
         {
+            title: 'Nhà cung cấp',
+            dataIndex: ['supplier', 'name'],
+            key: 'supplier',
+            ...getColumnSearchProps('supplier.name'),
+        },
+        {
             title: 'Đã bán',
             dataIndex: 'selled',
             key: 'selled',
@@ -346,6 +352,7 @@ function ProductListPage() {
             "Loại": product.category?.name || "N/A",
             "Hãng": product.brand,
             "Số lượng": product.countInStock,
+            "Nhà cung cấp": product.supplier?.name || "N/A",
             "Đã bán": product.selled
         }))
         exportExcel(excelData, "Danh_sach_san_pham", "Products")
@@ -371,6 +378,7 @@ function ProductListPage() {
                     data={products?.data}
                     handleDeleteMany={handleDeleteMany}
                     rowKey="_id"
+                    pagination={{ pageSize: 10 }}
                 />
             </LoadingComponent>
 
@@ -517,7 +525,7 @@ function ProductListPage() {
                     src={previewImage}
                 />
             )}
-        </div >
+        </div>
     );
 }
 

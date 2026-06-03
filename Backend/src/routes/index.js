@@ -10,6 +10,7 @@ const WarehouseRouter = require('./WarehouseRouter')
 const OperatingCostRouter = require('./OperatingCostRouter')
 const ChatRouter = require('./ChatRouter')
 
+const SliderRouter = require('./SliderRouter')
 const UploadRouter = require('./UploadRouter')
 
 const routes = (app) => {
@@ -24,6 +25,7 @@ const routes = (app) => {
   app.use('/api/warehouse', WarehouseRouter)
   app.use('/api/operating-cost', OperatingCostRouter)
   app.use('/api/chat', ChatRouter)
+  app.use('/api/slider', SliderRouter)
   app.use('/api/upload', UploadRouter)
 }
 

@@ -11,8 +11,9 @@ import {
     MenuFoldOutlined,
     DashboardOutlined,
     DollarCircleOutlined,
+    PictureOutlined,
 } from '@ant-design/icons';
-import { Layout, Menu, Button, theme } from 'antd';
+import { Layout, Menu, Button, theme, message } from 'antd';
 import { useSelector } from 'react-redux';
 import { useQuery } from '@tanstack/react-query';
 
@@ -32,6 +33,7 @@ import SupplierAddPage from '../SupplierAddPage/SupplierAddPage';
 import WarehouseListPage from '../WarehouseListPage/WarehouseListPage';
 import WarehouseAddPage from '../WarehouseAddPage/WarehouseAddPage';
 import OperatingCostPage from '../OperatingCostPage/OperatingCostPage';
+import SliderManagementPage from '../SliderManagementPage/SliderManagementPage';
 import { getAllUser } from '../../services/UserServices';
 import { getAllProduct } from '../../services/ProductService';
 import { getAllOrder } from '../../services/OrderService';
@@ -43,6 +45,8 @@ function AdminPage() {
     const [collapsed, setCollapsed] = useState(false);
     const [stateCurrentKey, setStateCurrentKey] = useState('dashboard');
 
+    const isStaff = !user.isAdmin && user.isEmployee;
+
     const { data: users } = useQuery({ queryKey: ['users'], queryFn: () => getAllUser() });
     const { data: products } = useQuery({ queryKey: ['products'], queryFn: () => getAllProduct(100, 1) });
     const { data: orders } = useQuery({ queryKey: ['orders'], queryFn: () => getAllOrder(user?.accessToken), enabled: !!user?.accessToken });
@@ -51,7 +55,7 @@ function AdminPage() {
         token: { colorBgContainer, borderRadiusLG },
     } = theme.useToken();
 
-    const items = [
+    const allItems = [
         { key: 'dashboard', icon: <DashboardOutlined />, label: 'Dashboard' },
         {
             key: '1',
@@ -108,10 +112,28 @@ function AdminPage() {
                 { key: '72', label: 'Nhập hàng vào kho' },
             ],
         },
-        { key: 'cost-management', icon: <DollarCircleOutlined />, label: 'Quản lý chi phí' }
+        { key: 'cost-management', icon: <DollarCircleOutlined />, label: 'Quản lý chi phí' },
+        { key: 'slider', icon: <PictureOutlined />, label: 'Quản lý Slider' }
     ];
 
+    const allowedKeysForStaff = ['dashboard', '2', '21', '22', 'order', 'slider'];
+
+    const items = isStaff 
+        ? allItems.filter(item => {
+            if (item.children) return allowedKeysForStaff.includes(item.key) || item.children.some(child => allowedKeysForStaff.includes(child.key));
+            return allowedKeysForStaff.includes(item.key);
+          }).map(item => {
+            if (item.children) {
+                return { ...item, children: item.children.filter(child => allowedKeysForStaff.includes(child.key)) };
+            }
+            return item;
+          })
+        : allItems;
+
     const handleOnClick = (e) => {
+        if (isStaff && !allowedKeysForStaff.includes(e.key) && !allItems.find(item => item.children?.find(c => c.key === e.key)) && e.key !== '1' && e.key !== '4' && e.key !== '5' && e.key !== '6' && e.key !== '7') {
+             // Just a safe guard
+        }
         setStateCurrentKey(e.key);
     }
 
@@ -119,7 +141,8 @@ function AdminPage() {
         if (key === 'dashboard') return 'Tổng quan hệ thống';
         if (key === 'cost-management') return 'Quản lý chi phí vận hành';
         if (key === 'order') return 'Quản lý đơn hàng';
-        for (const item of items) {
+        if (key === 'slider') return 'Quản lý Slider';
+        for (const item of allItems) {
             if (item.children) {
                 const child = item.children.find(c => c.key === key);
                 if (child) return child.label;
@@ -131,8 +154,14 @@ function AdminPage() {
     }
 
     const handleRenderPage = (key) => {
+        if (isStaff && !allowedKeysForStaff.includes(key) && !['21', '22'].includes(key)) {
+            message.error("Bạn không có quyền truy cập trang này!");
+            return <DashboardStats orders={orders} products={products} users={users} />;
+        }
+        
         if (key === 'dashboard') return <DashboardStats orders={orders} products={products} users={users} />;
         if (key === 'cost-management') return <OperatingCostPage />;
+        if (key === 'slider') return <SliderManagementPage />;
         if (key === 'order') return <OrderAdmin />;
         switch (key) {
             case '11':

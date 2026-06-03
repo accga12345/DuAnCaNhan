@@ -81,3 +81,6 @@
 {"timestamp":"2026-06-01T11:46:20.069Z","input":"hi","response":"Xin chào! Bạn cần hỗ trợ gì về PC hôm nay?","isCorrect":true}
 {"timestamp":"2026-06-01T11:46:23.375Z","input":"chào bạn","response":"Xin chào! Bạn cần hỗ trợ gì về PC hôm nay?","isCorrect":true}
 {"timestamp":"2026-06-01T11:46:26.755Z","input":"bạn khỏe j","response":"Mình khỏe, cảm ơn bạn! Bạn cần hỗ trợ gì về PC hôm nay?","isCorrect":true}
+{"timestamp":"2026-06-02T20:05:03.760Z","input":"hi","response":"Xin chào! Bạn cần hỗ trợ gì về PC hôm nay?","isCorrect":true}
+{"timestamp":"2026-06-02T20:05:07.956Z","input":"ăn cơm chưa","response":"Chào bạn! Mình đang sẵn sàng hỗ trợ bạn về PC. Bạn cần gì hôm nay?","isCorrect":true}
+{"timestamp":"2026-06-02T20:05:15.349Z","input":"bạn khỏe ko","response":"Mình rất khỏe, cảm ơn bạn đã hỏi! Bạn cần hỗ trợ gì về PC không?","isCorrect":true}
