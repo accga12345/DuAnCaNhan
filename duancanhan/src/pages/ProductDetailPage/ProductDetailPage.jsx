@@ -34,9 +34,9 @@ const ProductDetailPage = () => {
   });
 
   useEffect(() => {
-    const backendUrl = process.env.REACT_APP_API_URL 
-      ? process.env.REACT_APP_API_URL.replace('/api', '') 
-      : "http://localhost:3001";
+    const backendUrl = import.meta.env.VITE_API_URL 
+      ? import.meta.env.VITE_API_URL.replace('/api', '') 
+      : import.meta.env.VITE_API_URL;
     const socket = io(backendUrl);
 
     socket.on("new_review", (data) => {

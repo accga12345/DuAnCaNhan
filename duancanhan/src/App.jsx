@@ -12,6 +12,8 @@ import { useState } from 'react'
 import { useSelector } from 'react-redux'
 import LoadingComponent from './components/Loading/LoadingComponent'
 import { MessageComponent } from './components/MessageComponent/MessageComponent'
+import { useQuery } from '@tanstack/react-query'
+import { getAllCategories } from './services/CategoryService'
 
 function App() {
   const dispatch = useDispatch()
@@ -51,6 +53,11 @@ function App() {
     }
   }
 
+  const { data: categories } = useQuery({
+    queryKey: ['categories'],
+    queryFn: () => getAllCategories(),
+  });
+
   return (
     <LoadingComponent isPending={loading}>
       <MessageComponent>
@@ -66,7 +73,13 @@ function App() {
                   key={route.path}
                   path={isCheckAuth ? route.path : "/"}
                   element={
-                    <Layout isHiddenSearch={route.isHiddenSearch} isCart={route.isCart} isShowFooter={route.isShowFooter} isFullWidth={route.isFullWidth}>
+                    <Layout 
+                      isHiddenSearch={route.isHiddenSearch} 
+                      isCart={route.isCart} 
+                      isShowFooter={route.isShowFooter} 
+                      isFullWidth={route.isFullWidth}
+                      categories={categories}
+                    >
                       <Page />
                     </Layout>
                   }

@@ -46,7 +46,7 @@ const TypeProductPage = () => {
 
   useEffect(() => {
     if (categories?.data && slug) {
-      const category = categories.data.find(c => convertToSlug(c.name) === slug);
+      const category = categories.data.find(c => convertToSlug(c.name).toLowerCase() === slug.toLowerCase());
       if (category) {
         setCategoryId(category._id);
       }

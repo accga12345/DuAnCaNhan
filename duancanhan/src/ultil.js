@@ -15,7 +15,7 @@ export const getBase64 = async file => {
     try {
         const formData = new FormData();
         formData.append('image', file);
-        const baseUrl = process.env.REACT_APP_API_URL || "http://localhost:3001/api";
+        const baseUrl = import.meta.env.VITE_API_URL;
         const response = await fetch(`${baseUrl}/upload`, {
             method: 'POST',
             body: formData,

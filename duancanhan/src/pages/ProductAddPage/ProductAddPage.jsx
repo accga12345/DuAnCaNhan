@@ -56,6 +56,7 @@ function ProductAddPage() {
             brand: values.brand,
             supplier: values.supplier,
             price: values.price,
+            warranty: values.warranty,
             description: values.description, // Required by Backend
             countInStock: values.countInStock, // Required by Backend
             discount: values.discount,
@@ -176,6 +177,10 @@ function ProductAddPage() {
 
                 <Form.Item label="Giá bán" name="price" rules={[{ required: true }]}>
                     <InputNumber min={0} style={{ width: '100%' }} formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} />
+                </Form.Item>
+
+                <Form.Item label="Bảo hành (tháng)" name="warranty" rules={[{ required: true }]}>
+                    <InputNumber min={0} style={{ width: '100%' }} />
                 </Form.Item>
 
                 <Form.Item label="Danh mục" name="category" rules={[{ required: true }]}>

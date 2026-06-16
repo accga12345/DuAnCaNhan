@@ -237,6 +237,37 @@ const getDetailsOrder = async (id) => {
     }
 }
 
+const getWarrantyService = (search) => {
+    return new Promise(async (resolve, reject) => {
+        try {
+            const query = {
+                $or: [
+                    { orderCode: search },
+                    { 'shippingAddress.phone': Number(search) || 0 }
+                ],
+                status: 4 // Only include delivered (completed) orders
+            };
+            const orders = await Order.find(query).sort({ createdAt: -1 });
+            
+            if (!orders || orders.length === 0) {
+                resolve({
+                    status: 'ERR',
+                    message: 'Không tìm thấy thông tin đơn hàng'
+                });
+                return;
+            }
+
+            resolve({
+                status: 'OK',
+                message: 'SUCCESS',
+                data: orders
+            });
+        } catch (e) {
+            reject(e);
+        }
+    });
+};
+
 const getAllOrderDetails = async (id) => {
     try {
         const order = await Order.find({
@@ -308,5 +339,6 @@ module.exports = {
     updateOrder,
     getDetailsOrder,
     getAllOrderDetails,
-    updateOrderReview
+    updateOrderReview,
+    getWarrantyService
 };

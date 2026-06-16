@@ -1,14 +1,15 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useSelector } from 'react-redux';
-import { Space, Button, Tag, Typography, Tooltip, Modal, List, Image, Input, DatePicker } from 'antd';
-import { CheckCircleOutlined, CarOutlined, CloseCircleOutlined, SyncOutlined, EyeOutlined, SearchOutlined, FileExcelOutlined } from '@ant-design/icons';
+import { Space, Button, Tag, Typography, Tooltip, Modal, List, Image, Input, DatePicker, Form, Select, InputNumber, Checkbox, Row, Col } from 'antd';
+import { CheckCircleOutlined, CarOutlined, CloseCircleOutlined, SyncOutlined, EyeOutlined, SearchOutlined, FileExcelOutlined, PlusOutlined, MinusCircleOutlined } from '@ant-design/icons';
 import Highlighter from 'react-highlight-words';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import dayjs from 'dayjs';
 
-import { getAllOrder, updateOrder } from '../../services/OrderService';
+import { getAllOrder, updateOrder, createOrder } from '../../services/OrderService';
+import { getAllProduct } from '../../services/ProductService';
 import TableComponent from '../../components/TableComponent/TableComponent';
 import LoadingComponent from '../../components/Loading/LoadingComponent';
 import { useMutationHook } from '../../hooks/useMutationHook';
@@ -19,10 +20,13 @@ import InvoiceTemplate from '../../components/InvoiceTemplate/InvoiceTemplate';
 
 const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
+const { Option } = Select;
 
 const OrderAdmin = () => {
     const user = useSelector((state) => state.user);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [createForm] = Form.useForm();
     const [selectedOrder, setSelectedOrder] = useState(null);
     const [orderForInvoice, setOrderForInvoice] = useState(null);
     const [searchText, setSearchText] = useState('');
@@ -35,6 +39,12 @@ const OrderAdmin = () => {
     const { data: orders, isPending: isLoadingOrders, refetch } = useQuery({
         queryKey: ['orders'],
         queryFn: () => getAllOrder(user?.accessToken),
+        enabled: !!user?.accessToken,
+    });
+
+    const { data: productsData } = useQuery({
+        queryKey: ['all-products'],
+        queryFn: () => getAllProduct(1000, 1, undefined, undefined, true),
         enabled: !!user?.accessToken,
     });
 
@@ -51,7 +61,28 @@ const OrderAdmin = () => {
         }
     );
 
+    const mutationCreate = useMutationHook(
+        (data) => {
+            const { token, ...rests } = data;
+            return createOrder(rests, token);
+        }
+    );
+
     const { data: dataUpdate, isSuccess: isSuccessUpdate, isError: isErrorUpdate, isPending: isPendingUpdate } = mutationUpdate;
+    const { data: dataCreate, isSuccess: isSuccessCreate, isError: isErrorCreate, isPending: isPendingCreate } = mutationCreate;
+
+    useEffect(() => {
+        if (isSuccessCreate && dataCreate?.status === 'OK') {
+            message.showSuccess('Tạo đơn hàng thành công');
+            setIsCreateModalOpen(false);
+            createForm.resetFields();
+            // Tự động xuất hóa đơn cho đơn vừa tạo
+            exportPDF(dataCreate.data);
+            refetch();
+        } else if (isErrorCreate) {
+            message.showError('Tạo đơn hàng thất bại');
+        }
+    }, [isSuccessCreate, isErrorCreate, dataCreate]);
 
     const handleTableChange = (pagination, filters, sorter, extra) => {
         setCurrentOrdersData(extra.currentDataSource);
@@ -374,21 +405,63 @@ const OrderAdmin = () => {
         },
     ];
 
+    const handleCreateOrder = (values) => {
+        const orderItems = values.items.map(item => {
+            const product = productsData?.data?.find(p => p._id === item.product);
+            return {
+                name: product.name,
+                amount: item.amount,
+                image: product.image,
+                price: product.price,
+                warranty: product.warranty || 12,
+                product: product._id
+            };
+        });
+
+        const itemsPrice = orderItems.reduce((acc, curr) => acc + (curr.price * curr.amount), 0);
+        const shippingPrice = values.shippingPrice || 0;
+        const totalPrice = itemsPrice + shippingPrice;
+
+        mutationCreate.mutate({
+            token: user?.accessToken,
+            orderItems,
+            fullName: values.fullName,
+            address: values.address || 'Mua tại cửa hàng',
+            phone: values.phone,
+            paymentMethod: values.paymentMethod,
+            itemsPrice,
+            shippingPrice,
+            totalPrice,
+            user: user?._id,
+            isPaid: values.isPaid,
+            paidAt: values.isPaid ? new Date() : null,
+            status: 1 // Mặc định là đã xác nhận cho đơn tại quầy
+        });
+    };
+
     return (
         <div>
             <PageHeader>
                 <Title level={4} style={{ margin: 0 }}>Quản lý đơn hàng</Title>
                 <ActionToolbar>
                     <Button
+                        type="primary"
+                        icon={<PlusOutlined />}
+                        onClick={() => setIsCreateModalOpen(true)}
+                        style={{ backgroundColor: '#52c41a' }}
+                    >
+                        Tạo đơn hàng
+                    </Button>
+                    <Button
                         icon={<FileExcelOutlined />}
                         onClick={handleExportExcel}
-                        type="primary"
+                        type="default"
                     >
                         Xuất Excel
                     </Button>
                 </ActionToolbar>
             </PageHeader>
-            <LoadingComponent isPending={isLoadingOrders || isPendingUpdate}>
+            <LoadingComponent isPending={isLoadingOrders || isPendingUpdate || isPendingCreate}>
                 <TableComponent 
                     columns={columns} 
                     data={orders?.data} 
@@ -396,6 +469,103 @@ const OrderAdmin = () => {
                     onChange={handleTableChange}
                 />
             </LoadingComponent>
+
+            <Modal
+                title="Tạo đơn hàng mới (Tại quầy)"
+                open={isCreateModalOpen}
+                onCancel={() => { setIsCreateModalOpen(false); createForm.resetFields(); }}
+                onOk={() => createForm.submit()}
+                width={800}
+                confirmLoading={isPendingCreate}
+            >
+                <Form
+                    form={createForm}
+                    layout="vertical"
+                    onFinish={handleCreateOrder}
+                    initialValues={{
+                        paymentMethod: 'Tiền mặt',
+                        address: 'Mua tại cửa hàng',
+                        isPaid: true,
+                        items: [{ amount: 1 }]
+                    }}
+                >
+                    <Row gutter={16}>
+                        <Col span={12}>
+                            <Form.Item name="fullName" label="Tên khách hàng" rules={[{ required: true, message: 'Vui lòng nhập tên khách hàng' }]}>
+                                <Input placeholder="Nguyễn Văn A" />
+                            </Form.Item>
+                        </Col>
+                        <Col span={12}>
+                            <Form.Item name="phone" label="Số điện thoại" rules={[{ required: true, message: 'Vui lòng nhập số điện thoại' }]}>
+                                <Input placeholder="0123456789" />
+                            </Form.Item>
+                        </Col>
+                    </Row>
+                    <Form.Item name="address" label="Địa chỉ">
+                        <Input placeholder="Bỏ trống nếu mua tại cửa hàng" />
+                    </Form.Item>
+                    <Row gutter={16}>
+                        <Col span={12}>
+                            <Form.Item name="paymentMethod" label="Phương thức thanh toán">
+                                <Select>
+                                    <Option value="Tiền mặt">Tiền mặt</Option>
+                                    <Option value="Chuyển khoản">Chuyển khoản</Option>
+                                    <Option value="Thẻ">Thẻ ATM/Visa</Option>
+                                </Select>
+                            </Form.Item>
+                        </Col>
+                        <Col span={12}>
+                            <Form.Item name="isPaid" label="Trạng thái thanh toán" valuePropName="checked">
+                                <Checkbox>Đã thanh toán</Checkbox>
+                            </Form.Item>
+                        </Col>
+                    </Row>
+
+                    <Text strong>Danh sách sản phẩm</Text>
+                    <Form.List name="items">
+                        {(fields, { add, remove }) => (
+                            <>
+                                {fields.map(({ key, name, ...restField }) => (
+                                    <Space key={key} style={{ display: 'flex', marginBottom: 8 }} align="baseline">
+                                        <Form.Item
+                                            {...restField}
+                                            name={[name, 'product']}
+                                            rules={[{ required: true, message: 'Chọn sản phẩm' }]}
+                                            style={{ width: 450 }}
+                                        >
+                                            <Select
+                                                showSearch
+                                                placeholder="Tìm sản phẩm..."
+                                                filterOption={(input, option) =>
+                                                    (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                                                }
+                                                options={productsData?.data?.map(p => ({
+                                                    value: p._id,
+                                                    label: `${p.name} - ${p.price.toLocaleString()}đ (Còn: ${p.countInStock})`,
+                                                    disabled: p.countInStock <= 0
+                                                }))}
+                                            />
+                                        </Form.Item>
+                                        <Form.Item
+                                            {...restField}
+                                            name={[name, 'amount']}
+                                            rules={[{ required: true, message: 'Số lượng' }]}
+                                        >
+                                            <InputNumber min={1} placeholder="SL" />
+                                        </Form.Item>
+                                        <MinusCircleOutlined onClick={() => remove(name)} />
+                                    </Space>
+                                ))}
+                                <Form.Item>
+                                    <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />}>
+                                        Thêm sản phẩm
+                                    </Button>
+                                </Form.Item>
+                            </>
+                        )}
+                    </Form.List>
+                </Form>
+            </Modal>
 
             <Modal title="Chi tiết đơn hàng" open={isModalOpen} onCancel={() => setIsModalOpen(false)} footer={null} width={600}>
                 {selectedOrder && (

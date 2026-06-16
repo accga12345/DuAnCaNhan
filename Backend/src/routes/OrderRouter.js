@@ -10,5 +10,6 @@ router.put('/update/:id', authMiddleware, OrderController.updateOrder);
 router.get('/get-details/:id', authUserMiddleware, OrderController.getDetailsOrder);
 router.get('/get-all-order/:id', authUserMiddleware, OrderController.getAllOrderDetails);
 router.put('/update-review/:id', authUserMiddleware, OrderController.updateOrderReview);
+router.get('/get-warranty/:search', OrderController.getWarranty);
 
 module.exports = router;

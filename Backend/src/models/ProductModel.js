@@ -54,6 +54,10 @@ const productSchema = new mongoose.Schema({
         type: Number,
         default: 0,
     },
+    warranty: {
+        type: Number,
+        default: 12, // Mặc định 12 tháng
+    },
     reviews: [{
         user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
         rating: Number,

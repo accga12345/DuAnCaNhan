@@ -22,7 +22,7 @@ const LiveChatComponent = ({ isInline = false }) => {
     }, [isInline]);
 
     useEffect(() => {
-        const backendUrl = process.env.REACT_APP_API_URL ? process.env.REACT_APP_API_URL.replace('/api', '') : 'http://localhost:3001';
+        const backendUrl = import.meta.env.VITE_API_URL.replace('/api', '');
         const newSocket = io(backendUrl);
         setSocket(newSocket);
 

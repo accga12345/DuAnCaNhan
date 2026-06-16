@@ -13,10 +13,18 @@ import CommitmentPage from "../pages/CommitmentPage/CommitmentPage";
 import PCBuilderPage from "../pages/PCBuilderPage/PCBuilderPage";
 import ForgotPasswordPage from "../pages/ForgotPasswordPage/ForgotPasswordPage";
 import ResetPasswordPage from "../pages/ResetPasswordPage/ResetPasswordPage";
+import { WarrantyLookupPage } from '../pages/WarrantyLookupPage/WarrantyLookupPage';
 
-const routes = [
+export const routes = [
     {
-        path: "/", page: HomePage,
+        path: '/',
+        page: HomePage,
+        isShowHeader: true,
+        isShowFooter: true
+    },
+    {
+        path: '/warranty-lookup',
+        page: WarrantyLookupPage,
         isShowHeader: true,
         isShowFooter: true
     },

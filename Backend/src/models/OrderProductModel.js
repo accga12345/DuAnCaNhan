@@ -24,6 +24,10 @@ const orderProductSchema = new mongoose.Schema({
                 type: Number,
                 required: true,
             },
+            warranty: {
+                type: Number,
+                default: 12,
+            },
             product: {
                 type: mongoose.Schema.Types.ObjectId,
                 ref: 'Product',

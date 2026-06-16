@@ -50,6 +50,7 @@ const ProductDetailComponent = (props) => {
                     price: product?.data?.price,
                     product: product?.data?._id,
                     discount: product?.data?.discount || 0,
+                    warranty: product?.data?.warranty || 12,
                     countInStock: product?.data?.countInStock
                 }
             }))

@@ -54,7 +54,7 @@ const ChatbotComponent = ({ isInline = false }) => {
         setIsLoading(true);
 
         try {
-            const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+            const apiUrl = import.meta.env.VITE_API_URL;
             const res = await axios.post(`${apiUrl}/chat/message`, { message: userMsg.text, history: chatHistory });
             const botMsg = { sender: 'bot', text: res.data.message, products: res.data.data, type: 'build' };
             setMessages(prev => [...prev, botMsg]);
@@ -67,7 +67,7 @@ const ChatbotComponent = ({ isInline = false }) => {
 
     const fetchAlternatives = async (product, budget) => {
         try {
-            const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+            const apiUrl = import.meta.env.VITE_API_URL;
             // Tìm cấu hình build gần nhất
             const lastBuildMsg = [...messages].reverse().find(msg => msg.products && msg.products.length > 0 && msg.type === 'build');
 
@@ -114,7 +114,7 @@ const ChatbotComponent = ({ isInline = false }) => {
     const handleReplaceClick = async (product) => {
         setIsLoading(true);
         try {
-            const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+            const apiUrl = import.meta.env.VITE_API_URL;
             const lastBuildMsg = [...messages].reverse().find(msg => msg.products && msg.products.length > 0 && msg.type === 'build');
 
             // Chỉ gửi ID của category đi

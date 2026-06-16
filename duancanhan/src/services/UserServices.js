@@ -32,20 +32,20 @@ axiosJwt.interceptors.request.use(
 );
 
 export const loginUser = async (data) => {
-    const res = await axios.post(`${process.env.REACT_APP_API_URL}/user/signin`, data, {
+    const res = await axios.post(`${import.meta.env.VITE_API_URL}/user/signin`, data, {
         withCredentials: true
     });
     return res.data;
 };
 
 export const registerUser = async (data) => {
-    const res = await axios.post(`${process.env.REACT_APP_API_URL}/user/signup`, data);
+    const res = await axios.post(`${import.meta.env.VITE_API_URL}/user/signup`, data);
     return res.data;
 };
 
 export const getDetailUser = async (id, token) => {
     const res = await axiosJwt.get(
-        `${process.env.REACT_APP_API_URL}/user/get_by_id/${id}`,
+        `${import.meta.env.VITE_API_URL}/user/get_by_id/${id}`,
         {
             headers: {
                 Authorization: `Bearer ${token}`
@@ -56,7 +56,7 @@ export const getDetailUser = async (id, token) => {
 };
 
 export const refreshToken = async () => {
-    const res = await axios.post(`${process.env.REACT_APP_API_URL}/user/refresh_token`, {},
+    const res = await axios.post(`${import.meta.env.VITE_API_URL}/user/refresh_token`, {},
         {
             withCredentials: true
         }
@@ -65,14 +65,14 @@ export const refreshToken = async () => {
 };
 
 export const logoutUser = async () => {
-    const res = await axios.post(`${process.env.REACT_APP_API_URL}/user/logout`, {}, {
+    const res = await axios.post(`${import.meta.env.VITE_API_URL}/user/logout`, {}, {
         withCredentials: true
     });
     return res.data;
 };
 
 export const getAllUser = async (token) => {
-    const res = await axiosJwt.get(`${process.env.REACT_APP_API_URL}/user/get_all`, {
+    const res = await axiosJwt.get(`${import.meta.env.VITE_API_URL}/user/get_all`, {
         headers: {
             Authorization: `Bearer ${token}`
         }
@@ -81,7 +81,7 @@ export const getAllUser = async (token) => {
 }
 
 export const deleteUser = async (id, token) => {
-    const res = await axiosJwt.delete(`${process.env.REACT_APP_API_URL}/user/delete/${id}`, {
+    const res = await axiosJwt.delete(`${import.meta.env.VITE_API_URL}/user/delete/${id}`, {
         headers: {
             Authorization: `Bearer ${token}`
         }
@@ -90,7 +90,7 @@ export const deleteUser = async (id, token) => {
 }
 
 export const updateUserInfo = async (id, data, token) => {
-    const res = await axiosJwt.put(`${process.env.REACT_APP_API_URL}/user/update/${id}`, data, {
+    const res = await axiosJwt.put(`${import.meta.env.VITE_API_URL}/user/update/${id}`, data, {
         headers: {
             Authorization: `Bearer ${token}`
         }
@@ -99,7 +99,7 @@ export const updateUserInfo = async (id, data, token) => {
 }
 
 export const deleteManyUser = async (ids, token) => {
-    const res = await axiosJwt.delete(`${process.env.REACT_APP_API_URL}/user/delete_many_user`, {
+    const res = await axiosJwt.delete(`${import.meta.env.VITE_API_URL}/user/delete_many_user`, {
         headers: {
             Authorization: `Bearer ${token}`
         },
@@ -111,16 +111,16 @@ export const deleteManyUser = async (ids, token) => {
 }
 
 export const forgotPassword = async (data) => {
-    const res = await axios.post(`${process.env.REACT_APP_API_URL}/user/forgot-password`, data);
+    const res = await axios.post(`${import.meta.env.VITE_API_URL}/user/forgot-password`, data);
     return res.data;
 };
 
 export const resetPassword = async (data) => {
-    const res = await axios.post(`${process.env.REACT_APP_API_URL}/user/reset-password`, data);
+    const res = await axios.post(`${import.meta.env.VITE_API_URL}/user/reset-password`, data);
     return res.data;
 };
 
 export const sendOtp = async (data) => {
-    const res = await axios.post(`${process.env.REACT_APP_API_URL}/user/send-otp`, data);
+    const res = await axios.post(`${import.meta.env.VITE_API_URL}/user/send-otp`, data);
     return res.data;
 };

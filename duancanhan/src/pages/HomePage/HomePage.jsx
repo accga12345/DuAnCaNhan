@@ -1,12 +1,8 @@
 import React from "react"
-import TypeProduct from "../../components/TypeProducts/TypeProduct"
-import { WapperHomePage, WrapperButtonMore, WrapperProductGrid, WrapperProductSlider } from "./style"
+import { WrapperButtonMore, WrapperProductGrid, WrapperProductSlider } from "./style"
 import SliderComponent from "../../components/SliderComponent/SliderComponent"
 import CommitmentBanner from "../../components/CommitmentBanner/CommitmentBanner"
 import SidebarComponent from "../../components/SidebarComponent/SidebarComponent"
-import slider1 from "../../assets/images/gearvn-build-pc.png"
-import slider2 from "../../assets/images/gearvn-build-pc.png"
-import slider3 from "../../assets/images/gearvn-build-pc.png"
 import CardComponent from "../../components/CardComponent/CardComponent"
 import { useQuery } from "@tanstack/react-query"
 import { getAllProduct } from "../../services/ProductService";
@@ -135,24 +131,23 @@ const HomePage = () => {
         {/* Top Full Width Section */}
         <CommitmentBanner />
 
-        <div style={{ display: "flex", gap: "24px", alignItems: 'flex-start' }}>
+        <div style={{ display: "flex", gap: "24px", alignItems: 'flex-start', marginTop: '16px' }}>
           {/* Left Sidebar */}
-          <SidebarComponent 
-            categories={categories}
-            brands={brands}
-            brandFilter={brandFilter}
-            setBrandFilter={setBrandFilter}
-            ratingFilter={ratingFilter}
-            setRatingFilter={setRatingFilter}
-            sortOption={sortOption}
-            setSortOption={setSortOption}
-            setLimit={setLimit}
-            showPCBuilder={true}
-          />
+          <div style={{ width: '250px', flexShrink: 0 }}>
+            {/* Sidebar Filters */}
+            <SidebarComponent
+                brands={brands}
+                brandFilter={brandFilter}
+                setBrandFilter={setBrandFilter}
+                ratingFilter={ratingFilter}
+                setRatingFilter={setRatingFilter}
+                setLimit={setLimit}
+            />
+          </div>
 
           {/* Main Content */}
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div>
+              {/* Slider Section */}
               <div style={{ borderRadius: '16px', overflow: 'hidden', boxShadow: 'var(--shadow-soft)', marginBottom: '24px' }}>
                 <SliderComponent />
               </div>
@@ -220,7 +215,6 @@ const HomePage = () => {
                   ))}
                 </WrapperProductGrid>
               </div>
-            </div>
           </div>
         </div>
 

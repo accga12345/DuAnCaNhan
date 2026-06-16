@@ -1,6 +1,6 @@
 import React, { useRef } from "react";
 import { Badge, Col, Button } from "antd";
-import { HomeOutlined, SmileOutlined, ShoppingCartOutlined, CloseOutlined } from "@ant-design/icons";
+import { HomeOutlined, SmileOutlined, ShoppingCartOutlined, CloseOutlined, DeleteOutlined } from "@ant-design/icons";
 import { WapperHeaderComponent, WapperTextHeader, WapperHeaderAction, WapperAvatar } from "./style";
 import ButtonInputSearch from "../ButtonInputSearch/ButtonInputSearch";
 import { useNavigate } from "react-router-dom";
@@ -74,7 +74,7 @@ const HeaderComponent = ({ isHiddenSearch, isCart }) => {
   React.useEffect(() => {
     let socket;
     if (user.accessToken) {
-      const backendUrl = process.env.REACT_APP_API_URL ? process.env.REACT_APP_API_URL.replace('/api', '') : "http://localhost:3001";
+      const backendUrl = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace('/api', '') : "http://localhost:3001";
       socket = io(backendUrl);
       setSocketObj(socket);
 
@@ -178,7 +178,7 @@ const HeaderComponent = ({ isHiddenSearch, isCart }) => {
       // Fetch old notifications
       const fetchNotifications = async () => {
         try {
-          const baseUrl = process.env.REACT_APP_API_URL || "http://localhost:3001/api";
+          const baseUrl = import.meta.env.VITE_API_URL;
           const url = (user.isAdmin || user.isEmployee)
             ? `${baseUrl}/notification/get-all`
             : `${baseUrl}/notification/get-all?userId=${user._id}`;
@@ -201,12 +201,28 @@ const HeaderComponent = ({ isHiddenSearch, isCart }) => {
 
   const handleReadNotification = async (id) => {
     try {
-      const baseUrl = process.env.REACT_APP_API_URL || "http://localhost:3001/api";
+      const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
       await axios.put(`${baseUrl}/notification/mark-as-read/${id}`);
       setNotifications(notifications.map(n => n._id === id ? { ...n, isRead: true } : n));
       setUnreadCount(prev => Math.max(0, prev - 1));
     } catch (e) {
       console.error(e);
+    }
+  };
+
+  const handleDeleteNotification = async (e, id, isRead) => {
+    e.stopPropagation();
+    try {
+      const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
+      await axios.delete(`${baseUrl}/notification/delete/${id}`);
+      setNotifications(notifications.filter(n => n._id !== id));
+      if (!isRead) {
+        setUnreadCount(prev => Math.max(0, prev - 1));
+      }
+      showSuccess("Đã xóa thông báo");
+    } catch (e) {
+      console.error(e);
+      showError("Xóa thông báo thất bại");
     }
   };
 
@@ -307,13 +323,23 @@ const HeaderComponent = ({ isHiddenSearch, isCart }) => {
         dataSource={notifications}
         renderItem={(item) => (
           <List.Item
-            style={{ cursor: "pointer", background: item.isRead ? "transparent" : "#f0f2f5", padding: "10px" }}
-            onClick={() => handleReadNotification(item._id)}
+            style={{ 
+                cursor: "pointer", 
+                background: item.isRead ? "transparent" : "#f0f2f5", 
+                padding: "10px",
+                display: 'flex',
+                justifyContent: 'space-between'
+            }}
+            actions={[
+              <Button type="text" danger icon={<DeleteOutlined />} onClick={(e) => handleDeleteNotification(e, item._id, item.isRead)} />
+            ]}
           >
-            <List.Item.Meta
-              title={item.title}
-              description={item.body}
-            />
+            <div style={{ flex: 1 }} onClick={() => handleReadNotification(item._id)}>
+                <List.Item.Meta
+                    title={item.title}
+                    description={item.body}
+                />
+            </div>
           </List.Item>
         )}
       />

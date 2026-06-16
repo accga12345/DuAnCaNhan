@@ -95,11 +95,29 @@ const updateOrderReview = async (req, res) => {
     }
 }
 
+const getWarranty = async (req, res) => {
+    try {
+        const search = req.params.search;
+        if (!search) {
+            return res.status(400).json({
+                status: "error",
+                message: "Vui lòng nhập thông tin tìm kiếm",
+            });
+        }
+        const orders = await OrderService.getWarrantyService(search);
+        if (orders.status === "ERR") return res.status(404).json(orders);
+        return res.status(200).json(orders);
+    } catch (error) {
+        return res.status(500).json({ message: error.message });
+    }
+}
+
 module.exports = {
     createOrder,
     getAllOrder,
     updateOrder,
     getDetailsOrder,
     getAllOrderDetails,
-    updateOrderReview
+    updateOrderReview,
+    getWarranty
 };

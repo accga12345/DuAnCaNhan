@@ -2,7 +2,7 @@ import axios from "axios";
 import { axiosJwt } from "./UserServices";
 
 export const getAllProduct = async (limit, page, sort, filter, isAdmin = false) => {
-    let url = `${process.env.REACT_APP_API_URL}/product/get_all?limit=${limit}&page=${page}`
+    let url = `${import.meta.env.VITE_API_URL}/product/get_all?limit=${limit}&page=${page}`
     
     if (sort) {
         url += `&sort=${sort[0]}&sort=${sort[1]}`
@@ -25,12 +25,12 @@ export const getAllProduct = async (limit, page, sort, filter, isAdmin = false) 
 }
 
 export const getDetailProduct = async (id) => {
-    const res = await axios.get(`${process.env.REACT_APP_API_URL}/product/get_by_id/${id}`)
+    const res = await axios.get(`${import.meta.env.VITE_API_URL}/product/get_by_id/${id}`)
     return res.data
 }
 
 export const createProduct = async (data, access_token) => {
-    const res = await axiosJwt.post(`${process.env.REACT_APP_API_URL}/product/create_product`, data, {
+    const res = await axiosJwt.post(`${import.meta.env.VITE_API_URL}/product/create_product`, data, {
         headers: {
             Authorization: `Bearer ${access_token}`,
         }
@@ -39,7 +39,7 @@ export const createProduct = async (data, access_token) => {
 }
 
 export const updateProduct = async (id, data, access_token) => {
-    const res = await axiosJwt.put(`${process.env.REACT_APP_API_URL}/product/update_product/${id}`, data, {
+    const res = await axiosJwt.put(`${import.meta.env.VITE_API_URL}/product/update_product/${id}`, data, {
         headers: {
             Authorization: `Bearer ${access_token}`,
         }
@@ -48,7 +48,7 @@ export const updateProduct = async (id, data, access_token) => {
 }
 
 export const deleteProduct = async (id, access_token) => {
-    const res = await axiosJwt.delete(`${process.env.REACT_APP_API_URL}/product/delete_product/${id}`, {
+    const res = await axiosJwt.delete(`${import.meta.env.VITE_API_URL}/product/delete_product/${id}`, {
         headers: {
             Authorization: `Bearer ${access_token}`,
         }
@@ -57,7 +57,7 @@ export const deleteProduct = async (id, access_token) => {
 }
 
 export const deleteManyProduct = async (ids, access_token) => {
-    const res = await axiosJwt.delete(`${process.env.REACT_APP_API_URL}/product/delete_many_product`, {
+    const res = await axiosJwt.delete(`${import.meta.env.VITE_API_URL}/product/delete_many_product`, {
         headers: {
             Authorization: `Bearer ${access_token}`,
         },
@@ -69,12 +69,12 @@ export const deleteManyProduct = async (ids, access_token) => {
 }
 
 export const getAllCategoryProduct = async () => {
-    const res = await axios.get(`${process.env.REACT_APP_API_URL}/product/get_all_category_product`)
+    const res = await axios.get(`${import.meta.env.VITE_API_URL}/product/get_all_category_product`)
     return res.data
 }
 
 export const getProductByCategory = async (id, limit, page, sort, filterArray) => {
-    let url = `${process.env.REACT_APP_API_URL}/product/get_all?filter=category&filter=${id}&limit=${limit}&page=${page}`
+    let url = `${import.meta.env.VITE_API_URL}/product/get_all?filter=category&filter=${id}&limit=${limit}&page=${page}`
     
     if (sort) {
         url += `&sort=${sort[0]}&sort=${sort[1]}`

@@ -13,7 +13,7 @@ const SliderComponent = ({ arrImgs }) => {
 
     const fetchImages = async () => {
         try {
-            const res = await axios.get(`${process.env.REACT_APP_API_URL}/slider/get-all`);
+            const res = await axios.get(`${import.meta.env.VITE_API_URL}/slider/get-all`);
             const data = Array.isArray(res.data) ? res.data : (res.data.data || []);
             setSliderImages(data);
         } catch (error) {

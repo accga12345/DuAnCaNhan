@@ -406,7 +406,7 @@ function ProductListPage() {
             >
                 <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
                     <Row gutter={16}>
-                        <Col span={12}>
+                        <Col span={8}>
                             <Form.Item label="Tên sản phẩm" name="name" rules={[{ required: true, message: 'Vui lòng nhập tên sản phẩm' }]}>
                                 <Input disabled placeholder="Nhập tên sản phẩm" />
                             </Form.Item>
@@ -416,9 +416,14 @@ function ProductListPage() {
                                 <InputNumber min={0} style={{ width: '100%' }} />
                             </Form.Item>
                         </Col>
-                        <Col span={6}>
+                        <Col span={5}>
                             <Form.Item label="Giảm giá (%)" name="discount">
                                 <InputNumber min={0} max={100} style={{ width: '100%' }} />
+                            </Form.Item>
+                        </Col>
+                        <Col span={5}>
+                            <Form.Item label="Bảo hành (tháng)" name="warranty" rules={[{ required: true }]}>
+                                <InputNumber min={0} style={{ width: '100%' }} />
                             </Form.Item>
                         </Col>
                     </Row>

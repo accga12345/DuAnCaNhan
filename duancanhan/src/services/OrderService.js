@@ -1,7 +1,7 @@
 import { axiosJwt } from "./UserServices";
 
 export const createOrder = async (data, access_token) => {
-    const res = await axiosJwt.post(`${process.env.REACT_APP_API_URL}/order/create/${data.user}`, data, {
+    const res = await axiosJwt.post(`${import.meta.env.VITE_API_URL}/order/create/${data.user}`, data, {
         headers: {
             token: `Bearer ${access_token}`,
         }
@@ -10,7 +10,7 @@ export const createOrder = async (data, access_token) => {
 };
 
 export const getAllOrder = async (access_token) => {
-    const res = await axiosJwt.get(`${process.env.REACT_APP_API_URL}/order/get-all`, {
+    const res = await axiosJwt.get(`${import.meta.env.VITE_API_URL}/order/get-all`, {
         headers: {
             token: `Bearer ${access_token}`,
         }
@@ -19,7 +19,7 @@ export const getAllOrder = async (access_token) => {
 };
 
 export const updateOrder = async (id, data, access_token) => {
-    const res = await axiosJwt.put(`${process.env.REACT_APP_API_URL}/order/update/${id}`, data, {
+    const res = await axiosJwt.put(`${import.meta.env.VITE_API_URL}/order/update/${id}`, data, {
         headers: {
             token: `Bearer ${access_token}`,
         }
@@ -28,7 +28,7 @@ export const updateOrder = async (id, data, access_token) => {
 };
 
 export const getDetailsOrder = async (id, access_token) => {
-    const res = await axiosJwt.get(`${process.env.REACT_APP_API_URL}/order/get-details/${id}`, {
+    const res = await axiosJwt.get(`${import.meta.env.VITE_API_URL}/order/get-details/${id}`, {
         headers: {
             token: `Bearer ${access_token}`,
         }
@@ -37,7 +37,7 @@ export const getDetailsOrder = async (id, access_token) => {
 };
 
 export const getOrderByUserId = async (id, access_token) => {
-    const res = await axiosJwt.get(`${process.env.REACT_APP_API_URL}/order/get-all-order/${id}`, {
+    const res = await axiosJwt.get(`${import.meta.env.VITE_API_URL}/order/get-all-order/${id}`, {
         headers: {
             token: `Bearer ${access_token}`,
         }
@@ -46,7 +46,7 @@ export const getOrderByUserId = async (id, access_token) => {
 };
 
 export const updateOrderReview = async (id, data, access_token) => {
-    const res = await axiosJwt.put(`${process.env.REACT_APP_API_URL}/order/update-review/${id}`, data, {
+    const res = await axiosJwt.put(`${import.meta.env.VITE_API_URL}/order/update-review/${id}`, data, {
         headers: {
             token: `Bearer ${access_token}`,
         }

@@ -25,6 +25,13 @@ const InvoiceTemplate = React.forwardRef(({ order }, ref) => {
             key: 'name',
         },
         {
+            title: 'Bảo hành',
+            dataIndex: 'warranty',
+            key: 'warranty',
+            align: 'center',
+            render: (text) => `${text || 12} th`,
+        },
+        {
             title: 'Số lượng',
             dataIndex: 'amount',
             key: 'amount',
