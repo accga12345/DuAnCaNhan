@@ -80,13 +80,64 @@ const handleChat = async (req, res) => {
     try {
         const nluResult = await GroqService.askGroq(message, history || [], '');
         ({ intent } = nluResult);
-        let { budget, purpose, requirements, brand_preference, reply } = nluResult;
+        let { budget, purpose, requirements, brand_preference, reply, specs_filter } = nluResult;
 
-        const isMissingBudget = budget <= 0;
+        // --- ĐOẠN LOG ĐỂ BẠN LÀM BÁO CÁO (TRACE AI DECISION) ---
+        console.log('\n==================================================');
+        console.log(`[AI ANALYSIS TRACE] User Input: "${message}"`);
+        console.log(`- Phân loại Intent  : [ ${intent.toUpperCase()} ]`);
+        console.log(`- Trích xuất Budget : ${budget.toLocaleString('vi-VN')} VNĐ`);
+        if (purpose) console.log(`- Mục đích (Purpose): ${purpose}`);
+        if (requirements && requirements.length > 0) console.log(`- Yêu cầu linh kiện :`, JSON.stringify(requirements));
+        if (specs_filter && specs_filter.length > 0) console.log(`- Bộ lọc Thông số   :`, JSON.stringify(specs_filter));
+        console.log('==================================================\n');
+
+        const isMissingBudget = budget <= 0 && intent !== 'research';
         const isMissingPurpose = intent === 'build_pc' && !purpose?.trim();
 
         if (intent === 'chat' || isMissingBudget || isMissingPurpose) {
-            botReply = reply || 'Dạ bạn cần hỗ trợ gì thêm ạ?';
+            botReply = reply || (isMissingBudget ? 'Dạ bạn có thể cho shop biết mức ngân sách dự kiến được không ạ?' : 'Dạ bạn cần hỗ trợ gì thêm ạ?');
+        } else if (intent === 'research') {
+            let reqItem = requirements?.[0];
+            let query = {};
+            let catId = null;
+
+            if (reqItem?.category) {
+                const cat = await CategoryModel.findOne({ name: new RegExp(`^${reqItem.category}$`, 'i') });
+                if (cat) {
+                    catId = cat._id;
+                }
+            }
+
+            if (catId) {
+                query.category = catId;
+            }
+            
+            if (specs_filter && specs_filter.length > 0) {
+                const andConditions = specs_filter.map(spec => ({
+                    specifications: {
+                        $elemMatch: {
+                            key: { $regex: new RegExp(spec.key, 'i') },
+                            value: { $regex: new RegExp(spec.value, 'i') }
+                        }
+                    }
+                }));
+                query['$and'] = andConditions;
+            }
+            
+            let products = await ProductModel.find(query).populate('category').limit(5);
+
+            if (budget > 0) {
+                products = await ProductModel.find({ ...query, price: { $lte: budget } }).populate('category').sort({ price: -1 }).limit(5);
+            }
+
+            suggestedProducts = products;
+
+            if (suggestedProducts.length > 0) {
+                botReply = `Mình tìm thấy ${suggestedProducts.length} sản phẩm phù hợp với yêu cầu kỹ thuật của bạn:`;
+            } else {
+                botReply = `Tiếc quá, hiện tại shop chưa có sản phẩm nào khớp hoàn toàn với thông số bạn cần.`;
+            }
         } else if (intent === 'buy_single') {
             let reqItem = requirements?.[0];
             if (!reqItem?.category) {

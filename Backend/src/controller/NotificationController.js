@@ -25,7 +25,7 @@ const getAllNotifications = async (req, res) => {
 const markAsRead = async (req, res) => {
     try {
         const id = req.params.id;
-        const notification = await Notification.findByIdAndUpdate(id, { isRead: true }, { new: true });
+        const notification = await Notification.findByIdAndUpdate(id, { isRead: true }, { returnDocument: 'after' });
         return res.status(200).json({
             status: 'OK',
             message: 'SUCCESS',

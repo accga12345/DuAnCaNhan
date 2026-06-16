@@ -110,10 +110,12 @@ const OrderPage = () => {
   }
 
   useEffect(() => {
-    if (isErrorAddOrder) {
+    if (isSuccessAddOrder && dataAdd?.status === 'OK' && payment !== 'sepay') {
+      handleOrderSuccess(dataAdd, payment)
+    } else if (isErrorAddOrder) {
       showError('Đặt hàng thất bại')
     }
-  }, [isErrorAddOrder]);
+  }, [isSuccessAddOrder, isErrorAddOrder, dataAdd]);
 
 
   const handleUpdateInformation = () => {
@@ -165,6 +167,8 @@ const OrderPage = () => {
               if (resPay?.status === 'success' && resPay?.data?.payUrl) {
                 setSePayData(resPay.data);
                 setIsOpenModalSePay(true);
+                // Xóa giỏ hàng và hiện message sau khi đã mở modal SePay thành công
+                handleOrderSuccess(resOrder, 'sepay')
               } else {
                 showError('Không thể tạo liên kết thanh toán SePay');
               }

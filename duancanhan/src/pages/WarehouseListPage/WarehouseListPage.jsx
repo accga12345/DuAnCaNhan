@@ -25,14 +25,25 @@ function WarehouseListPage() {
     const [searchText, setSearchText] = useState('');
     const [searchedColumn, setSearchedColumn] = useState('');
     const searchInput = useRef(null);
+    const [currentData, setCurrentData] = useState([]);
     
     const { data: items, isPending: itemsLoading, refetch } = useQuery({
         queryKey: ['warehouseItems'],
         queryFn: () => getAllWarehouseItems(),
     });
 
+    useEffect(() => {
+        if (items?.data) {
+            setCurrentData(items.data);
+        }
+    }, [items?.data]);
+
+    const handleTableChange = (pagination, filters, sorter, extra) => {
+        setCurrentData(extra.currentDataSource);
+    };
+
     const handleExportExcel = () => {
-        const data = items?.data.map((item) => ({
+        const data = currentData.map((item) => ({
             "Tên sản phẩm (Kho)": item.name,
             "Danh mục": item.category?.name,
             "Hãng": item.brand,
@@ -40,7 +51,7 @@ function WarehouseListPage() {
             "Giá nhập": item.costPrice,
             "Nhà cung cấp": item.supplier?.name,
         }));
-        exportExcel(data, "Danh_sach_ton_kho_noi_bo", "Warehouse");
+        exportExcel(data, "Danh_sach_ton_kho_noi_bo", "Warehouse", "DANH SÁCH TỒN KHO NỘI BỘ", "");
     };
 
     const { data: categoriesData } = useQuery({
@@ -266,6 +277,7 @@ function WarehouseListPage() {
                     data={items?.data}
                     rowKey="_id"
                     pagination={{ pageSize: 10 }}
+                    onChange={handleTableChange}
                 />
             </LoadingComponent>
             <Modal

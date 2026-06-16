@@ -51,8 +51,8 @@ const getDetailProduct = async (req, res) => {
 
 const getAllProducts = async (req, res) => {
     try {
-        const { limit, page, sort, filter } = req.query;
-        const products = await ProductService.getAllProducts(Number(limit) || 8, Number(page) || 1, sort, filter);
+        const { limit, page, sort, filter, isAdmin } = req.query;
+        const products = await ProductService.getAllProducts(Number(limit) || 8, Number(page) || 1, sort, filter, isAdmin === 'true');
         return res.status(200).json(products);
     } catch (error) {
         return res.status(500).json({ message: error.message });

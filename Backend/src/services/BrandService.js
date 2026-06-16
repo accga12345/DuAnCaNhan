@@ -39,7 +39,7 @@ const updateBrand = async (id, data) => {
                 };
             }
         }
-        const brand = await Brand.findOneAndUpdate({ _id: id }, data, { new: true });
+        const brand = await Brand.findOneAndUpdate({ _id: id }, data, { returnDocument: 'after' });
         return {
             status: "success",
             message: "Cập nhật thương hiệu thành công",

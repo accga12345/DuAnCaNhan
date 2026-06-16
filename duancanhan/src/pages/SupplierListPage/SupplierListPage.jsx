@@ -22,21 +22,31 @@ function SupplierListPage() {
     const [searchText, setSearchText] = useState('');
     const [searchedColumn, setSearchedColumn] = useState('');
     const searchInput = useRef(null);
+    const [currentData, setCurrentData] = useState([]);
 
     const { data: suppliers, isPending: suppliersLoading, refetch } = useQuery({
         queryKey: ['suppliers'],
         queryFn: () => getAllSuppliers(),
     });
 
+    useEffect(() => {
+        if (suppliers?.data) {
+            setCurrentData(suppliers.data);
+        }
+    }, [suppliers?.data]);
+
+    const handleTableChange = (pagination, filters, sorter, extra) => {
+        setCurrentData(extra.currentDataSource);
+    };
+
     const handleExportExcel = () => {
-        const data = suppliers?.data.map((item) => ({
+        const data = currentData.map((item) => ({
             "Tên nhà cung cấp": item.name,
             "Số điện thoại": item.phone,
             "Email": item.email,
             "Địa chỉ": item.address,
-            "Ghi chú": item.description,
         }));
-        exportExcel(data, "Danh_sach_nha_cung_cap", "Suppliers");
+        exportExcel(data, "Danh_sach_nha_cung_cap", "Suppliers", "DANH SÁCH NHÀ CUNG CẤP", "");
     };
 
     const [editing, setEditing] = useState({
@@ -230,6 +240,7 @@ function SupplierListPage() {
                     data={suppliers?.data}
                     rowKey="_id"
                     pagination={{ pageSize: 10 }}
+                    onChange={handleTableChange}
                 />
             </LoadingComponent>
             <Modal

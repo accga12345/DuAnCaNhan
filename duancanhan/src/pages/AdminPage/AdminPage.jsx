@@ -116,7 +116,7 @@ function AdminPage() {
         { key: 'slider', icon: <PictureOutlined />, label: 'Quản lý Slider' }
     ];
 
-    const allowedKeysForStaff = ['dashboard', '2', '21', '22', 'order', 'slider'];
+    const allowedKeysForStaff = ['dashboard', '2', '21', '22', 'order'];
 
     const items = isStaff 
         ? allItems.filter(item => {

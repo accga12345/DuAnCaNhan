@@ -1,32 +1,48 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useSelector } from 'react-redux';
-import { Space, Button, Tag, Typography, Tooltip, Modal, List, Image, Input } from 'antd';
-import { CheckCircleOutlined, CarOutlined, CloseCircleOutlined, SyncOutlined, EyeOutlined, SearchOutlined } from '@ant-design/icons';
+import { Space, Button, Tag, Typography, Tooltip, Modal, List, Image, Input, DatePicker } from 'antd';
+import { CheckCircleOutlined, CarOutlined, CloseCircleOutlined, SyncOutlined, EyeOutlined, SearchOutlined, FileExcelOutlined } from '@ant-design/icons';
 import Highlighter from 'react-highlight-words';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
+import dayjs from 'dayjs';
 
 import { getAllOrder, updateOrder } from '../../services/OrderService';
 import TableComponent from '../../components/TableComponent/TableComponent';
 import LoadingComponent from '../../components/Loading/LoadingComponent';
 import { useMutationHook } from '../../hooks/useMutationHook';
 import * as message from '../../components/MessageComponent/MessageComponent';
-import { PageHeader } from './style';
+import { exportExcel } from '../../ultil';
+import { PageHeader, ActionToolbar } from './style';
+import InvoiceTemplate from '../../components/InvoiceTemplate/InvoiceTemplate';
 
 const { Title, Text } = Typography;
+const { RangePicker } = DatePicker;
 
 const OrderAdmin = () => {
     const user = useSelector((state) => state.user);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedOrder, setSelectedOrder] = useState(null);
+    const [orderForInvoice, setOrderForInvoice] = useState(null);
     const [searchText, setSearchText] = useState('');
     const [searchedColumn, setSearchedColumn] = useState('');
     const searchInput = useRef(null);
+    const invoiceRef = useRef(null);
+    const [currentOrdersData, setCurrentOrdersData] = useState([]);
+    const [dateRangeFilter, setDateRangeFilter] = useState(null);
 
     const { data: orders, isPending: isLoadingOrders, refetch } = useQuery({
         queryKey: ['orders'],
         queryFn: () => getAllOrder(user?.accessToken),
         enabled: !!user?.accessToken,
     });
+
+    useEffect(() => {
+        if (orders?.data) {
+            setCurrentOrdersData(orders.data);
+        }
+    }, [orders?.data]);
 
     const mutationUpdate = useMutationHook(
         (data) => {
@@ -37,14 +53,119 @@ const OrderAdmin = () => {
 
     const { data: dataUpdate, isSuccess: isSuccessUpdate, isError: isErrorUpdate, isPending: isPendingUpdate } = mutationUpdate;
 
+    const handleTableChange = (pagination, filters, sorter, extra) => {
+        setCurrentOrdersData(extra.currentDataSource);
+    };
+
+    const handleExportExcel = () => {
+        const dataToExport = currentOrdersData?.map(order => ({
+            "Mã đơn hàng": order.orderCode,
+            "Ngày đặt": dayjs(order.createdAt).format('DD/MM/YYYY HH:mm'),
+            "Khách hàng": order.shippingAddress?.fullName,
+            "Số điện thoại": order.shippingAddress?.phone,
+            "Địa chỉ": order.shippingAddress?.address,
+            "Thanh toán": order.isPaid ? 'Đã thanh toán' : 'Chưa thanh toán',
+            "Trạng thái": order.status === 0 ? 'Đợi xác nhận' : order.status === 1 ? 'Đã xác nhận' : order.status === 2 ? 'Đang giao hàng' : order.status === 3 ? 'Đã hủy' : 'Hoàn thành',
+            "Tổng tiền": order.totalPrice
+        })) || [];
+        
+        const dateStr = dateRangeFilter ? `${dateRangeFilter[0].format('DD/MM/YYYY')} - ${dateRangeFilter[1].format('DD/MM/YYYY')}` : "";
+        exportExcel(dataToExport, "Danh_sach_don_hang", "Orders", "DANH SÁCH ĐƠN HÀNG", dateStr);
+    };
+
+    const exportPDF = async (order) => {
+        if (!order) return;
+        
+        // Cần đảm bảo component đã render với dữ liệu mới
+        setOrderForInvoice(order);
+        
+        // Đợi một chút để React cập nhật DOM cho InvoiceTemplate
+        setTimeout(async () => {
+            const element = document.getElementById('invoice-capture');
+            if (element) {
+                try {
+                    const canvas = await html2canvas(element, {
+                        scale: 2,
+                        logging: false,
+                        useCORS: true
+                    });
+                    const imgData = canvas.toDataURL('image/png');
+                    const pdf = new jsPDF('p', 'mm', 'a4');
+                    const imgProps = pdf.getImageProperties(imgData);
+                    const pdfWidth = pdf.internal.pageSize.getWidth();
+                    const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+                    
+                    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+                    pdf.save(`HoaDon_${order.orderCode || order._id}.pdf`);
+                    setOrderForInvoice(null);
+                } catch (error) {
+                    console.error('Lỗi khi xuất PDF:', error);
+                    message.showError('Không thể tạo file PDF');
+                }
+            }
+        }, 500);
+    };
+
     useEffect(() => {
         if (isSuccessUpdate && dataUpdate?.status === 'OK') {
             message.showSuccess('Cập nhật trạng thái thành công');
+            
+            // Nếu là trạng thái xác nhận (status: 1), thực hiện xuất PDF
+            if (dataUpdate?.data?.status === 1) {
+                exportPDF(dataUpdate.data);
+            }
+            
             refetch();
         } else if (isErrorUpdate) {
             message.showError('Cập nhật trạng thái thất bại');
         }
     }, [isSuccessUpdate, isErrorUpdate, dataUpdate, refetch]);
+
+    const getColumnDateSearchProps = (dataIndex) => ({
+        filterDropdown: ({ setSelectedKeys, selectedKeys, confirm, clearFilters }) => (
+            <div style={{ padding: 8 }} onKeyDown={(e) => e.stopPropagation()}>
+                <RangePicker
+                    style={{ marginBottom: 8, display: 'flex' }}
+                    format="DD/MM/YYYY"
+                    onChange={(dates) => {
+                        setSelectedKeys(dates ? [dates] : []);
+                    }}
+                />
+                <Space>
+                    <Button
+                        type="primary"
+                        onClick={() => {
+                            confirm();
+                            setDateRangeFilter(selectedKeys[0]);
+                        }}
+                        icon={<SearchOutlined />}
+                        size="small"
+                        style={{ width: 90 }}
+                    >
+                        Lọc
+                    </Button>
+                    <Button
+                        onClick={() => {
+                            clearFilters();
+                            setDateRangeFilter(null);
+                            confirm();
+                        }}
+                        size="small"
+                        style={{ width: 90 }}
+                    >
+                        Xóa
+                    </Button>
+                </Space>
+            </div>
+        ),
+        onFilter: (value, record) => {
+            if (!value || value.length !== 2) return true;
+            const recordDate = new Date(record[dataIndex]);
+            const start = value[0].startOf('day').toDate();
+            const end = value[1].endOf('day').toDate();
+            return recordDate >= start && recordDate <= end;
+        },
+    });
 
     const handleSearch = (selectedKeys, confirm, dataIndex) => {
         confirm();
@@ -186,6 +307,7 @@ const OrderAdmin = () => {
             title: 'Ngày đặt',
             dataIndex: 'createdAt',
             key: 'createdAt',
+            ...getColumnDateSearchProps('createdAt'),
             render: (text) => new Date(text).toLocaleString('vi-VN'),
             sorter: (a, b) => new Date(a.createdAt) - new Date(b.createdAt),
         },
@@ -256,9 +378,23 @@ const OrderAdmin = () => {
         <div>
             <PageHeader>
                 <Title level={4} style={{ margin: 0 }}>Quản lý đơn hàng</Title>
+                <ActionToolbar>
+                    <Button
+                        icon={<FileExcelOutlined />}
+                        onClick={handleExportExcel}
+                        type="primary"
+                    >
+                        Xuất Excel
+                    </Button>
+                </ActionToolbar>
             </PageHeader>
             <LoadingComponent isPending={isLoadingOrders || isPendingUpdate}>
-                <TableComponent columns={columns} data={orders?.data} rowKey="_id" />
+                <TableComponent 
+                    columns={columns} 
+                    data={orders?.data} 
+                    rowKey="_id" 
+                    onChange={handleTableChange}
+                />
             </LoadingComponent>
 
             <Modal title="Chi tiết đơn hàng" open={isModalOpen} onCancel={() => setIsModalOpen(false)} footer={null} width={600}>
@@ -283,6 +419,7 @@ const OrderAdmin = () => {
                     />
                 )}
             </Modal>
+            <InvoiceTemplate order={orderForInvoice} ref={invoiceRef} />
         </div>
     );
 };

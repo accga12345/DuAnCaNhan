@@ -6,3 +6,8 @@ export const PageHeader = styled.div`
     align-items: center;
     margin-bottom: 24px;
 `;
+
+export const ActionToolbar = styled.div`
+    display: flex;
+    gap: 10px;
+`;

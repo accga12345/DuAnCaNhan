@@ -2,6 +2,7 @@ const Product = require("../models/ProductModel");
 const Warehouse = require("../models/WarehouseModel");
 const Category = require("../models/CategoryModel");
 const mongoose = require('mongoose');
+const socket = require("../sockets");
 
 const createProduct = async (newProduct) => {
     const session = await mongoose.startSession();
@@ -15,6 +16,7 @@ const createProduct = async (newProduct) => {
             return { status: "error", message: "San pham da ton tai" };
         }
 
+        let isWarehouseEmpty = false;
         if (warehouseItem) {
             const warehouse = await Warehouse.findById(warehouseItem).session(session);
             if (warehouse) {
@@ -23,18 +25,36 @@ const createProduct = async (newProduct) => {
                     session.endSession();
                     return {
                         status: "error",
-                        message: `So luong vuot qua gioi han kho. Kho con trong ${warehouse.quantity} (Tong ${warehouse.quantity}, da dung 0)`
+                        message: `So luong vuot qua gioi han kho. Kho con trong ${warehouse.quantity}`
                     };
                 }
-                // Option 2: Deduct from Warehouse immediately
+                
                 warehouse.quantity -= Number(countInStock);
                 await warehouse.save({ session });
+                
+                if (warehouse.quantity <= 0) {
+                    isWarehouseEmpty = true;
+                }
             }
         }
 
         const product = await Product.create([newProduct], { session });
         await session.commitTransaction();
         session.endSession();
+
+        if (isWarehouseEmpty) {
+            try {
+                const socketIO = socket.getIO();
+                const Notification = require('../models/NotificationModel');
+                const emptyNotif = await Notification.create({
+                    title: 'Kho hàng đã hết sản phẩm',
+                    body: ` Số lượng sản phẩm ${product.name} trong kho cũng đã hết, vui lòng liên hệ với người có thẩm quyền cao hơn để nhập thêm số lượng vào kho`,
+                });
+                socketIO.emit('new_order', emptyNotif);
+            } catch (err) {
+                console.error("Lỗi gửi thông báo kho hết hàng:", err);
+            }
+        }
         
         return {
             status: "success",
@@ -81,9 +101,32 @@ const updateProduct = async (id, data) => {
             }
         }
 
-        const product = await Product.findOneAndUpdate({ _id: id }, data, { new: true, session }).populate(['supplier', 'warehouseItem', 'category']);
+        const product = await Product.findOneAndUpdate({ _id: id }, data, { returnDocument: 'after', session }).populate(['supplier', 'warehouseItem', 'category']);
+        
+        let isWarehouseEmpty = false;
+        if (checkProduct.warehouseItem) {
+            const warehouse = await Warehouse.findById(checkProduct.warehouseItem).session(session);
+            if (warehouse && warehouse.quantity <= 0) {
+                isWarehouseEmpty = true;
+            }
+        }
+
         await session.commitTransaction();
         session.endSession();
+
+        if (isWarehouseEmpty) {
+            try {
+                const socketIO = socket.getIO();
+                const Notification = require('../models/NotificationModel');
+                const emptyNotif = await Notification.create({
+                    title: 'Kho hàng đã hết sản phẩm',
+                    body: ` Số lượng sản phẩm ${product.name} trong kho cũng đã hết, vui lòng liên hệ với người có thẩm quyền cao hơn để nhập thêm số lượng vào kho`,
+                });
+                socketIO.emit('new_order', emptyNotif);
+            } catch (err) {
+                console.error("Lỗi gửi thông báo kho hết hàng:", err);
+            }
+        }
 
         return {
             status: "success",
@@ -113,9 +156,15 @@ const getDetailProduct = async (id) => {
     }
 };
 
-const getAllProducts = async (limit, page, sort, filter) => {
+const getAllProducts = async (limit, page, sort, filter, isAdmin) => {
     try {
         let objectFilter = {};
+        
+        // Mặc định ẩn sản phẩm hết hàng với người dùng bình thường
+        if (!isAdmin) {
+            objectFilter.countInStock = { $gt: 0 };
+        }
+
         if (filter) {
             if (Array.isArray(filter)) {
                 for (let i = 0; i < filter.length; i += 2) {

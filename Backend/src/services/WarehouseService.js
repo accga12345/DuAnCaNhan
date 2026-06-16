@@ -34,7 +34,7 @@ const updateWarehouseItem = async (id, data) => {
         }
         
         // Cập nhật Warehouse item
-        const item = await Warehouse.findOneAndUpdate({ _id: id }, data, { new: true });
+        const item = await Warehouse.findOneAndUpdate({ _id: id }, data, { returnDocument: 'after' });
         
         // Đồng bộ sang bảng Product nếu có thay đổi liên quan
         if (data.name || data.category || data.brand) {

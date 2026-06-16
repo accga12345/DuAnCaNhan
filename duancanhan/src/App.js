@@ -66,7 +66,7 @@ function App() {
                   key={route.path}
                   path={isCheckAuth ? route.path : "/"}
                   element={
-                    <Layout isHiddenSearch={route.isHiddenSearch} isCart={route.isCart} isShowFooter={route.isShowFooter}>
+                    <Layout isHiddenSearch={route.isHiddenSearch} isCart={route.isCart} isShowFooter={route.isShowFooter} isFullWidth={route.isFullWidth}>
                       <Page />
                     </Layout>
                   }

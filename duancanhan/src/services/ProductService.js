@@ -1,7 +1,7 @@
 import axios from "axios";
 import { axiosJwt } from "./UserServices";
 
-export const getAllProduct = async (limit, page, sort, filter) => {
+export const getAllProduct = async (limit, page, sort, filter, isAdmin = false) => {
     let url = `${process.env.REACT_APP_API_URL}/product/get_all?limit=${limit}&page=${page}`
     
     if (sort) {
@@ -14,6 +14,10 @@ export const getAllProduct = async (limit, page, sort, filter) => {
                 url += `&filter=${filter[i]}&filter=${filter[i + 1]}`
             }
         }
+    }
+
+    if (isAdmin) {
+        url += `&isAdmin=true`;
     }
 
     const res = await axios.get(url)

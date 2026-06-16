@@ -26,11 +26,22 @@ function CategoryListPage() {
     const [previewOpen, setPreviewOpen] = useState(false);
     const [previewImage, setPreviewImage] = useState('');
     const [fileList, setFileList] = useState([]);
+    const [currentData, setCurrentData] = useState([]);
 
     const { data: categories, isPending: categoriesLoading, refetch } = useQuery({
         queryKey: ['categories'],
         queryFn: () => getAllCategories(),
     });
+
+    useEffect(() => {
+        if (categories?.data) {
+            setCurrentData(categories.data);
+        }
+    }, [categories?.data]);
+
+    const handleTableChange = (pagination, filters, sorter, extra) => {
+        setCurrentData(extra.currentDataSource);
+    };
 
     const { data: brandsData } = useQuery({
         queryKey: ['brands'],
@@ -236,11 +247,11 @@ function CategoryListPage() {
     ];
 
     const handleExportExcel = () => {
-        const excelData = categories?.data?.map((cat) => ({
+        const excelData = currentData.map((cat) => ({
             "Tên danh mục": cat.name,
             "Hãng": cat.brands?.map(b => b.name).join(', ')
         }))
-        exportExcel(excelData, "Danh_sach_danh_muc", "Categories")
+        exportExcel(excelData, "Danh_sach_danh_muc", "Categories", "DANH SÁCH DANH MỤC SẢN PHẨM", "")
     }
 
     return (
@@ -262,6 +273,7 @@ function CategoryListPage() {
                     data={categories?.data}
                     rowKey="_id"
                     pagination={{ pageSize: 10 }}
+                    onChange={handleTableChange}
                 />
             </LoadingComponent>
             <Modal

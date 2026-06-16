@@ -40,7 +40,7 @@ const updateCategory = async (id, data) => {
                 };
             }
         }
-        const category = await Category.findOneAndUpdate({ _id: id }, data, { new: true }).populate('brands');
+        const category = await Category.findOneAndUpdate({ _id: id }, data, { returnDocument: 'after' }).populate('brands');
         return {
             status: "success",
             message: "Cap nhat danh muc thanh cong",

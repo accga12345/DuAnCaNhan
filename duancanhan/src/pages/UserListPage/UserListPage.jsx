@@ -25,11 +25,22 @@ function UserListPage() {
     const [searchText, setSearchText] = useState('');
     const [searchedColumn, setSearchedColumn] = useState('');
     const searchInput = useRef(null);
+    const [currentData, setCurrentData] = useState([]);
 
     const { data: users, isPending: usersLoading, refetch } = useQuery({
         queryKey: ['users'],
         queryFn: () => getAllUser(),
     });
+
+    useEffect(() => {
+        if (users?.data) {
+            setCurrentData(users.data);
+        }
+    }, [users?.data]);
+
+    const handleTableChange = (pagination, filters, sorter, extra) => {
+        setCurrentData(extra.currentDataSource);
+    };
 
     const handleGetDetailUser = async (id) => {
         const res = await getDetailUser(id, user.accessToken)
@@ -263,13 +274,13 @@ function UserListPage() {
     ]
 
     const handleExport = () => {
-        const excelData = users?.data.map((user) => ({
+        const excelData = currentData.map((user) => ({
             'Tên': user.name,
             'Email': user.email,
             'Số điện thoại': user.phone,
             'Địa chỉ': user.address,
         }))
-        exportExcel(excelData, 'Danh_sach_nguoi_dung', 'Users')
+        exportExcel(excelData, 'Danh_sach_nguoi_dung', 'Users', 'DANH SÁCH NGƯỜI DÙNG', "")
     }
 
     return (
@@ -293,6 +304,7 @@ function UserListPage() {
                     data={users?.data}
                     rowKey="_id"
                     pagination={{ pageSize: 10 }}
+                    onChange={handleTableChange}
                 />
             </LoadingComponent>
 

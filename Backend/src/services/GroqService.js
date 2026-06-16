@@ -117,6 +117,7 @@ const INTENT_CAN_INHERIT_BUDGET = {
     'build_pc': ['build_pc'],
     'buy_single': ['buy_single'],
     'buy_combo': ['buy_combo'],
+    'research': [], // research không bao giờ kế thừa
     'chat': [],   // chat không bao giờ kế thừa
 };
 
@@ -169,6 +170,7 @@ const askGroq = async (userMessage, history = [], _dbContext = "") => {
 "build_pc": ráp nguyên bộ máy hoặc chỉnh cấu hình đang build.
 "buy_single": mua lẻ đúng 1 linh kiện / phụ kiện.
 "buy_combo": mua combo 2-3 linh kiện đi kèm (không phải nguyên bộ).
+"research": tìm kiếm linh kiện dựa trên thông số kỹ thuật cụ thể (dung lượng, tần số quét, socket...).
 
 ## BUDGET
 
@@ -180,6 +182,7 @@ ${sameIntentHint}
 
 build_pc: true khi budget > 0 VÀ purpose không rỗng.
 buy_single / buy_combo: true khi budget > 0.
+research: true (luôn coi là hành động tìm kiếm, không ép buộc có budget).
 Mọi trường hợp khác: false.
 
 ## PURPOSE (CHỈ dùng cho build_pc)
@@ -190,11 +193,18 @@ Phân loại mục đích sử dụng của user vào ĐÚNG 1 trong 4 từ khó
 - "work": Làm việc nặng, code, giả lập
 Nếu không rõ, để trống "".
 
+## SPECS_FILTER (Chỉ dùng cho intent 'research')
+Khi người dùng nhắc đến thông số kỹ thuật, hãy trích xuất chúng thành mảng object: [{"key":"<tên thông số>", "value":"<giá trị>"}].
+Ví dụ:
+- "Mình cần tìm 1 thanh ram 64gb" -> [{"key": "dung lượng", "value": "64GB"}]
+- "Màn hình 144Hz 27 inch" -> [{"key": "tần số quét", "value": "144Hz"}, {"key": "kích thước", "value": "27 inch"}]
+Nếu không có thông số rõ ràng, để mảng rỗng [].
+
 ## REPLY
 
 is_action = true → reply = "".
 is_action = false → hỏi ĐÚNG 1 thứ còn thiếu theo ưu tiên:
-  1. Thiếu budget (Tất cả intent): Chỉ hỏi về mức ngân sách (Vd: "Dạ bạn dự định đầu tư tầm bao nhiêu cho món này ạ?").
+  1. Thiếu budget (intent build_pc, buy_single, buy_combo): Chỉ hỏi về mức ngân sách (Vd: "Dạ bạn dự định đầu tư tầm bao nhiêu cho món này ạ?").
   2. Có budget, thiếu purpose (CHỈ dành cho build_pc): Hỏi mục đích sử dụng (gaming / đồ họa / văn phòng).
   3. Intent "chat": Phản hồi ngắn gọn, thân thiện.
 
@@ -209,9 +219,21 @@ Tên chuẩn: CPU, Mainboard, RAM, VGA, SSD, PSU, Case, Cooling, Màn hình, Bà
 "mua cpu" → [{"category":"CPU","keyword":""}]
 KHÔNG để requirements là mảng string.
 
+## EXAMPLES (FEW-SHOT LEARNING)
+- "Build cho mình bộ PC gaming tầm 20 triệu" -> {"intent":"build_pc", "purpose":"gaming", "budget":20000000}
+- "Tìm giúp con chuột gaming" -> {"intent":"buy_single", "requirements":[{"category":"Chuột","keyword":"gaming"}]}
+- "Báo giá combo Mainboard và RAM" -> {"intent":"buy_combo", "requirements":[{"category":"Mainboard","keyword":""},{"category":"RAM","keyword":""}]}
+- "Mình cần tìm màn hình 144Hz" -> {"intent":"research", "requirements":[{"category":"Màn hình","keyword":""}], "specs_filter":[{"key":"tần số quét", "value":"144Hz"}]}
+- "Tìm mainboard chạy được chip i9" -> {"intent":"research", "requirements":[{"category":"Mainboard","keyword":""}], "specs_filter":[{"key":"socket", "value":"LGA 1700"}]}
+- "Mấy cái linh kiện linh tinh" -> {"intent":"chat"}
+- "Mua cái gì cũng được" -> {"intent":"chat"}
+- "Ráp bộ máy 1 đồng" -> {"intent":"chat"}
+- "Shop sửa máy tính không" -> {"intent":"chat"}
+- "Tại sao con chip này đắt thế" -> {"intent":"chat"}
+
 ## OUTPUT
 
-{"intent":"...","budget":0,"purpose":"","is_action":false,"requirements":[],"brand_preference":[],"reply":""}`;
+{"intent":"...","budget":0,"purpose":"","is_action":false,"requirements":[],"specs_filter":[],"brand_preference":[],"reply":""}`;
 
     const messages = [
         { role: "system", content: systemContent },

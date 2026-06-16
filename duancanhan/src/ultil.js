@@ -52,9 +52,68 @@ export const getLevelKeys = items1 => {
     return key;
 };
 
-export const exportExcel = (data, fileName, sheetName) => {
+export const exportExcel = (data, fileName, sheetName, title = "", dateRange = "") => {
     const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.json_to_sheet(data);
+    const exportDate = new Date().toLocaleString('vi-VN');
+    
+    // Tạo mảng dữ liệu với tiêu đề, ngày tháng và ngày xuất
+    const excelData = [];
+    
+    if (title) {
+        excelData.push([title]);
+    }
+    
+    excelData.push([`Ngày xuất file: ${exportDate}`]);
+
+    if (dateRange) {
+        excelData.push([`Khoảng thời gian báo cáo: ${dateRange}`]);
+    }
+    
+    excelData.push([]); // Dòng trống trước khi vào bảng
+    
+    // Thêm header của bảng
+    if (data.length > 0) {
+        excelData.push(Object.keys(data[0]));
+        
+        // Thêm dữ liệu bảng
+        data.forEach(item => {
+            excelData.push(Object.values(item));
+        });
+        
+        // Tính dòng tổng cộng nếu là dữ liệu số
+        const summaryRow = {};
+        const firstRow = data[0];
+        let hasNumber = false;
+        
+        Object.keys(firstRow).forEach((key, index) => {
+            if (index === 0) {
+                summaryRow[key] = "TỔNG CỘNG";
+            } else if (typeof firstRow[key] === 'number') {
+                summaryRow[key] = data.reduce((sum, item) => sum + (item[key] || 0), 0);
+                hasNumber = true;
+            } else {
+                summaryRow[key] = "";
+            }
+        });
+        
+        if (hasNumber) {
+            excelData.push([]);
+            excelData.push(Object.values(summaryRow));
+        }
+    }
+    
+    const ws = XLSX.utils.aoa_to_sheet(excelData);
+    
+    // Căn chỉnh độ rộng cột cơ bản
+    const wscols = [];
+    if (excelData.length > 0) {
+        const maxCols = Math.max(...excelData.map(row => row.length));
+        for (let i = 0; i < maxCols; i++) {
+            wscols.push({ wch: 20 });
+        }
+    }
+    ws['!cols'] = wscols;
+
     XLSX.utils.book_append_sheet(wb, ws, sheetName);
     XLSX.writeFile(wb, `${fileName}.xlsx`);
 }

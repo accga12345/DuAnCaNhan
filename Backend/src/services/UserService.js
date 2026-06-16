@@ -157,7 +157,7 @@ const updateUser = async (id, data) => {
             const hashedPassword = await bcrypt.hash(data.password, 10);
             data.password = hashedPassword;
         }
-        const user = await User.findOneAndUpdate({ _id: id }, data, { new: true });
+        const user = await User.findOneAndUpdate({ _id: id }, data, { returnDocument: 'after' });
         return {
             status: "success",
             message: "Cap nhat thong tin thanh cong",
@@ -292,7 +292,7 @@ const resetPassword = async (token, password) => {
         const user = await User.findOneAndUpdate(
             { _id: decoded.id },
             { password: hashedPassword },
-            { new: true }
+            { returnDocument: 'after' }
         );
 
         if (!user) {

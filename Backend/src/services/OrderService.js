@@ -9,6 +9,8 @@ const createOrder = async (newOrder) => {
     session.startTransaction();
     try {
         const { orderItems, paymentMethod, itemsPrice, shippingPrice, totalPrice, fullName, address, phone, user, isPaid, paidAt } = newOrder;
+        
+        const outOfStockProducts = [];
 
         for (const order of orderItems) {
             const productData = await Product.findOneAndUpdate(
@@ -22,7 +24,7 @@ const createOrder = async (newOrder) => {
                         selled: +order.amount
                     }
                 },
-                { new: true, session }
+                { returnDocument: 'after', session }
             );
 
             if (!productData) {
@@ -34,30 +36,19 @@ const createOrder = async (newOrder) => {
                 };
             }
 
-            if (productData.warehouseItem) {
-                const warehouseUpdate = await Warehouse.findOneAndUpdate(
-                    {
-                        _id: productData.warehouseItem,
-                        quantity: { $gte: order.amount }
-                    },
-                    {
-                        $inc: { quantity: -order.amount }
-                    },
-                    { new: true, session }
-                );
-
-                if (!warehouseUpdate) {
-                    await session.abortTransaction();
-                    session.endSession();
-                    return {
-                        status: 'ERR',
-                        message: `Kho hàng không đủ số lượng cho sản phẩm: ${productData.name}`
-                    };
-                }
+            if (productData.countInStock <= 0) {
+                outOfStockProducts.push(productData.name);
             }
         }
 
+        const generateOrderCode = () => {
+            const timestamp = Date.now().toString().slice(-6);
+            const random = Math.floor(100 + Math.random() * 900);
+            return `DH${timestamp}${random}`;
+        };
+
         const createdOrder = await Order.create([{
+            orderCode: generateOrderCode(),
             orderItems: orderItems,
             shippingAddress: {
                 fullName,
@@ -89,6 +80,14 @@ const createOrder = async (newOrder) => {
                 });
 
                 socketIO.emit('new_order', newNotification);
+
+                if (outOfStockProducts.length > 0) {
+                    const outOfStockNotif = await Notification.create({
+                        title: 'Sản phẩm hết hàng trên Web',
+                        body: `Sản phẩm ${outOfStockProducts.join(', ')} đã hết hàng trên gian hàng trực tuyến. Vui lòng kiểm tra và cập nhật thêm số lượng!`,
+                    });
+                    socketIO.emit('new_order', outOfStockNotif);
+                }
             } catch (err) {
                 console.error("Lỗi khi gửi thông báo socket:", err);
             }
@@ -162,18 +161,8 @@ const updateOrder = async (id, data) => {
                     session.endSession();
                     return {
                         status: 'ERR',
-                        message: 'Lỗi khi hoàn lại kho hàng'
+                        message: 'Lỗi khi hoàn lại sản phẩm'
                     }
-                }
-
-                // Restore Warehouse quantity
-                const product = await Product.findById(order.product).session(session);
-                if (product && product.warehouseItem) {
-                    await Warehouse.updateOne(
-                        { _id: product.warehouseItem },
-                        { $inc: { quantity: order.amount } },
-                        { session }
-                    );
                 }
             }
             checkOrder.status = 3
@@ -192,7 +181,7 @@ const updateOrder = async (id, data) => {
             }
         }
 
-        const updatedOrder = await Order.findByIdAndUpdate(id, checkOrder, { new: true, session })
+        const updatedOrder = await Order.findByIdAndUpdate(id, checkOrder, { returnDocument: 'after', session })
 
         await session.commitTransaction();
         session.endSession();
@@ -274,7 +263,7 @@ const updateOrderReview = (id, data) => {
     return new Promise(async (resolve, reject) => {
         try {
             const order = await Order.findById(id).populate('orderItems.product');
-            const updatedOrder = await Order.findByIdAndUpdate(id, data, { new: true });
+            const updatedOrder = await Order.findByIdAndUpdate(id, data, { returnDocument: 'after' });
 
             for (const item of order.orderItems) {
                 const product = await Product.findByIdAndUpdate(item.product, {
@@ -285,7 +274,7 @@ const updateOrderReview = (id, data) => {
                             comment: data.comment
                         }
                     }
-                }, { new: true });
+                }, { returnDocument: 'after' });
 
                 if (product && product.reviews && product.reviews.length > 0) {
                     const totalRating = product.reviews.reduce((sum, r) => sum + (r.rating || 0), 0);
@@ -320,4 +309,4 @@ module.exports = {
     getDetailsOrder,
     getAllOrderDetails,
     updateOrderReview
-};;
+};

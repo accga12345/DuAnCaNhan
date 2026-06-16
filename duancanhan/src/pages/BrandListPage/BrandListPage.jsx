@@ -25,17 +25,28 @@ function BrandListPage() {
     const [previewOpen, setPreviewOpen] = useState(false);
     const [previewImage, setPreviewImage] = useState('');
     const [fileList, setFileList] = useState([]);
+    const [currentData, setCurrentData] = useState([]);
 
     const { data: brands, isPending: brandsLoading, refetch } = useQuery({
         queryKey: ['brands'],
         queryFn: () => getAllBrands(),
     });
 
+    useEffect(() => {
+        if (brands?.data) {
+            setCurrentData(brands.data);
+        }
+    }, [brands?.data]);
+
+    const handleTableChange = (pagination, filters, sorter, extra) => {
+        setCurrentData(extra.currentDataSource);
+    };
+
     const handleExportExcel = () => {
-        const data = brands?.data.map((item) => ({
+        const data = currentData.map((item) => ({
             "Tên thương hiệu": item.name,
         }));
-        exportExcel(data, "Danh_sach_thuong_hieu", "Brands");
+        exportExcel(data, "Danh_sach_thuong_hieu", "Brands", "DANH SÁCH THƯƠNG HIỆU", "");
     };
 
     const [editing, setEditing] = useState({
@@ -255,6 +266,7 @@ function BrandListPage() {
                     data={brands?.data}
                     rowKey="_id"
                     pagination={{ pageSize: 10 }}
+                    onChange={handleTableChange}
                 />
             </LoadingComponent>
             <Modal

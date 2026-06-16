@@ -32,6 +32,7 @@ function ProductListPage() {
     const [searchedColumn, setSearchedColumn] = useState('');
     const searchInput = useRef(null);
     const [selectedCategoryBrands, setSelectedCategoryBrands] = useState([]);
+    const [currentData, setCurrentData] = useState([]);
 
     const { data: categoriesData } = useQuery({
         queryKey: ['categories'],
@@ -51,9 +52,19 @@ function ProductListPage() {
 
     const { data: products, isPending: productsLoading, refetch } = useQuery({
         queryKey: ['products'],
-        queryFn: () => getAllProduct(1000, 1),
+        queryFn: () => getAllProduct(1000, 1, undefined, undefined, true),
         refetchOnWindowFocus: false,
     });
+
+    useEffect(() => {
+        if (products?.data) {
+            setCurrentData(products.data);
+        }
+    }, [products?.data]);
+
+    const handleTableChange = (pagination, filters, sorter, extra) => {
+        setCurrentData(extra.currentDataSource);
+    };
 
     const mutationUpdate = useMutationHook(
         (data) => updateProduct(product._id, data, user.accessToken)
@@ -346,7 +357,7 @@ function ProductListPage() {
     ];
 
     const handleExportExcel = () => {
-        const excelData = products?.data?.map((product) => ({
+        const excelData = currentData?.map((product) => ({
             "Tên sản phẩm": product.name,
             "Giá": product.price,
             "Loại": product.category?.name || "N/A",
@@ -355,7 +366,7 @@ function ProductListPage() {
             "Nhà cung cấp": product.supplier?.name || "N/A",
             "Đã bán": product.selled
         }))
-        exportExcel(excelData, "Danh_sach_san_pham", "Products")
+        exportExcel(excelData, "Danh_sach_san_pham", "Products", "DANH SÁCH SẢN PHẨM", "")
     }
 
     return (
@@ -379,6 +390,7 @@ function ProductListPage() {
                     handleDeleteMany={handleDeleteMany}
                     rowKey="_id"
                     pagination={{ pageSize: 10 }}
+                    onChange={handleTableChange}
                 />
             </LoadingComponent>
 

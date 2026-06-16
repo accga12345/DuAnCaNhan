@@ -39,7 +39,7 @@ const updateSupplier = async (id, data) => {
                 };
             }
         }
-        const supplier = await Supplier.findOneAndUpdate({ _id: id }, data, { new: true });
+        const supplier = await Supplier.findOneAndUpdate({ _id: id }, data, { returnDocument: 'after' });
         return {
             status: "success",
             message: "Cập nhật nhà cung cấp thành công",
