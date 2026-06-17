@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { TableWrapper, Toolbar } from './style';
 
 const TableComponent = (props) => {
-    const { selectionType = 'checkbox', data = [], columns = [], handleDeleteMany } = props
+    const { selectionType = 'checkbox', data = [], columns = [], handleDeleteMany, canDelete = true } = props
     const [rowSelectedKeys, setRowSelectedKeys] = useState([])
 
     const rowSelection = {
@@ -21,7 +21,7 @@ const TableComponent = (props) => {
 
     return (
         <TableWrapper>
-            {rowSelectedKeys.length > 0 && (
+            {canDelete && rowSelectedKeys.length > 0 && (
                 <Toolbar>
                     <Button
                         type="primary"
@@ -35,10 +35,10 @@ const TableComponent = (props) => {
             )}
 
             <Table
-                rowSelection={{
+                rowSelection={canDelete ? {
                     type: selectionType,
                     ...rowSelection,
-                }}
+                } : null}
                 columns={columns}
                 dataSource={data}
                 bordered

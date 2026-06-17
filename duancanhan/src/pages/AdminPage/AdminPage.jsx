@@ -34,9 +34,6 @@ import WarehouseListPage from '../WarehouseListPage/WarehouseListPage';
 import WarehouseAddPage from '../WarehouseAddPage/WarehouseAddPage';
 import OperatingCostPage from '../OperatingCostPage/OperatingCostPage';
 import SliderManagementPage from '../SliderManagementPage/SliderManagementPage';
-import { getAllUser } from '../../services/UserServices';
-import { getAllProduct } from '../../services/ProductService';
-import { getAllOrder } from '../../services/OrderService';
 
 const { Header, Sider, Content } = Layout;
 
@@ -46,10 +43,6 @@ function AdminPage() {
     const [stateCurrentKey, setStateCurrentKey] = useState('dashboard');
 
     const isStaff = !user.isAdmin && user.isEmployee;
-
-    const { data: users } = useQuery({ queryKey: ['users'], queryFn: () => getAllUser() });
-    const { data: products } = useQuery({ queryKey: ['products'], queryFn: () => getAllProduct(100, 1) });
-    const { data: orders } = useQuery({ queryKey: ['orders'], queryFn: () => getAllOrder(user?.accessToken), enabled: !!user?.accessToken });
 
     const {
         token: { colorBgContainer, borderRadiusLG },
@@ -131,9 +124,6 @@ function AdminPage() {
         : allItems;
 
     const handleOnClick = (e) => {
-        if (isStaff && !allowedKeysForStaff.includes(e.key) && !allItems.find(item => item.children?.find(c => c.key === e.key)) && e.key !== '1' && e.key !== '4' && e.key !== '5' && e.key !== '6' && e.key !== '7') {
-             // Just a safe guard
-        }
         setStateCurrentKey(e.key);
     }
 
@@ -151,47 +141,34 @@ function AdminPage() {
             }
         }
         return 'Admin Dashboard';
-    }
+    };
 
     const handleRenderPage = (key) => {
         if (isStaff && !allowedKeysForStaff.includes(key) && !['21', '22'].includes(key)) {
             message.error("Bạn không có quyền truy cập trang này!");
-            return <DashboardStats orders={orders} products={products} users={users} />;
+            return <DashboardStats user={user} />;
         }
         
-        if (key === 'dashboard') return <DashboardStats orders={orders} products={products} users={users} />;
-        if (key === 'cost-management') return <OperatingCostPage />;
-        if (key === 'slider') return <SliderManagementPage />;
-        if (key === 'order') return <OrderAdmin />;
         switch (key) {
-            case '11':
-                return <UserListPage />;
-            case '12':
-                return <UserAddPage />;
-            case '21':
-                return <ProductListPage />;
-            case '22':
-                return <ProductAddPage />;
-            case '41':
-                return <CategoryListPage />;
-            case '42':
-                return <CategoryAddPage />;
-            case '51':
-                return <BrandListPage />;
-            case '52':
-                return <BrandAddPage />;
-            case '61':
-                return <SupplierListPage />;
-            case '62':
-                return <SupplierAddPage />;
-            case '71':
-                return <WarehouseListPage />;
-            case '72':
-                return <WarehouseAddPage />;
-            default:
-                return <DashboardStats orders={orders} products={products} users={users} />;
+            case 'dashboard': return <DashboardStats user={user} />;
+            case 'cost-management': return <OperatingCostPage />;
+            case 'slider': return <SliderManagementPage />;
+            case 'order': return <OrderAdmin />;
+            case '11': return <UserListPage />;
+            case '12': return <UserAddPage />;
+            case '21': return <ProductListPage />;
+            case '22': return <ProductAddPage />;
+            case '41': return <CategoryListPage />;
+            case '42': return <CategoryAddPage />;
+            case '51': return <BrandListPage />;
+            case '52': return <BrandAddPage />;
+            case '61': return <SupplierListPage />;
+            case '62': return <SupplierAddPage />;
+            case '71': return <WarehouseListPage />;
+            case '72': return <WarehouseAddPage />;
+            default: return <DashboardStats user={user} />;
         }
-    }
+    };
 
     return (
         <StyledLayout>

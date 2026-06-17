@@ -47,6 +47,8 @@ const updateOrder = async (req, res) => {
 const getDetailsOrder = async (req, res) => {
     try {
         const orderId = req.params.id;
+        const user = req.user;
+        
         if (!orderId) {
             return res.status(400).json({
                 status: "error",
@@ -54,8 +56,15 @@ const getDetailsOrder = async (req, res) => {
             });
         }
         const order = await OrderService.getDetailsOrder(orderId);
-        if (order.status === "ERR") return res.status(404).json(order);
-        return res.status(200).json(order);
+        
+        if (order.status === 'ERR') return res.status(404).json(order);
+
+        // Check ownership: Admin/Staff OR Owner
+        if (user.isAdmin || user.isEmployee || String(order.data.user) === String(user.id)) {
+            return res.status(200).json(order);
+        }
+
+        return res.status(403).json({ message: 'You do not have permission', status: 'error' });
     } catch (error) {
         return res.status(500).json({ message: error.message });
     }
@@ -112,6 +121,23 @@ const getWarranty = async (req, res) => {
     }
 }
 
+const deleteManyOrder = async (req, res) => {
+    try {
+        const { ids } = req.body;
+        if (!ids || !Array.isArray(ids)) {
+            return res.status(400).json({
+                status: "error",
+                message: "khong tim thay don hang hoặc dữ liệu sai",
+            });
+        }
+        const result = await OrderService.deleteManyOrder(ids);
+        if (result.status === 'ERR') return res.status(400).json(result);
+        return res.status(200).json(result);
+    } catch (error) {
+        return res.status(500).json({ message: error.message });
+    }
+}
+
 module.exports = {
     createOrder,
     getAllOrder,
@@ -119,5 +145,6 @@ module.exports = {
     getDetailsOrder,
     getAllOrderDetails,
     updateOrderReview,
-    getWarranty
+    getWarranty,
+    deleteManyOrder
 };

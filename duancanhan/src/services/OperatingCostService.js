@@ -7,7 +7,7 @@ export const getOperatingCost = async () => {
 
 export const updateOperatingCost = async (data, accessToken) => {
     const res = await axios.put(`${import.meta.env.VITE_API_URL}/operating-cost/update`, data, {
-        headers: { token: `Bearer ${accessToken}` }
+        headers: { Authorization: `Bearer ${accessToken}` }
     });
     return res.data;
 };

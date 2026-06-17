@@ -10,6 +10,7 @@ import TableComponent from '../../components/TableComponent/TableComponent';
 import { useMutationHook } from '../../hooks/useMutationHook';
 import { useSelector } from 'react-redux';
 import { getBase64, exportExcel } from '../../ultil';
+import dayjs from 'dayjs';
 import { showSuccess, showError } from "../../components/MessageComponent/MessageComponent";
 import LoadingComponent from '../../components/Loading/LoadingComponent';
 import Highlighter from 'react-highlight-words';
@@ -321,6 +322,14 @@ function ProductListPage() {
             key: 'selled',
         },
         {
+            title: 'Ngày tạo',
+            dataIndex: 'createdAt',
+            key: 'createdAt',
+            render: (text) => dayjs(text).format('HH:mm:ss DD/MM/YYYY'),
+            sorter: (a, b) => new Date(a.createdAt) - new Date(b.createdAt),
+            defaultSortOrder: 'descend',
+        },
+        {
             title: 'Hành động',
             key: 'action',
             width: '120px',
@@ -364,7 +373,8 @@ function ProductListPage() {
             "Hãng": product.brand,
             "Số lượng": product.countInStock,
             "Nhà cung cấp": product.supplier?.name || "N/A",
-            "Đã bán": product.selled
+            "Đã bán": product.selled,
+            "Ngày tạo": dayjs(product.createdAt).format('HH:mm:ss DD/MM/YYYY')
         }))
         exportExcel(excelData, "Danh_sach_san_pham", "Products", "DANH SÁCH SẢN PHẨM", "")
     }
@@ -383,7 +393,7 @@ function ProductListPage() {
                 </ActionToolbar>
             </PageHeader>
 
-            <LoadingComponent isPending={updateLoading || productsLoading || deleteManyLoading || deleteLoading}>
+            <LoadingComponent isPending={productsLoading || updateLoading || deleteManyLoading || deleteLoading}>
                 <TableComponent 
                     columns={columns} 
                     data={products?.data}

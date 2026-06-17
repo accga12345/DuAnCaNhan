@@ -14,6 +14,7 @@ import LoadingComponent from '../../components/Loading/LoadingComponent';
 import Highlighter from 'react-highlight-words';
 import { exportExcel } from '../../ultil';
 import { PageHeader, ActionToolbar } from './style';
+import dayjs from 'dayjs';
 
 const { Title } = Typography;
 
@@ -50,6 +51,7 @@ function WarehouseListPage() {
             "Tồn kho": item.quantity,
             "Giá nhập": item.costPrice,
             "Nhà cung cấp": item.supplier?.name,
+            "Ngày tạo": dayjs(item.createdAt).format('HH:mm:ss DD/MM/YYYY')
         }));
         exportExcel(data, "Danh_sach_ton_kho_noi_bo", "Warehouse", "DANH SÁCH TỒN KHO NỘI BỘ", "");
     };
@@ -239,6 +241,14 @@ function WarehouseListPage() {
             dataIndex: ['supplier', 'name'],
             key: 'supplier',
             ...getColumnSearchProps('supplier.name'),
+        },
+        {
+            title: 'Ngày tạo',
+            dataIndex: 'createdAt',
+            key: 'createdAt',
+            render: (text) => dayjs(text).format('HH:mm:ss DD/MM/YYYY'),
+            sorter: (a, b) => new Date(a.createdAt) - new Date(b.createdAt),
+            defaultSortOrder: 'descend',
         },
         {
             title: 'Action',

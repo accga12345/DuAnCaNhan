@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Space, Button, Modal, Form, Input, Upload, Image, Popconfirm, Card, Typography, Tooltip } from 'antd';
+import { Space, Button, Modal, Form, Input, Upload, Image, Popconfirm, Card, Typography, Tooltip, Tag } from 'antd';
 import { EditOutlined, DeleteOutlined, FileExcelOutlined, SearchOutlined, PlusOutlined, LockOutlined, UserOutlined } from '@ant-design/icons';
 import { getAllUser, deleteUser, getDetailUser, updateUserInfo, deleteManyUser } from '../../services/UserServices';
 import { useQuery } from '@tanstack/react-query';
@@ -9,6 +9,7 @@ import { useMutationHook } from '../../hooks/useMutationHook';
 import { useSelector } from 'react-redux';
 import LoadingComponent from '../../components/Loading/LoadingComponent';
 import { getBase64, exportExcel } from '../../ultil';
+import dayjs from 'dayjs';
 import Highlighter from 'react-highlight-words';
 import { PageHeader, ActionToolbar } from './style';
 
@@ -29,7 +30,8 @@ function UserListPage() {
 
     const { data: users, isPending: usersLoading, refetch } = useQuery({
         queryKey: ['users'],
-        queryFn: () => getAllUser(),
+        queryFn: () => getAllUser(user?.accessToken),
+        enabled: !!user?.accessToken, // Fetch only when token is available (when page mounts/is active)
     });
 
     useEffect(() => {
@@ -233,9 +235,22 @@ function UserListPage() {
             key: 'phone',
         },
         {
-            title: 'Địa chỉ',
-            dataIndex: 'address',
-            key: 'address',
+            title: 'Vai trò',
+            dataIndex: 'isAdmin',
+            key: 'isAdmin',
+            render: (isAdmin, record) => (
+                <Tag color={isAdmin ? 'red' : record.isEmployee ? 'orange' : 'blue'}>
+                    {isAdmin ? 'Admin' : record.isEmployee ? 'Nhân viên' : 'Khách hàng'}
+                </Tag>
+            ),
+        },
+        {
+            title: 'Ngày tạo',
+            dataIndex: 'createdAt',
+            key: 'createdAt',
+            render: (text) => dayjs(text).format('HH:mm:ss DD/MM/YYYY'),
+            sorter: (a, b) => new Date(a.createdAt) - new Date(b.createdAt),
+            defaultSortOrder: 'descend',
         },
         {
             title: 'Hành động',
@@ -279,6 +294,7 @@ function UserListPage() {
             'Email': user.email,
             'Số điện thoại': user.phone,
             'Địa chỉ': user.address,
+            'Ngày tạo': dayjs(user.createdAt).format('HH:mm:ss DD/MM/YYYY')
         }))
         exportExcel(excelData, 'Danh_sach_nguoi_dung', 'Users', 'DANH SÁCH NGƯỜI DÙNG', "")
     }

@@ -11,6 +11,7 @@ import LoadingComponent from '../../components/Loading/LoadingComponent';
 import { SearchOutlined, PlusOutlined, FileExcelOutlined } from '@ant-design/icons';
 import Highlighter from 'react-highlight-words';
 import { getBase64, exportExcel } from '../../ultil';
+import dayjs from 'dayjs';
 import { PageHeader, ActionToolbar } from './style';
 
 const { Title } = Typography;
@@ -228,6 +229,14 @@ function CategoryListPage() {
             render: (brands) => brands?.map(b => b.name).join(', ')
         },
         {
+            title: 'Ngày tạo',
+            dataIndex: 'createdAt',
+            key: 'createdAt',
+            render: (text) => dayjs(text).format('HH:mm:ss DD/MM/YYYY'),
+            sorter: (a, b) => new Date(a.createdAt) - new Date(b.createdAt),
+            defaultSortOrder: 'descend',
+        },
+        {
             title: 'Action',
             key: 'action',
             render: (_, record) => (
@@ -247,11 +256,12 @@ function CategoryListPage() {
     ];
 
     const handleExportExcel = () => {
-        const excelData = currentData.map((cat) => ({
+        const data = currentData.map((cat) => ({
             "Tên danh mục": cat.name,
-            "Hãng": cat.brands?.map(b => b.name).join(', ')
+            "Hãng": cat.brands?.map(b => b.name).join(', '),
+            "Ngày tạo": dayjs(cat.createdAt).format('HH:mm:ss DD/MM/YYYY')
         }))
-        exportExcel(excelData, "Danh_sach_danh_muc", "Categories", "DANH SÁCH DANH MỤC SẢN PHẨM", "")
+        exportExcel(data, "Danh_sach_danh_muc", "Categories", "DANH SÁCH DANH MỤC SẢN PHẨM", "")
     }
 
     return (
@@ -269,6 +279,7 @@ function CategoryListPage() {
             </PageHeader>
             <LoadingComponent isPending={categoriesLoading || updateLoading || deleteLoading}>
                 <TableComponent
+                    canDelete={user.isAdmin}
                     columns={columns}
                     data={categories?.data}
                     rowKey="_id"

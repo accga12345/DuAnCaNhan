@@ -10,6 +10,7 @@ import LoadingComponent from '../../components/Loading/LoadingComponent';
 import { SearchOutlined, PlusOutlined, FileExcelOutlined } from '@ant-design/icons';
 import Highlighter from 'react-highlight-words';
 import { getBase64, exportExcel } from '../../ultil';
+import dayjs from 'dayjs';
 import { PageHeader, ActionToolbar } from './style';
 
 const { Title } = Typography;
@@ -45,6 +46,7 @@ function BrandListPage() {
     const handleExportExcel = () => {
         const data = currentData.map((item) => ({
             "Tên thương hiệu": item.name,
+            "Ngày tạo": dayjs(item.createdAt).format('HH:mm:ss DD/MM/YYYY')
         }));
         exportExcel(data, "Danh_sach_thuong_hieu", "Brands", "DANH SÁCH THƯƠNG HIỆU", "");
     };
@@ -229,6 +231,14 @@ function BrandListPage() {
             )
         },
         {
+            title: 'Ngày tạo',
+            dataIndex: 'createdAt',
+            key: 'createdAt',
+            render: (text) => dayjs(text).format('HH:mm:ss DD/MM/YYYY'),
+            sorter: (a, b) => new Date(a.createdAt) - new Date(b.createdAt),
+            defaultSortOrder: 'descend',
+        },
+        {
             title: 'Action',
             key: 'action',
             render: (_, record) => (
@@ -262,6 +272,7 @@ function BrandListPage() {
             </PageHeader>
             <LoadingComponent isPending={brandsLoading || updateLoading || deleteLoading}>
                 <TableComponent
+                    canDelete={user.isAdmin}
                     columns={columns}
                     data={brands?.data}
                     rowKey="_id"

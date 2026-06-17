@@ -1,16 +1,22 @@
-import React, { useMemo, useState } from 'react';
-import { Card, Row, Col, Statistic, Table, Typography, Modal, List, Button, Input, Pagination, DatePicker } from 'antd';
+import React, { useMemo, useState, useEffect } from 'react';
+import { Card, Row, Col, Statistic, Typography, Modal, List, Button, Input, Pagination, DatePicker, Table } from 'antd';
 import { ShoppingOutlined, DollarCircleOutlined, RiseOutlined, FileExcelOutlined } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
+import { useSelector } from 'react-redux';
+import { useMutationHook } from '../../hooks/useMutationHook';
+import { getAllOrder, deleteManyOrder } from '../../services/OrderService';
+import { getAllProduct } from '../../services/ProductService';
+import { getAllUser } from '../../services/UserServices';
 import { getOperatingCost } from '../../services/OperatingCostService';
 import { exportExcel } from '../../ultil';
 import dayjs from 'dayjs';
 import { ResponsiveContainer, ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend } from 'recharts';
+import TableComponent from '../TableComponent/TableComponent';
 
 const { Text } = Typography;
 const { RangePicker } = DatePicker;
 
-const DashboardStats = ({ orders, products, users }) => {
+const DashboardStats = () => {
     const [selectedMonthOrders, setSelectedMonthOrders] = useState([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [searchCode, setSearchCode] = useState('');
@@ -18,8 +24,51 @@ const DashboardStats = ({ orders, products, users }) => {
     const [monthRange, setMonthRange] = useState([null, null]);
     const [modalDateRange, setModalDateRange] = useState([null, null]);
     const pageSize = 10;
+    const user = useSelector((state) => state.user);
 
-    const { data: costData } = useQuery({
+    const { data: orders, status: ordersStatus, refetch: refetchOrders } = useQuery({ 
+        queryKey: ['orders-dashboard'], 
+        queryFn: () => getAllOrder(user?.accessToken), 
+        enabled: !!user?.accessToken 
+    });
+
+    const { data: products, status: productsStatus } = useQuery({ 
+        queryKey: ['products-dashboard'], 
+        queryFn: () => getAllProduct(1000, 1),
+        enabled: !!user?.accessToken
+    });
+
+    const { data: users, status: usersStatus } = useQuery({ 
+        queryKey: ['users-dashboard'], 
+        queryFn: () => getAllUser(user?.accessToken), 
+        enabled: !!(user?.accessToken && user?.isAdmin),
+    });
+
+    const mutationDeleteMany = useMutationHook(
+        async (ids) => {
+            return await deleteManyOrder(ids, user?.accessToken);
+        }
+    );
+
+    const { data: dataDeleteMany, isSuccess: isSuccessDeleteMany, isError: isErrorDeleteMany } = mutationDeleteMany;
+
+    useEffect(() => {
+        if (isSuccessDeleteMany && dataDeleteMany?.status === 'OK') {
+            refetchOrders();
+        }
+    }, [isSuccessDeleteMany, dataDeleteMany, refetchOrders]);
+
+    const handleDeleteMany = (monthKeys) => {
+        const orderIds = monthlyStats
+            .filter(stat => monthKeys.includes(stat.key))
+            .flatMap(stat => stat.orders.map(o => o._id));
+        
+        if (orderIds.length > 0) {
+            mutationDeleteMany.mutate(orderIds);
+        }
+    };
+
+    const { data: costData, status: costStatus } = useQuery({
         queryKey: ['operating-cost'],
         queryFn: getOperatingCost,
     });
@@ -87,7 +136,9 @@ const DashboardStats = ({ orders, products, users }) => {
         })).sort((a, b) => {
             const [mA, yA] = a.month.split('/').map(Number);
             const [mB, yB] = b.month.split('/').map(Number);
-            return yB !== yA ? yB - yA : mB - mA;
+            // Sắp xếp giảm dần: năm mới hơn lên trước, nếu cùng năm thì tháng lớn hơn lên trước
+            if (yB !== yA) return yB - yA;
+            return mB - mA;
         });
     }, [filteredOrdersByMonth, productCostMap, staffCount, costData]);
 
@@ -103,9 +154,11 @@ const DashboardStats = ({ orders, products, users }) => {
     const columns = [
         { title: 'Tháng/Năm', dataIndex: 'month', key: 'month' },
         { title: 'Doanh thu', dataIndex: 'revenue', key: 'revenue', render: (val) => val.toLocaleString() + ' đ' },
-        { title: 'Giá vốn hàng', dataIndex: 'goodsCost', key: 'goodsCost', render: (val) => val.toLocaleString() + ' đ' },
-        { title: 'Chi phí vận hành', dataIndex: 'fixedCosts', key: 'fixedCosts', render: (val) => val.toLocaleString() + ' đ' },
-        { title: 'Lợi nhuận', dataIndex: 'profit', key: 'profit', render: (val) => val.toLocaleString() + ' đ' },
+        ...(user?.isAdmin ? [
+            { title: 'Giá vốn hàng', dataIndex: 'goodsCost', key: 'goodsCost', render: (val) => val.toLocaleString() + ' đ' },
+            { title: 'Chi phí vận hành', dataIndex: 'fixedCosts', key: 'fixedCosts', render: (val) => val.toLocaleString() + ' đ' },
+            { title: 'Lợi nhuận', dataIndex: 'profit', key: 'profit', render: (val) => val.toLocaleString() + ' đ' }
+        ] : []),
     ];
 
     const onRowClick = (record) => ({
@@ -121,13 +174,18 @@ const DashboardStats = ({ orders, products, users }) => {
     });
 
     const handleExportMonthlyStats = () => {
-        const data = monthlyStats.map(item => ({
-            "Tháng/Năm": item.month,
-            "Doanh thu": item.revenue,
-            "Giá vốn hàng": item.goodsCost,
-            "Chi phí vận hành": item.fixedCosts,
-            "Lợi nhuận": item.profit
-        }));
+        const data = monthlyStats.map(item => {
+            const row = {
+                "Tháng/Năm": item.month,
+                "Doanh thu": item.revenue,
+            };
+            if (user?.isAdmin) {
+                row["Giá vốn hàng"] = item.goodsCost;
+                row["Chi phí vận hành"] = item.fixedCosts;
+                row["Lợi nhuận"] = item.profit;
+            }
+            return row;
+        });
         
         const dateStr = monthRange[0] && monthRange[1] 
             ? `${monthRange[0].format('MM/YYYY')} - ${monthRange[1].format('MM/YYYY')}`
@@ -203,12 +261,16 @@ const DashboardStats = ({ orders, products, users }) => {
                 <Col span={6}>
                     <Card><Statistic title="Tổng doanh thu" value={totalRevenue} precision={0} prefix={<DollarCircleOutlined style={{ color: '#cf1322' }} />} suffix="đ" /></Card>
                 </Col>
-                <Col span={6}>
-                    <Card><Statistic title="Tổng lợi nhuận" value={totalProfit} precision={0} prefix={<RiseOutlined style={{ color: '#52c41a' }} />} suffix="đ" /></Card>
-                </Col>
-                <Col span={6}>
-                    <Card><Statistic title="Tổng chi phí VH" value={totalFixedCosts} precision={0} prefix={<ShoppingOutlined style={{ color: '#faad14' }} />} suffix="đ" /></Card>
-                </Col>
+                {user?.isAdmin && (
+                    <>
+                        <Col span={6}>
+                            <Card><Statistic title="Tổng lợi nhuận" value={totalProfit} precision={0} prefix={<RiseOutlined style={{ color: '#52c41a' }} />} suffix="đ" /></Card>
+                        </Col>
+                        <Col span={6}>
+                            <Card><Statistic title="Tổng chi phí VH" value={totalFixedCosts} precision={0} prefix={<ShoppingOutlined style={{ color: '#faad14' }} />} suffix="đ" /></Card>
+                        </Col>
+                    </>
+                )}
                 <Col span={6}>
                     <Card><Statistic title="Tổng đơn hàng" value={totalOrders} prefix={<ShoppingOutlined style={{ color: '#1890ff' }} />} /></Card>
                 </Col>
@@ -225,7 +287,9 @@ const DashboardStats = ({ orders, products, users }) => {
                             <RechartsTooltip formatter={(value) => `${value.toLocaleString()} đ`} />
                             <Legend />
                             <Bar yAxisId="left" dataKey="revenue" name="Doanh thu" fill="#1890ff" barSize={40} />
-                            <Line yAxisId="right" type="monotone" dataKey="profit" name="Lợi nhuận" stroke="#52c41a" strokeWidth={3} />
+                            {user?.isAdmin && (
+                                <Line yAxisId="right" type="monotone" dataKey="profit" name="Lợi nhuận" stroke="#52c41a" strokeWidth={3} />
+                            )}
                         </ComposedChart>
                     </ResponsiveContainer>
                 </div>
@@ -235,12 +299,14 @@ const DashboardStats = ({ orders, products, users }) => {
                 title="Thống kê doanh thu & Lợi nhuận theo tháng (Bấm vào hàng để xem chi tiết)" 
                 extra={<Button type="primary" icon={<FileExcelOutlined />} onClick={handleExportMonthlyStats}>Xuất Excel</Button>}
             >
-                <Table 
-                    dataSource={monthlyStats} 
+                <TableComponent 
+                    canDelete={user?.isAdmin}
+                    data={monthlyStats} 
                     columns={columns} 
                     pagination={{ pageSize: 10 }} 
                     onRow={onRowClick}
                     rowClassName="cursor-pointer"
+                    handleDeleteMany={handleDeleteMany}
                 />
             </Card>
 
@@ -283,8 +349,10 @@ const DashboardStats = ({ orders, products, users }) => {
                                 { title: 'Sản phẩm', dataIndex: 'name', key: 'name' },
                                 { title: 'Số lượng', dataIndex: 'amount', key: 'amount' },
                                 { title: 'Giá bán', dataIndex: 'price', key: 'price', render: (val) => val.toLocaleString() + ' đ' },
-                                { title: 'Giá nhập', key: 'cost', render: (_, record) => (productCostMap[record.product] || 0).toLocaleString() + ' đ' },
-                                { title: 'Lợi nhuận', key: 'profit', render: (_, record) => ((record.price - (productCostMap[record.product] || 0)) * record.amount).toLocaleString() + ' đ' }
+                                ...(user?.isAdmin ? [
+                                    { title: 'Giá nhập', key: 'cost', render: (_, record) => (productCostMap[record.product] || 0).toLocaleString() + ' đ' },
+                                    { title: 'Lợi nhuận', key: 'profit', render: (_, record) => ((record.price - (productCostMap[record.product] || 0)) * record.amount).toLocaleString() + ' đ' }
+                                ] : [])
                             ]}
                         />
                     </Card>

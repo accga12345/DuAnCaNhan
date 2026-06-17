@@ -66,7 +66,12 @@ const authUserMiddleware = async (req, res, next) => {
         jwt.verify(token, process.env.ACCESS_TOKEN, (err, user) => {
             if (err) return res.status(401).json({ message: 'Unauthorized', status: 'error' });
 
-            if (user.isAdmin || user.id === userId || user.isEmployee) {
+            // If it's the order detail route, just verify the user is logged in
+            // Controller will handle the actual ownership check.
+            if (req.originalUrl.includes('/order/get-details/')) {
+                req.user = user;
+                next();
+            } else if (user.isAdmin || user.id === userId || user.isEmployee) {
                 req.user = user;
                 next();
             }

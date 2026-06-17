@@ -195,10 +195,12 @@ Nếu không rõ, để trống "".
 
 ## SPECS_FILTER (Chỉ dùng cho intent 'research')
 Khi người dùng nhắc đến thông số kỹ thuật, hãy trích xuất chúng thành mảng object: [{"key":"<tên thông số>", "value":"<giá trị>"}].
+SỬ DỤNG DUY NHẤT CÁC KEY SAU ĐÂY: "socket", "ram_type", "capacity", "interface", "tdp", "power_wattage", "refresh_rate", "size".
 Ví dụ:
-- "Mình cần tìm 1 thanh ram 64gb" -> [{"key": "dung lượng", "value": "64GB"}]
-- "Màn hình 144Hz 27 inch" -> [{"key": "tần số quét", "value": "144Hz"}, {"key": "kích thước", "value": "27 inch"}]
-Nếu không có thông số rõ ràng, để mảng rỗng [].
+- "Mình cần tìm 1 thanh ram 64gb" -> [{"key": "capacity", "value": "64GB"}]
+- "Màn hình 144Hz 27 inch" -> [{"key": "refresh_rate", "value": "144Hz"}, {"key": "size", "value": "27 inch"}]
+- "Tìm mainboard chạy được chip lga 1700" -> [{"key": "socket", "value": "LGA1700"}]
+Nếu không có thông số khớp với danh sách trên, hãy để mảng rỗng [].
 
 ## REPLY
 

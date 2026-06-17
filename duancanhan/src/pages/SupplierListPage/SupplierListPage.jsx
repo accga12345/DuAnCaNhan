@@ -10,6 +10,7 @@ import LoadingComponent from '../../components/Loading/LoadingComponent';
 import { SearchOutlined, FileExcelOutlined } from '@ant-design/icons';
 import Highlighter from 'react-highlight-words';
 import { exportExcel } from '../../ultil';
+import dayjs from 'dayjs';
 import { PageHeader, ActionToolbar } from './style';
 
 const { Title } = Typography;
@@ -45,6 +46,7 @@ function SupplierListPage() {
             "Số điện thoại": item.phone,
             "Email": item.email,
             "Địa chỉ": item.address,
+            "Ngày tạo": dayjs(item.createdAt).format('HH:mm:ss DD/MM/YYYY')
         }));
         exportExcel(data, "Danh_sach_nha_cung_cap", "Suppliers", "DANH SÁCH NHÀ CUNG CẤP", "");
     };
@@ -201,6 +203,14 @@ function SupplierListPage() {
             title: 'Email',
             dataIndex: 'email',
             key: 'email',
+        },
+        {
+            title: 'Ngày tạo',
+            dataIndex: 'createdAt',
+            key: 'createdAt',
+            render: (text) => dayjs(text).format('HH:mm:ss DD/MM/YYYY'),
+            sorter: (a, b) => new Date(a.createdAt) - new Date(b.createdAt),
+            defaultSortOrder: 'descend',
         },
         {
             title: 'Action',

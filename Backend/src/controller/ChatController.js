@@ -194,25 +194,64 @@ const handleChat = async (req, res) => {
             const purposeKey = purpose.trim().toLowerCase();
             const ratio = ratios[purposeKey] || ratios.gaming;
             const prefQuery = applyPreferences({}, brand_preference);
+            
             const build = {};
             const components = Object.keys(ratio).filter(k => ratio[k] > 0);
+            
+            // Xây dựng cấu hình theo thứ tự ưu tiên
             for (const comp of components) {
                 const compBudget = budget * ratio[comp];
                 const query = { ...prefQuery };
-                if (comp === 'Mainboard' && build.CPU) {
-                    const cpuSocket = getSpec(build.CPU, 'Socket');
-                    if (cpuSocket) {
-                        query.specifications = { $elemMatch: { key: { $regex: /Socket/i }, value: { $regex: new RegExp(cpuSocket, 'i') } } };
+
+                // Logic tương thích (Cross-component compatibility)
+                if (comp !== 'CPU') {
+                    if (build.CPU) {
+                        const cpuSocket = getSpec(build.CPU, 'socket');
+                        if (['Mainboard', 'Cooling'].includes(comp) && cpuSocket) {
+                            query.specifications = { $elemMatch: { key: 'socket', value: { $regex: new RegExp(cpuSocket, 'i') } } };
+                        }
+                    }
+                    if (build.Mainboard) {
+                        const mb = build.Mainboard;
+                        if (comp === 'RAM') {
+                            const mbRam = getSpec(mb, 'ram_type');
+                            if (mbRam) query.specifications = { $elemMatch: { key: 'ram_type', value: mbRam } };
+                        }
+                        if (comp === 'SSD') {
+                            const mbInt = getSpec(mb, 'interface');
+                            if (mbInt) query.specifications = { $elemMatch: { key: 'interface', value: mbInt } };
+                        }
+                        if (comp === 'VGA') {
+                            const mbPcie = getSpec(mb, 'pcie_version');
+                            if (mbPcie) query.specifications = { $elemMatch: { key: 'pcie_version', value: mbPcie } };
+                        }
+                        if (comp === 'Case') {
+                            const mbForm = getSpec(mb, 'form_factor');
+                            if (mbForm) query.specifications = { $elemMatch: { key: 'form_factor', value: mbForm } };
+                        }
                     }
                 }
+                
                 build[comp] = await findBestComponent(comp, compBudget, query);
             }
+
             suggestedProducts = Object.values(build).filter(Boolean);
             const currentTotal = suggestedProducts.reduce((s, p) => s + p.price, 0);
+            
+            // Kiểm tra công suất nguồn (PSU)
+            if (build.PSU) {
+                const tdp = 50 + Number(getSpec(build.CPU, 'tdp') || 65) + Number(getSpec(build.VGA, 'tdp') || 150);
+                const minWattage = tdp * 1.3;
+                const psuWattage = Number(getSpec(build.PSU, 'power_wattage') || 0);
+                if (psuWattage < minWattage) {
+                    botReply = `Cấu hình đã phối xong nhưng nguồn hiện tại (${psuWattage}W) không đủ công suất khuyến nghị (${Math.ceil(minWattage)}W).`;
+                }
+            }
+
             const missingComponents = components.filter(c => !build[c]);
             if (missingComponents.length > 0 || currentTotal > budget * 1.15) {
                 const suggestedBudget = Math.ceil((currentTotal * 1.1) / 500_000) * 500_000;
-                botReply = `Mình đã cố phối cấu hình nhưng ngân sách **${budget.toLocaleString('vi-VN')}đ** đang thiếu một số linh kiện${missingComponents.length ? ` (${missingComponents.join(', ')})` : ''}. Bạn có thể nâng lên khoảng **${suggestedBudget.toLocaleString('vi-VN')}đ** để mình phối lại chuẩn không ạ?`;
+                botReply = `Mình đã phối cấu hình nhưng ngân sách **${budget.toLocaleString('vi-VN')}đ** đang thiếu một số linh kiện${missingComponents.length ? ` (${missingComponents.join(', ')})` : ''}. Bạn có thể nâng lên khoảng **${suggestedBudget.toLocaleString('vi-VN')}đ** để mình phối lại chuẩn không ạ?`;
             } else {
                 botReply = `Đây là cấu hình tối ưu cho nhu cầu **${purposeKey}** trong tầm giá của bạn. Tổng thực tế: **${currentTotal.toLocaleString('vi-VN')}đ**.`;
             }

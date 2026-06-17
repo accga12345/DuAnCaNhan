@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Layout, Row, Col, Card, Select, Button, Typography, Divider, Tabs, message } from 'antd';
+import { Layout, Row, Col, Card, Select, Button, Typography, Divider, Tabs } from 'antd';
+import * as message from '../../components/MessageComponent/MessageComponent';
 import { getProductByCategory, getAllCategoryProduct } from '../../services/ProductService';
 import { useDispatch } from 'react-redux';
 import { addOrderProduct } from '../../redux/slides/orderSlide';
@@ -31,7 +32,7 @@ const PCBuilderPage = () => {
 
     const addConfig = () => {
         if (configs.length >= 5) {
-            message.warning('Bạn chỉ có thể tạo tối đa 5 cấu hình.');
+            message.showError('Bạn chỉ có thể tạo tối đa 5 cấu hình.');
             return;
         }
         const newId = configs.length + 1;
@@ -44,19 +45,36 @@ const PCBuilderPage = () => {
             if (c.id === configId) {
                 let newSelection = { ...c.selection, [categoryName]: product };
                 
-                // BUG FIX: Kiểm tra và xóa linh kiện không tương thích khi thay đổi linh kiện mới
-                if (categoryName === 'CPU' && newSelection.Mainboard) {
+                // --- CROSS-CATEGORY INVALIDATION LOGIC ---
+                // If a core component changes, remove incompatible downstream components
+                
+                if (categoryName === 'CPU' && product) {
                     const newCpuSocket = getSpec(product, 'socket');
-                    const mbSocket = getSpec(newSelection.Mainboard, 'socket');
-                    if (newCpuSocket && mbSocket && newCpuSocket !== mbSocket) {
+                    // Remove incompatible Mainboard
+                    if (newSelection.Mainboard && getSpec(newSelection.Mainboard, 'socket') !== newCpuSocket) {
                         delete newSelection.Mainboard;
+                        // Cascading removal since Mainboard changed
+                        delete newSelection.RAM;
+                        delete newSelection.Case;
                     }
-                } else if (categoryName === 'Mainboard' && newSelection.CPU) {
+                    // Remove incompatible Cooling
+                    if (newSelection.Cooling && getSpec(newSelection.Cooling, 'socket') !== newCpuSocket) {
+                        delete newSelection.Cooling;
+                    }
+                } 
+                else if (categoryName === 'Mainboard' && product) {
                     const newMbSocket = getSpec(product, 'socket');
-                    const cpuSocket = getSpec(newSelection.CPU, 'socket');
-                    if (newMbSocket && cpuSocket && newMbSocket !== cpuSocket) {
-                        delete newSelection.CPU;
-                    }
+                    const newMbRamType = getSpec(product, 'ram_type');
+                    const newMbForm = getSpec(product, 'form_factor');
+
+                    // Remove incompatible CPU
+                    if (newSelection.CPU && getSpec(newSelection.CPU, 'socket') !== newMbSocket) delete newSelection.CPU;
+                    // Remove incompatible Cooling (tied to socket)
+                    if (newSelection.Cooling && getSpec(newSelection.Cooling, 'socket') !== newMbSocket) delete newSelection.Cooling;
+                    // Remove incompatible RAM
+                    if (newSelection.RAM && getSpec(newSelection.RAM, 'ram_type') !== newMbRamType) delete newSelection.RAM;
+                    // Remove incompatible Case
+                    if (newSelection.Case && getSpec(newSelection.Case, 'form_factor') !== 'ATX' && getSpec(newSelection.Case, 'form_factor') !== newMbForm) delete newSelection.Case;
                 }
 
                 let total = 0;
@@ -71,28 +89,79 @@ const PCBuilderPage = () => {
         return product?.specifications?.find(s => s.key.toLowerCase() === key.toLowerCase())?.value;
     };
 
+    // Helper để check tương thích đa giá trị (phân tách bằng dấu phẩy)
+    const isCompatible = (productSpec, targetValue) => {
+        if (!productSpec) return true;
+        const values = productSpec.split(',').map(v => v.trim().toLowerCase());
+        return values.includes(targetValue.toLowerCase());
+    };
+
+    const calculateTotalTDP = (selection) => {
+        let total = 50; // Base system draw
+        if (selection.CPU) total += Number(getSpec(selection.CPU, 'tdp') || 65);
+        if (selection.VGA) total += Number(getSpec(selection.VGA, 'tdp') || 150);
+        return total;
+    };
+
     const getAvailableProducts = (config, catName, allProducts) => {
         let filtered = allProducts;
+        const sel = config.selection;
         
-        // BUG FIX: Lọc tương thích: khớp spec HOẶC không có spec key (vạn năng)
-        if (catName === 'Mainboard' && config.selection.CPU) {
-            const cpuSocket = getSpec(config.selection.CPU, 'socket');
-            if (cpuSocket) {
-                filtered = filtered.filter(p => {
-                    const pSocket = getSpec(p, 'socket');
-                    return !pSocket || pSocket === cpuSocket; // Khớp hoặc không có socket
-                });
-            }
-        } else if (catName === 'CPU' && config.selection.Mainboard) {
-            const mbSocket = getSpec(config.selection.Mainboard, 'socket');
-            if (mbSocket) {
-                filtered = filtered.filter(p => {
-                    const pSocket = getSpec(p, 'socket');
-                    return !pSocket || pSocket === mbSocket; // Khớp hoặc không có socket
-                });
-            }
+        // 1. CPU <-> Mainboard <-> Cooling (Socket Matching)
+        if (catName === 'Mainboard' && sel.CPU) {
+            const cpuSocket = getSpec(sel.CPU, 'socket');
+            if (cpuSocket) filtered = filtered.filter(p => isCompatible(getSpec(p, 'socket'), cpuSocket));
+        } else if (catName === 'CPU' && sel.Mainboard) {
+            const mbSocket = getSpec(sel.Mainboard, 'socket');
+            if (mbSocket) filtered = filtered.filter(p => isCompatible(getSpec(p, 'socket'), mbSocket));
+        } else if (catName === 'Cooling') {
+            const activeSocket = getSpec(sel.CPU, 'socket') || getSpec(sel.Mainboard, 'socket');
+            if (activeSocket) filtered = filtered.filter(p => isCompatible(getSpec(p, 'socket'), activeSocket));
         }
-        
+
+        // 2. RAM <-> Mainboard (RAM Type Matching)
+        if (catName === 'RAM' && sel.Mainboard) {
+            const mbRamType = getSpec(sel.Mainboard, 'ram_type');
+            if (mbRamType) filtered = filtered.filter(p => isCompatible(getSpec(p, 'ram_type'), mbRamType));
+        } else if (catName === 'Mainboard' && sel.RAM) {
+            const ramType = getSpec(sel.RAM, 'ram_type');
+            if (ramType) filtered = filtered.filter(p => isCompatible(getSpec(p, 'ram_type'), ramType));
+        }
+
+        // 3. VGA <-> Mainboard (PCIe Version Matching)
+        if (catName === 'VGA' && sel.Mainboard) {
+            const mbPcie = getSpec(sel.Mainboard, 'pcie_version');
+            if (mbPcie) filtered = filtered.filter(p => isCompatible(getSpec(p, 'pcie_version'), mbPcie));
+        } else if (catName === 'Mainboard' && sel.VGA) {
+            const vgaPcie = getSpec(sel.VGA, 'pcie_version');
+            if (vgaPcie) filtered = filtered.filter(p => isCompatible(getSpec(p, 'pcie_version'), vgaPcie));
+        }
+
+        // 4. SSD <-> Mainboard (Interface Matching)
+        if (catName === 'SSD' && sel.Mainboard) {
+            const mbInterface = getSpec(sel.Mainboard, 'interface');
+            if (mbInterface) filtered = filtered.filter(p => isCompatible(getSpec(p, 'interface'), mbInterface));
+        } else if (catName === 'Mainboard' && sel.SSD) {
+            const ssdInterface = getSpec(sel.SSD, 'interface');
+            if (ssdInterface) filtered = filtered.filter(p => isCompatible(getSpec(p, 'interface'), ssdInterface));
+        }
+
+        // 5. Case <-> Mainboard (Form Factor)
+        if (catName === 'Case' && sel.Mainboard) {
+            const mbForm = getSpec(sel.Mainboard, 'form_factor');
+            if (mbForm) filtered = filtered.filter(p => isCompatible(getSpec(p, 'form_factor'), mbForm));
+        } else if (catName === 'Mainboard' && sel.Case) {
+            const caseForm = getSpec(sel.Case, 'form_factor');
+            if (caseForm) filtered = filtered.filter(p => isCompatible(getSpec(p, 'form_factor'), caseForm));
+        }
+
+        // 6. PSU (Total Wattage)
+        if (catName === 'PSU') {
+            const totalTDP = calculateTotalTDP(sel);
+            const recommendedWattage = totalTDP * 1.3;
+            filtered = filtered.filter(p => !getSpec(p, 'power_wattage') || Number(getSpec(p, 'power_wattage')) >= recommendedWattage);
+        }
+
         return filtered;
     };
 
@@ -111,7 +180,15 @@ const PCBuilderPage = () => {
     const addToCart = (config) => {
         const items = Object.values(config.selection).filter(p => p != null);
         if (items.length === 0) {
-            message.warning('Vui lòng chọn ít nhất một linh kiện.');
+            message.showError('Vui lòng chọn ít nhất một linh kiện.');
+            return;
+        }
+
+        // Logic check: CPU không có iGPU bắt buộc phải chọn VGA
+        const cpu = config.selection.CPU;
+        const vga = config.selection.VGA;
+        if (cpu && getSpec(cpu, 'has_igpu') === 'false' && !vga) {
+            message.showError('CPU bạn chọn không có card đồ họa tích hợp. Vui lòng chọn thêm VGA rời!');
             return;
         }
         
@@ -127,7 +204,7 @@ const PCBuilderPage = () => {
                 }
             }));
         });
-        message.success(`Đã thêm cấu hình ${config.id} vào giỏ hàng!`);
+        message.showSuccess(`Đã thêm cấu hình ${config.id} vào giỏ hàng!`);
     };
 
     return (

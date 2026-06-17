@@ -333,6 +333,25 @@ const updateOrderReview = (id, data) => {
     });
 };
 
+const deleteManyOrder = async (ids) => {
+    try {
+        const result = await Order.deleteMany({ _id: { $in: ids } });
+        if (result.deletedCount === 0) {
+            return {
+                status: 'ERR',
+                message: 'Không tìm thấy đơn hàng'
+            }
+        }
+        return {
+            status: 'OK',
+            message: 'Xóa đơn hàng thành công',
+            data: result
+        }
+    } catch (e) {
+        throw e
+    }
+}
+
 module.exports = {
     createOrder,
     getAllOrder,
@@ -340,5 +359,6 @@ module.exports = {
     getDetailsOrder,
     getAllOrderDetails,
     updateOrderReview,
-    getWarrantyService
+    getWarrantyService,
+    deleteManyOrder
 };

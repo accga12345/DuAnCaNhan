@@ -8,7 +8,7 @@ import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import dayjs from 'dayjs';
 
-import { getAllOrder, updateOrder, createOrder } from '../../services/OrderService';
+import { getAllOrder, updateOrder, createOrder, deleteManyOrder } from '../../services/OrderService';
 import { getAllProduct } from '../../services/ProductService';
 import TableComponent from '../../components/TableComponent/TableComponent';
 import LoadingComponent from '../../components/Loading/LoadingComponent';
@@ -91,7 +91,7 @@ const OrderAdmin = () => {
     const handleExportExcel = () => {
         const dataToExport = currentOrdersData?.map(order => ({
             "Mã đơn hàng": order.orderCode,
-            "Ngày đặt": dayjs(order.createdAt).format('DD/MM/YYYY HH:mm'),
+            "Ngày đặt": dayjs(order.createdAt).format('HH:mm:ss DD/MM/YYYY'),
             "Khách hàng": order.shippingAddress?.fullName,
             "Số điện thoại": order.shippingAddress?.phone,
             "Địa chỉ": order.shippingAddress?.address,
@@ -339,8 +339,9 @@ const OrderAdmin = () => {
             dataIndex: 'createdAt',
             key: 'createdAt',
             ...getColumnDateSearchProps('createdAt'),
-            render: (text) => new Date(text).toLocaleString('vi-VN'),
+            render: (text) => dayjs(text).format('HH:mm:ss DD/MM/YYYY'),
             sorter: (a, b) => new Date(a.createdAt) - new Date(b.createdAt),
+            defaultSortOrder: 'descend',
         },
         {
             title: 'Trạng thái',
@@ -439,6 +440,26 @@ const OrderAdmin = () => {
         });
     };
 
+    const mutationDeleteMany = useMutationHook(
+        (ids) => deleteManyOrder(ids, user.accessToken)
+    );
+
+    const { data: dataDeleteMany, isSuccess: isSuccessDeleteMany, isError: isErrorDeleteMany, isPending: isPendingDeleteMany } = mutationDeleteMany;
+
+    useEffect(() => {
+        if (isSuccessDeleteMany && dataDeleteMany?.status === 'OK') {
+            message.showSuccess('Xóa đơn hàng thành công');
+            refetch();
+        } else if (isErrorDeleteMany) {
+            console.error("Mutation Error:", mutationDeleteMany.error);
+            message.showError('Xóa đơn hàng thất bại');
+        }
+    }, [isSuccessDeleteMany, isErrorDeleteMany, dataDeleteMany, refetch]);
+
+    const handleDeleteMany = (ids) => {
+        mutationDeleteMany.mutate(ids);
+    };
+
     return (
         <div>
             <PageHeader>
@@ -461,10 +482,12 @@ const OrderAdmin = () => {
                     </Button>
                 </ActionToolbar>
             </PageHeader>
-            <LoadingComponent isPending={isLoadingOrders || isPendingUpdate || isPendingCreate}>
+            <LoadingComponent isPending={isLoadingOrders || isPendingUpdate || isPendingCreate || isPendingDeleteMany}>
                 <TableComponent 
+                    canDelete={user.isAdmin}
                     columns={columns} 
                     data={orders?.data} 
+                    handleDeleteMany={handleDeleteMany}
                     rowKey="_id" 
                     onChange={handleTableChange}
                 />

@@ -20,6 +20,7 @@ const SidebarComponent = ({
 
     const renderStarFilter = (stars) => (
         <div
+            key={stars}
             style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', padding: '4px 0' }}
             onClick={() => {
                 setRatingFilter(ratingFilter === stars ? 0 : stars);
@@ -52,7 +53,7 @@ const SidebarComponent = ({
 
     return (
         <WrapperSidebar>
-            <Card style={cardStyle} bodyStyle={{ padding: '16px' }}>
+            <Card style={cardStyle} styles={{ body: { padding: '16px' } }}>
                 <h3 style={headerStyle}>Thương hiệu</h3>
                 <Radio.Group onChange={(e) => { setBrandFilter(e.target.value); if (setLimit) setLimit(12); }} value={brandFilter}>
                     <Space direction="vertical" style={{ width: '100%' }}>
@@ -69,7 +70,7 @@ const SidebarComponent = ({
                 </Radio.Group>
             </Card>
 
-            <Card style={cardStyle} bodyStyle={{ padding: '16px' }}>
+            <Card style={cardStyle} styles={{ body: { padding: '16px' } }}>
                 <h3 style={headerStyle}>Đánh giá</h3>
                 <WrapperSection>
                     {[5, 4, 3, 2, 1, 0].map(star => renderStarFilter(star))}
