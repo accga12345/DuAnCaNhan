@@ -74,19 +74,36 @@ const HeaderComponent = ({ isHiddenSearch, isCart }) => {
   React.useEffect(() => {
     let socket;
     if (user.accessToken) {
-      const backendUrl = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace('/api', '') : "http://localhost:3001";
-      socket = io(backendUrl);
+      let backendUrl = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
+      
+      // Nếu là đường dẫn tương đối (ví dụ: /api), dùng origin hiện tại
+      if (backendUrl.startsWith('/')) {
+        backendUrl = window.location.origin;
+      } else {
+        // Nếu là đường dẫn tuyệt đối, cắt bỏ phần /api ở cuối
+        backendUrl = backendUrl.replace('/api', '').replace(/\/$/, "");
+      }
+      
+      socket = io(backendUrl, {
+        transports: ['websocket', 'polling'], // Cho phép cả 2 nhưng ưu tiên websocket qua proxy
+        reconnection: true,
+        reconnectionAttempts: 10,
+        timeout: 10000
+      });
       setSocketObj(socket);
 
       if (user.isAdmin || user.isEmployee) {
         socket.on("new_order", (newNoti) => {
-          antdNotification.success({
-            message: newNoti.title,
-            description: newNoti.body,
-            placement: "topRight"
-          });
-          setNotifications((prev) => [newNoti, ...prev]);
-          setUnreadCount((prev) => prev + 1);
+          // Chỉ thêm thông báo nếu nó dành cho user hiện tại
+          if (newNoti.userId === user._id) {
+            antdNotification.success({
+              message: newNoti.title,
+              description: newNoti.body,
+              placement: "topRight"
+            });
+            setNotifications((prev) => [newNoti, ...prev]);
+            setUnreadCount((prev) => prev + 1);
+          }
         });
 
         // Live Chat Events cho Staff
@@ -178,10 +195,10 @@ const HeaderComponent = ({ isHiddenSearch, isCart }) => {
       // Fetch old notifications
       const fetchNotifications = async () => {
         try {
-          const baseUrl = import.meta.env.VITE_API_URL;
+          const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
           const url = (user.isAdmin || user.isEmployee)
-            ? `${baseUrl}/notification/get-all`
-            : `${baseUrl}/notification/get-all?userId=${user._id}`;
+            ? `${baseUrl}/notification/get-all?currentUserId=${user._id}`
+            : `${baseUrl}/notification/get-all?userId=${user._id}&currentUserId=${user._id}`;
 
           const res = await axios.get(url);
           if (res.data && res.data.data) {
@@ -202,7 +219,7 @@ const HeaderComponent = ({ isHiddenSearch, isCart }) => {
   const handleReadNotification = async (id) => {
     try {
       const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
-      await axios.put(`${baseUrl}/notification/mark-as-read/${id}`);
+      await axios.put(`${baseUrl}/notification/mark-as-read/${id}`, { userId: user._id });
       setNotifications(notifications.map(n => n._id === id ? { ...n, isRead: true } : n));
       setUnreadCount(prev => Math.max(0, prev - 1));
     } catch (e) {
@@ -214,7 +231,7 @@ const HeaderComponent = ({ isHiddenSearch, isCart }) => {
     e.stopPropagation();
     try {
       const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
-      await axios.delete(`${baseUrl}/notification/delete/${id}`);
+      await axios.delete(`${baseUrl}/notification/delete/${id}?userId=${user._id}`);
       setNotifications(notifications.filter(n => n._id !== id));
       if (!isRead) {
         setUnreadCount(prev => Math.max(0, prev - 1));

@@ -20,6 +20,7 @@ const notificationSchema = new mongoose.Schema({
     userId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
+        required: true, // Bây giờ mỗi thông báo phải thuộc về 1 user cụ thể
     },
 }, { timestamps: true });
 

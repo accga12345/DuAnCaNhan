@@ -1,7 +1,7 @@
 const createPaymentUrl = async (amount, orderCode) => {
     try {
         // Dùng MERCHANT_ID làm số tài khoản (theo cấu hình Sandbox của bạn)
-        const bankAccount = process.env.SEPAY_MERCHANT_ID || "0000000001";
+        const bankAccount = process.env.SEPAY_MERCHANT_ID;
         const bankName = "VietinBank";
         const description = orderCode; 
         

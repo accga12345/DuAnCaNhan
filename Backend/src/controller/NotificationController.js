@@ -3,13 +3,16 @@ const Notification = require('../models/NotificationModel');
 const getAllNotifications = async (req, res) => {
     try {
         const limit = parseInt(req.query.limit) || 20;
-        let query = {};
-        if (req.query.userId) {
-            query.userId = req.query.userId;
-        } else {
-            query.userId = { $exists: false }; // Thông báo cho admin
+        const userId = req.query.userId || req.query.currentUserId;
+        
+        if (!userId) {
+            return res.status(400).json({ message: 'User ID is required' });
         }
-        const notifications = await Notification.find(query).sort({ createdAt: -1 }).limit(limit);
+
+        const notifications = await Notification.find({ userId: userId })
+            .sort({ createdAt: -1 })
+            .limit(limit);
+        
         return res.status(200).json({
             status: 'OK',
             message: 'SUCCESS',
@@ -25,11 +28,20 @@ const getAllNotifications = async (req, res) => {
 const markAsRead = async (req, res) => {
     try {
         const id = req.params.id;
-        const notification = await Notification.findByIdAndUpdate(id, { isRead: true }, { returnDocument: 'after' });
+        const updatedNotification = await Notification.findByIdAndUpdate(
+            id, 
+            { isRead: true }, 
+            { new: true }
+        );
+
+        if (!updatedNotification) {
+            return res.status(404).json({ message: 'Notification not found' });
+        }
+
         return res.status(200).json({
             status: 'OK',
             message: 'SUCCESS',
-            data: notification
+            data: updatedNotification
         });
     } catch (e) {
         return res.status(500).json({
@@ -41,7 +53,17 @@ const markAsRead = async (req, res) => {
 const deleteNotification = async (req, res) => {
     try {
         const id = req.params.id;
-        await Notification.findByIdAndDelete(id);
+        
+        if (!id || id === 'undefined') {
+            return res.status(400).json({ message: 'Invalid Notification ID' });
+        }
+
+        const deleted = await Notification.findByIdAndDelete(id);
+
+        if (!deleted) {
+            return res.status(404).json({ message: 'Notification not found' });
+        }
+
         return res.status(200).json({
             status: 'OK',
             message: 'DELETE SUCCESS'

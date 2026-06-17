@@ -6,17 +6,23 @@ let io;
 const init = (httpServer) => {
     io = new Server(httpServer, {
         cors: {
-            origin: "*",
-            methods: ["GET", "POST"]
-        }
+            origin: true, // Phản hồi theo origin của client
+            methods: ["GET", "POST"],
+            credentials: true
+        },
+        allowEIO3: true,
+        transports: ['websocket', 'polling']
     });
 
     io.on("connection", (socket) => {
-        console.log("Client connected:", socket.id);
-        chatSocketService.handleChatEvents(io, socket);
+        try {
+            chatSocketService.handleChatEvents(io, socket);
+        } catch (error) {
+            console.error("Error in handleChatEvents:", error);
+        }
 
-        socket.on("disconnect", () => {
-            console.log("Client disconnected:", socket.id);
+        socket.on("disconnect", (reason) => {
+            // Socket disconnected
         });
     });
 

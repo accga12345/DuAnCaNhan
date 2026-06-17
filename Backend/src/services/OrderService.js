@@ -72,21 +72,41 @@ const createOrder = async (newOrder) => {
             try {
                 const socketIO = socket.getIO();
                 const Notification = require('../models/NotificationModel');
+                const User = require('../models/UserModel');
 
-                const newNotification = await Notification.create({
-                    title: 'Đơn hàng mới',
-                    body: `Khách hàng ${fullName} vừa đặt một đơn hàng mới trị giá ${totalPrice}đ`,
-                    orderId: orderId
+                // Tìm tất cả Admin và Nhân viên
+                const adminsAndStaff = await User.find({ 
+                    $or: [{ isAdmin: true }, { isEmployee: true }] 
                 });
 
-                socketIO.emit('new_order', newNotification);
+                // Tạo thông báo cho từng người và thu thập kết quả để emit socket
+                const notifications = await Promise.all(adminsAndStaff.map(admin => {
+                    return Notification.create({
+                        title: 'Đơn hàng mới',
+                        body: `Khách hàng ${fullName} vừa đặt một đơn hàng mới trị giá ${totalPrice}đ`,
+                        orderId: orderId,
+                        userId: admin._id
+                    });
+                }));
+
+                // Emit socket cho từng người hoặc emit chung nhưng kèm đầy đủ data
+                // Ở đây ta dùng emit chung, frontend sẽ lọc theo userId nếu cần, 
+                // hoặc đơn giản là thêm vào list nếu là admin/staff.
+                notifications.forEach(noti => {
+                    socketIO.emit('new_order', noti);
+                });
 
                 if (outOfStockProducts.length > 0) {
-                    const outOfStockNotif = await Notification.create({
-                        title: 'Sản phẩm hết hàng trên Web',
-                        body: `Sản phẩm ${outOfStockProducts.join(', ')} đã hết hàng trên gian hàng trực tuyến. Vui lòng kiểm tra và cập nhật thêm số lượng!`,
+                    const outOfStockNotifs = await Promise.all(adminsAndStaff.map(admin => {
+                        return Notification.create({
+                            title: 'Sản phẩm hết hàng trên Web',
+                            body: `Sản phẩm ${outOfStockProducts.join(', ')} đã hết hàng trên gian hàng trực tuyến.`,
+                            userId: admin._id
+                        });
+                    }));
+                    outOfStockNotifs.forEach(noti => {
+                        socketIO.emit('new_order', noti);
                     });
-                    socketIO.emit('new_order', outOfStockNotif);
                 }
             } catch (err) {
                 console.error("Lỗi khi gửi thông báo socket:", err);

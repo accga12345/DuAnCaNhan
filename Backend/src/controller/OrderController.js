@@ -30,15 +30,26 @@ const updateOrder = async (req, res) => {
     try {
         const orderId = req.params.id;
         const data = req.body;
+        const user = req.user;
+
         if (!orderId) {
             return res.status(400).json({
                 status: "error",
                 message: "khong tim thay don hang",
             });
         }
-        const order = await OrderService.updateOrder(orderId, data);
-        if (order.status === "ERR") return res.status(404).json(order);
-        return res.status(200).json(order);
+
+        const orderDetails = await OrderService.getDetailsOrder(orderId);
+        if (orderDetails.status === 'ERR') return res.status(404).json(orderDetails);
+
+        // Permission check: Admin/Staff OR Owner
+        if (user.isAdmin || user.isEmployee || String(orderDetails.data.user) === String(user.id)) {
+            const order = await OrderService.updateOrder(orderId, data);
+            if (order.status === "ERR") return res.status(404).json(order);
+            return res.status(200).json(order);
+        }
+
+        return res.status(403).json({ message: 'You do not have permission', status: 'error' });
     } catch (error) {
         return res.status(500).json({ message: error.message });
     }
@@ -91,14 +102,25 @@ const updateOrderReview = async (req, res) => {
     try {
         const orderId = req.params.id;
         const data = req.body;
+        const user = req.user;
+
         if (!orderId) {
             return res.status(400).json({
                 status: "error",
                 message: "khong tim thay don hang",
             });
         }
-        const order = await OrderService.updateOrderReview(orderId, data);
-        return res.status(200).json(order);
+
+        const orderDetails = await OrderService.getDetailsOrder(orderId);
+        if (orderDetails.status === 'ERR') return res.status(404).json(orderDetails);
+
+        // Permission check: Admin/Staff OR Owner
+        if (user.isAdmin || user.isEmployee || String(orderDetails.data.user) === String(user.id)) {
+            const order = await OrderService.updateOrderReview(orderId, data);
+            return res.status(200).json(order);
+        }
+
+        return res.status(403).json({ message: 'You do not have permission', status: 'error' });
     } catch (error) {
         return res.status(500).json({ message: error.message });
     }
