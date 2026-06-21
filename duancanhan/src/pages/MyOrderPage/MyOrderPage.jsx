@@ -69,7 +69,7 @@ const MyOrderPage = () => {
                 <div style={{ width: '1270px', margin: '0 auto' }}>
                     <h3 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '15px' }}>Đơn hàng của tôi</h3>
                     <WrapperListOrder>
-                        {orders?.data?.map((order) => (
+                        {[...(orders?.data || [])].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).map((order) => (
                             <WrapperItemOrder key={order?._id} style={{ flexDirection: 'column', alignItems: 'flex-start', padding: '20px', gap: '15px' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', width: '100%', justifyContent: 'space-between' }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
@@ -89,7 +89,12 @@ const MyOrderPage = () => {
                                     <div key={item?._id} style={{ display: 'flex', width: '100%', gap: '15px' }}>
                                         <img src={item?.image} alt="product" style={{ width: '80px', height: '80px', objectFit: 'cover', border: '1px solid #eee' }} />
                                         <div style={{ flex: 1 }}>
-                                            <div style={{ fontSize: '15px', fontWeight: '500' }}>{item?.name}</div>
+                                            <div 
+                                                style={{ fontSize: '15px', fontWeight: '500', cursor: 'pointer', color: '#1890ff' }}
+                                                onClick={() => navigate(`/productdetail/${item.product}`)}
+                                            >
+                                                {item?.name}
+                                            </div>
                                             <div style={{ color: '#888', fontSize: '13px' }}>Số lượng: {item?.amount}</div>
                                         </div>
                                         <div style={{ fontWeight: 'bold' }}>{convertPrice(item?.price)}</div>

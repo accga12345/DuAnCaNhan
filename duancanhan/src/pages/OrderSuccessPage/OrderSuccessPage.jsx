@@ -1,7 +1,7 @@
 import React from 'react';
 import { WrapperContainer, WrapperInfo, WrapperItemOrder, WrapperLeft, WrapperListOrder, WrapperRight, WrapperTotal } from '../OrderPage/style';
 import { useSelector } from 'react-redux';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Row, Col, Steps } from 'antd';
 import { convertPrice } from '../../ultil';
 import { useQuery } from '@tanstack/react-query';
@@ -14,6 +14,7 @@ import ButtonComponents from '../../components/ButtonComponents/ButtonComponents
 
 const OrderSuccessPage = () => {
     const location = useLocation();
+    const navigate = useNavigate();
     const { state } = location;
     const user = useSelector((state) => state.user);
 
@@ -90,7 +91,12 @@ const OrderSuccessPage = () => {
                                             <WrapperItemOrder key={order?.product}>
                                                 <div style={{ width: '390px', display: 'flex', alignItems: 'center', gap: 4 }}>
                                                     <img src={order?.image} style={{ width: '77px', height: '79px', objectFit: 'cover' }} alt="Sản phẩm" />
-                                                    <div style={{ width: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{order?.name}</div>
+                                                    <div 
+                                                        style={{ width: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'pointer', color: '#1890ff' }}
+                                                        onClick={() => navigate(`/productdetail/${order?.product}`)}
+                                                    >
+                                                        {order?.name}
+                                                    </div>
                                                 </div>
                                                 <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                                     <span>

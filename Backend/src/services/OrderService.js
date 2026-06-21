@@ -156,6 +156,14 @@ const updateOrder = async (id, data) => {
             checkOrder.status = data.status
         }
 
+        if (data.shippingPrice !== undefined) {
+            checkOrder.shippingPrice = data.shippingPrice;
+        }
+
+        if (data.totalPrice !== undefined) {
+            checkOrder.totalPrice = data.totalPrice;
+        }
+
         if (data.status === 3) {
             if (checkOrder.status === 2 || checkOrder.status === 4) {
                 await session.abortTransaction();

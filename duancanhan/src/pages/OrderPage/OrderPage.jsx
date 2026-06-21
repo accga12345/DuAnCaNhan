@@ -381,6 +381,9 @@ const OrderPage = () => {
                   <span>Phí giao hàng</span>
                   <span style={{ color: '#000', fontSize: '14px', fontWeight: 'bold' }}>{(deliveryPriceMemo || 0)?.toLocaleString()}đ</span>
                 </div>
+                <div style={{ fontSize: '11px', color: '#999', marginBottom: '10px', marginTop: '2px', textAlign: 'right' }}>
+                  (Phí ship: 20k cho đơn &lt; 200k, 10k cho đơn từ 200k - 500k, Miễn phí cho đơn &ge; 500k)
+                </div>
               </WrapperInfo>
               <WrapperInfo>
                 <div>
