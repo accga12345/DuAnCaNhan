@@ -14,13 +14,12 @@ const getOperatingCost = async (req, res) => {
 
 const updateOperatingCost = async (req, res) => {
     try {
-        const { rentCost, salaryPerStaff } = req.body;
+        const { rentCost } = req.body;
         let cost = await OperatingCost.findOne();
         if (!cost) {
-            cost = await OperatingCost.create({ rentCost, salaryPerStaff });
+            cost = await OperatingCost.create({ rentCost });
         } else {
             cost.rentCost = rentCost ?? cost.rentCost;
-            cost.salaryPerStaff = salaryPerStaff ?? cost.salaryPerStaff;
             await cost.save();
         }
         return res.status(200).json({ status: 'OK', message: 'Cập nhật thành công', data: cost });

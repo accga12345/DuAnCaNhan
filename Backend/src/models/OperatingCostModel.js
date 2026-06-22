@@ -6,11 +6,6 @@ const operatingCostSchema = new mongoose.Schema({
         required: true,
         default: 0,
     },
-    salaryPerStaff: {
-        type: Number,
-        required: true,
-        default: 0,
-    },
 }, { timestamps: true });
 
 const OperatingCost = mongoose.model('OperatingCost', operatingCostSchema);

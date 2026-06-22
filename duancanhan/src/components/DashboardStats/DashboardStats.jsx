@@ -73,8 +73,8 @@ const DashboardStats = () => {
         queryFn: getOperatingCost,
     });
 
-    const staffCount = useMemo(() => {
-        return users?.data?.filter(user => user.isEmployee).length || 0;
+    const totalStaffSalary = useMemo(() => {
+        return users?.data?.filter(user => user.isEmployee).reduce((sum, u) => sum + (u.salary || 0), 0) || 0;
     }, [users]);
 
     const productCostMap = useMemo(() => {
@@ -103,8 +103,7 @@ const DashboardStats = () => {
         const data = {};
         
         const rentCost = costData.data.rentCost || 0;
-        const staffCostPerPerson = costData.data.salaryPerStaff || 0;
-        const totalFixedCosts = rentCost + (staffCount * staffCostPerPerson);
+        const totalFixedCosts = rentCost + totalStaffSalary;
 
         filteredOrdersByMonth.forEach(order => {
             if (order.status !== 4 && order.isDelivered !== true) return; 
@@ -140,7 +139,7 @@ const DashboardStats = () => {
             if (yB !== yA) return yB - yA;
             return mB - mA;
         });
-    }, [filteredOrdersByMonth, productCostMap, staffCount, costData]);
+    }, [filteredOrdersByMonth, productCostMap, totalStaffSalary, costData]);
 
     const totalRevenue = monthlyStats.reduce((acc, curr) => acc + curr.revenue, 0);
     const totalProfit = monthlyStats.reduce((acc, curr) => acc + curr.profit, 0);

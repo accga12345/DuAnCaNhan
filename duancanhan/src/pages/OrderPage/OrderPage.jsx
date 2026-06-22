@@ -123,7 +123,7 @@ const OrderPage = () => {
     if (name && address && phone) {
       mutationUpdate.mutate({ id: user?._id, token: user?.accessToken, ...stateUserDetails }, {
         onSuccess: () => {
-          dispatch(updateUser({ name, address, phone }));
+          dispatch(updateUser({ ...user, name, address, phone }));
           setIsOpenModalUpdateInfo(false);
         }
       });
