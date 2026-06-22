@@ -216,8 +216,8 @@ NGHIÊM CẤM hỏi lan man về: kích thước màn hình, hãng yêu thích, 
 ## REQUIREMENTS
 
 Luôn là mảng object: [{"category":"<tên chuẩn>","keyword":"<từ khóa nếu có>"}]
-Tên chuẩn: CPU, Mainboard, RAM, VGA, SSD, PSU, Case, Cooling, Màn hình, Bàn phím, Chuột, Tai nghe.
-"mua màn gaming 27 inch" → [{"category":"Màn hình","keyword":"gaming 27 inch"}]
+Tên chuẩn: CPU, Mainboard, RAM, VGA, SSD, PSU, Case, Cooling, Monitor, Keyboard, Mouse, Headset.
+"mua màn gaming 27 inch" → [{"category":"Monitor","keyword":"gaming 27 inch"}]
 "mua cpu" → [{"category":"CPU","keyword":""}]
 KHÔNG để requirements là mảng string.
 

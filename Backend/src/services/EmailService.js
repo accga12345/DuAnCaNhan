@@ -40,12 +40,14 @@ const sendEmail = async (to, subject, html) => {
     });
 };
 
+const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:3000';
+
 const sendEmailResetPassword = async (email, token) => {
     await sendEmail(email, 'Khôi phục mật khẩu tài khoản', `
     <div>
         <p>Bạn nhận được email này vì bạn (hoặc ai đó) đã yêu cầu khôi phục mật khẩu cho tài khoản của mình.</p>
         <p>Vui lòng click vào đường link bên dưới để thực hiện thay đổi mật khẩu (link có hiệu lực trong 15 phút):</p>
-        <a href="http://localhost:3000/reset-password?token=${token}">Khôi phục mật khẩu</a>
+        <a href="${CLIENT_URL}/reset-password?token=${token}">Khôi phục mật khẩu</a>
         <p>Nếu bạn không yêu cầu điều này, hãy bỏ qua email này.</p>
     </div>
     `);

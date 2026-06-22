@@ -120,14 +120,20 @@ const OrderPage = () => {
 
   const handleUpdateInformation = () => {
     const { name, address, phone } = stateUserDetails;
-    if (name && address && phone) {
-      mutationUpdate.mutate({ id: user?._id, token: user?.accessToken, ...stateUserDetails }, {
-        onSuccess: () => {
-          dispatch(updateUser({ ...user, name, address, phone }));
-          setIsOpenModalUpdateInfo(false);
-        }
-      });
+    if (!name || !address || !phone) {
+      showError('Vui lòng nhập đầy đủ thông tin giao hàng');
+      return;
     }
+    if (!/^[0-9]{10}$/.test(phone)) {
+      showError('Số điện thoại phải có đúng 10 chữ số');
+      return;
+    }
+    mutationUpdate.mutate({ id: user?._id, token: user?.accessToken, ...stateUserDetails }, {
+      onSuccess: () => {
+        dispatch(updateUser({ ...user, name, address, phone }));
+        setIsOpenModalUpdateInfo(false);
+      }
+    });
   };
 
   const handleAddOrder = async (isPaid = false) => {

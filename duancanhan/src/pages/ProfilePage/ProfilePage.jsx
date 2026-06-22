@@ -55,6 +55,14 @@ function ProfilePage() {
 
   const updateField = (field) => {
     const value = form.getFieldValue(field);
+    const rules = {
+      email: { pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, msg: 'Email không hợp lệ' },
+      phone: { pattern: /^[0-9]{10}$/, msg: 'Số điện thoại phải có đúng 10 chữ số' },
+    };
+    if (rules[field] && !rules[field].pattern.test(value)) {
+      showError(rules[field].msg);
+      return;
+    }
     mutation.mutate({ [field]: value });
     setEditing((prev) => ({
       ...prev,

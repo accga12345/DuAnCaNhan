@@ -177,6 +177,8 @@ const PCBuilderPage = () => {
         }
     };
 
+    const MANDATORY_CATEGORIES = ['CPU', 'Mainboard', 'RAM', 'VGA', 'SSD', 'PSU', 'Case', 'Cooling'];
+
     const addToCart = (config) => {
         const items = Object.values(config.selection).filter(p => p != null);
         if (items.length === 0) {
@@ -184,11 +186,18 @@ const PCBuilderPage = () => {
             return;
         }
 
-        // Logic check: CPU không có iGPU bắt buộc phải chọn VGA
         const cpu = config.selection.CPU;
         const vga = config.selection.VGA;
-        if (cpu && getSpec(cpu, 'has_igpu') === 'false' && !vga) {
-            message.showError('CPU bạn chọn không có card đồ họa tích hợp. Vui lòng chọn thêm VGA rời!');
+
+        // VGA chỉ bắt buộc nếu CPU không có iGPU
+        const vgaRequired = cpu && getSpec(cpu, 'has_igpu') === 'false';
+        const requiredCats = vgaRequired
+            ? MANDATORY_CATEGORIES
+            : MANDATORY_CATEGORIES.filter(c => c !== 'VGA');
+
+        const missing = requiredCats.filter(cat => !config.selection[cat]);
+        if (missing.length > 0) {
+            message.showError(`Vui lòng chọn đầy đủ các linh kiện bắt buộc: ${missing.join(', ')}`);
             return;
         }
         
