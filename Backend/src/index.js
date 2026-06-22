@@ -2,9 +2,6 @@ const express = require('express');
 const dotenv = require('dotenv');
 dotenv.config();
 
-const dns = require('dns');
-try { dns.setDefaultResultOrder('ipv4first'); } catch (_) {}
-
 const { default: mongoose } = require('mongoose');
 const router = require('./routes');
 const bodyParser = require('body-parser');

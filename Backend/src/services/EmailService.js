@@ -1,24 +1,42 @@
 const nodemailer = require("nodemailer");
-const dotenv = require('dotenv');
+const dns = require("dns");
+const dotenv = require("dotenv");
 dotenv.config();
 
-const sendEmailResetPassword = async (email, token) => {
-    let transporter = nodemailer.createTransport({
-        host: "smtp.gmail.com",
+const SMTP_HOST = "smtp.gmail.com";
+let smtpIpPromise = null;
+
+const getSmtpIp = () => {
+    if (!smtpIpPromise) {
+        smtpIpPromise = new Promise((resolve) => {
+            dns.resolve4(SMTP_HOST, (err, addresses) => {
+                resolve(err || !addresses.length ? SMTP_HOST : addresses[0]);
+            });
+        });
+    }
+    return smtpIpPromise;
+};
+
+const makeTransport = async () => {
+    const host = await getSmtpIp();
+    return nodemailer.createTransport({
+        host,
         port: 587,
         secure: false,
+        servername: SMTP_HOST,
         auth: {
             user: process.env.EMAIL_IS_USER,
             pass: process.env.EMAIL_IS_PASSWORD,
         },
-        family: 4,
         connectionTimeout: 10000,
         greetingTimeout: 10000,
         socketTimeout: 15000,
     });
+};
 
-    // send mail with defined transport object
-    let info = await transporter.sendMail({
+const sendEmailResetPassword = async (email, token) => {
+    const transporter = await makeTransport();
+    await transporter.sendMail({
         from: '"Linh Kiện Máy Tính 👻" <no-reply@shop.com>',
         to: email,
         subject: "Khôi phục mật khẩu tài khoản",
@@ -35,21 +53,8 @@ const sendEmailResetPassword = async (email, token) => {
 };
 
 const sendEmailVerificationOtp = async (email, otp) => {
-    let transporter = nodemailer.createTransport({
-        host: "smtp.gmail.com",
-        port: 587,
-        secure: false,
-        auth: {
-            user: process.env.EMAIL_IS_USER,
-            pass: process.env.EMAIL_IS_PASSWORD,
-        },
-        family: 4,
-        connectionTimeout: 10000,
-        greetingTimeout: 10000,
-        socketTimeout: 15000,
-    });
-
-    let info = await transporter.sendMail({
+    const transporter = await makeTransport();
+    await transporter.sendMail({
         from: '"Linh Kiện Máy Tính 👻" <no-reply@shop.com>',
         to: email,
         subject: "Mã xác thực đăng ký tài khoản",
@@ -67,7 +72,7 @@ const sendEmailVerificationOtp = async (email, otp) => {
             <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
             <p style="font-size: 12px; color: #888; text-align: center;">Cửa Hàng Linh Kiện Máy Tính</p>
         </div>
-        `, // html body
+        `,
     });
 };
 
