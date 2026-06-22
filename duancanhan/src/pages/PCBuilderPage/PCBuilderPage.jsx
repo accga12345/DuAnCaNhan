@@ -51,14 +51,14 @@ const PCBuilderPage = () => {
                 if (categoryName === 'CPU' && product) {
                     const newCpuSocket = getSpec(product, 'socket');
                     // Remove incompatible Mainboard
-                    if (newSelection.Mainboard && getSpec(newSelection.Mainboard, 'socket') !== newCpuSocket) {
+                    if (newSelection.Mainboard && !isCompatible(getSpec(newSelection.Mainboard, 'socket'), newCpuSocket)) {
                         delete newSelection.Mainboard;
                         // Cascading removal since Mainboard changed
                         delete newSelection.RAM;
                         delete newSelection.Case;
                     }
                     // Remove incompatible Cooling
-                    if (newSelection.Cooling && getSpec(newSelection.Cooling, 'socket') !== newCpuSocket) {
+                    if (newSelection.Cooling && !isCompatible(getSpec(newSelection.Cooling, 'socket'), newCpuSocket)) {
                         delete newSelection.Cooling;
                     }
                 } 
@@ -67,14 +67,14 @@ const PCBuilderPage = () => {
                     const newMbRamType = getSpec(product, 'ram_type');
                     const newMbForm = getSpec(product, 'form_factor');
 
-                    // Remove incompatible CPU
-                    if (newSelection.CPU && getSpec(newSelection.CPU, 'socket') !== newMbSocket) delete newSelection.CPU;
+                    // Remove incompatible CPU: check if CPU's socket is in Mainboard's socket list
+                    if (newSelection.CPU && !isCompatible(newMbSocket, getSpec(newSelection.CPU, 'socket'))) delete newSelection.CPU;
                     // Remove incompatible Cooling (tied to socket)
-                    if (newSelection.Cooling && getSpec(newSelection.Cooling, 'socket') !== newMbSocket) delete newSelection.Cooling;
+                    if (newSelection.Cooling && !isCompatible(newMbSocket, getSpec(newSelection.Cooling, 'socket'))) delete newSelection.Cooling;
                     // Remove incompatible RAM
-                    if (newSelection.RAM && getSpec(newSelection.RAM, 'ram_type') !== newMbRamType) delete newSelection.RAM;
+                    if (newSelection.RAM && !isCompatible(newMbRamType, getSpec(newSelection.RAM, 'ram_type'))) delete newSelection.RAM;
                     // Remove incompatible Case
-                    if (newSelection.Case && getSpec(newSelection.Case, 'form_factor') !== 'ATX' && getSpec(newSelection.Case, 'form_factor') !== newMbForm) delete newSelection.Case;
+                    if (newSelection.Case && !isCompatible(newMbForm, getSpec(newSelection.Case, 'form_factor'))) delete newSelection.Case;
                 }
 
                 let total = 0;
@@ -91,7 +91,7 @@ const PCBuilderPage = () => {
 
     // Helper để check tương thích đa giá trị (phân tách bằng dấu phẩy)
     const isCompatible = (productSpec, targetValue) => {
-        if (!productSpec) return true;
+        if (!productSpec || !targetValue) return true;
         const values = productSpec.split(',').map(v => v.trim().toLowerCase());
         return values.includes(targetValue.toLowerCase());
     };

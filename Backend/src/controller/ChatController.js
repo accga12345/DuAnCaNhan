@@ -96,7 +96,7 @@ const handleChat = async (req, res) => {
         const isMissingPurpose = intent === 'build_pc' && !purpose?.trim();
 
         if (intent === 'chat' || isMissingBudget || isMissingPurpose) {
-            botReply = reply || (isMissingBudget ? 'Dạ bạn có thể cho shop biết mức ngân sách dự kiến được không ạ?' : 'Dạ bạn cần hỗ trợ gì thêm ạ?');
+            botReply = reply
         } else if (intent === 'research') {
             let reqItem = requirements?.[0];
             let query = {};
@@ -112,7 +112,7 @@ const handleChat = async (req, res) => {
             if (catId) {
                 query.category = catId;
             }
-            
+
             if (specs_filter && specs_filter.length > 0) {
                 const andConditions = specs_filter.map(spec => ({
                     specifications: {
@@ -124,7 +124,7 @@ const handleChat = async (req, res) => {
                 }));
                 query['$and'] = andConditions;
             }
-            
+
             let products = await ProductModel.find(query).populate('category').limit(5);
 
             if (budget > 0) {
@@ -194,10 +194,17 @@ const handleChat = async (req, res) => {
             const purposeKey = purpose.trim().toLowerCase();
             const ratio = ratios[purposeKey] || ratios.gaming;
             const prefQuery = applyPreferences({}, brand_preference);
-            
+
             const build = {};
             const components = Object.keys(ratio).filter(k => ratio[k] > 0);
-            
+
+            // Helper để match spec value có dấu phẩy (cả 2 chiều)
+            const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const matchSpec = (value) => {
+                const parts = value.split(',').map(v => escapeRegex(v.trim())).filter(Boolean);
+                return { $regex: new RegExp(parts.join('|'), 'i') };
+            };
+
             // Xây dựng cấu hình theo thứ tự ưu tiên
             for (const comp of components) {
                 const compBudget = budget * ratio[comp];
@@ -208,36 +215,36 @@ const handleChat = async (req, res) => {
                     if (build.CPU) {
                         const cpuSocket = getSpec(build.CPU, 'socket');
                         if (['Mainboard', 'Cooling'].includes(comp) && cpuSocket) {
-                            query.specifications = { $elemMatch: { key: 'socket', value: { $regex: new RegExp(cpuSocket, 'i') } } };
+                            query.specifications = { $elemMatch: { key: 'socket', value: matchSpec(cpuSocket) } };
                         }
                     }
                     if (build.Mainboard) {
                         const mb = build.Mainboard;
                         if (comp === 'RAM') {
                             const mbRam = getSpec(mb, 'ram_type');
-                            if (mbRam) query.specifications = { $elemMatch: { key: 'ram_type', value: mbRam } };
+                            if (mbRam) query.specifications = { $elemMatch: { key: 'ram_type', value: matchSpec(mbRam) } };
                         }
                         if (comp === 'SSD') {
                             const mbInt = getSpec(mb, 'interface');
-                            if (mbInt) query.specifications = { $elemMatch: { key: 'interface', value: mbInt } };
+                            if (mbInt) query.specifications = { $elemMatch: { key: 'interface', value: matchSpec(mbInt) } };
                         }
                         if (comp === 'VGA') {
                             const mbPcie = getSpec(mb, 'pcie_version');
-                            if (mbPcie) query.specifications = { $elemMatch: { key: 'pcie_version', value: mbPcie } };
+                            if (mbPcie) query.specifications = { $elemMatch: { key: 'pcie_version', value: matchSpec(mbPcie) } };
                         }
                         if (comp === 'Case') {
                             const mbForm = getSpec(mb, 'form_factor');
-                            if (mbForm) query.specifications = { $elemMatch: { key: 'form_factor', value: mbForm } };
+                            if (mbForm) query.specifications = { $elemMatch: { key: 'form_factor', value: matchSpec(mbForm) } };
                         }
                     }
                 }
-                
+
                 build[comp] = await findBestComponent(comp, compBudget, query);
             }
 
             suggestedProducts = Object.values(build).filter(Boolean);
             const currentTotal = suggestedProducts.reduce((s, p) => s + p.price, 0);
-            
+
             // Kiểm tra công suất nguồn (PSU)
             if (build.PSU) {
                 const tdp = 50 + Number(getSpec(build.CPU, 'tdp') || 65) + Number(getSpec(build.VGA, 'tdp') || 150);
