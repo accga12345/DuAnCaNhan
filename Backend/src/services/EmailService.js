@@ -21,8 +21,8 @@ const makeTransport = async () => {
     const host = await getSmtpIp();
     return nodemailer.createTransport({
         host,
-        port: 587,
-        secure: false,
+        port: 465,
+        secure: true,
         servername: SMTP_HOST,
         auth: {
             user: process.env.EMAIL_IS_USER,
