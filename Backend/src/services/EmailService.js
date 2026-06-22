@@ -11,6 +11,7 @@ const sendEmailResetPassword = async (email, token) => {
             user: process.env.EMAIL_IS_USER,
             pass: process.env.EMAIL_IS_PASSWORD,
         },
+        family: 4,
     });
 
     // send mail with defined transport object
@@ -39,6 +40,7 @@ const sendEmailVerificationOtp = async (email, otp) => {
             user: process.env.EMAIL_IS_USER, // user
             pass: process.env.EMAIL_IS_PASSWORD, // password
         },
+        family: 4,
     });
 
     let info = await transporter.sendMail({
