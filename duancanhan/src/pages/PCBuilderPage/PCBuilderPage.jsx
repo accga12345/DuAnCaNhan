@@ -90,10 +90,11 @@ const PCBuilderPage = () => {
     };
 
     // Helper để check tương thích đa giá trị (phân tách bằng dấu phẩy)
-    const isCompatible = (productSpec, targetValue) => {
-        if (!productSpec || !targetValue) return true;
-        const values = productSpec.split(',').map(v => v.trim().toLowerCase());
-        return values.includes(targetValue.toLowerCase());
+    const isCompatible = (valueA, valueB) => {
+        if (!valueA || !valueB) return true;
+        const partsA = valueA.split(',').map(v => v.trim().toLowerCase());
+        const partsB = valueB.split(',').map(v => v.trim().toLowerCase());
+        return partsA.some(a => partsB.includes(a));
     };
 
     const calculateTotalTDP = (selection) => {
