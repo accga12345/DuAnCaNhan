@@ -139,6 +139,8 @@ function ProductAddPage() {
                     rules={[{ required: true, message: 'Vui lòng chọn hàng từ kho!' }]}
                 >
                     <Select
+                        showSearch
+                        filterOption={(input, option) => (option?.label ?? '').toLowerCase().includes(input.toLowerCase())}
                         placeholder="Chọn sản phẩm trong kho"
                         options={warehouseData?.data?.map((item) => ({
                             value: item._id,
@@ -185,6 +187,8 @@ function ProductAddPage() {
 
                 <Form.Item label="Danh mục" name="category" rules={[{ required: true }]}>
                     <Select
+                        showSearch
+                        filterOption={(input, option) => (option?.label ?? '').toLowerCase().includes(input.toLowerCase())}
                         disabled
                         placeholder="Chọn danh mục"
                         options={categoriesData?.data?.map((item) => ({ value: item._id, label: item.name }))}
@@ -193,6 +197,8 @@ function ProductAddPage() {
 
                 <Form.Item label="Hãng" name="brand" rules={[{ required: true }]}>
                     <Select
+                        showSearch
+                        filterOption={(input, option) => (option?.label ?? '').toLowerCase().includes(input.toLowerCase())}
                         disabled
                         placeholder="Chọn hãng"
                         options={selectedCategoryBrands.map((brand) => ({
@@ -204,6 +210,8 @@ function ProductAddPage() {
 
                 <Form.Item label="Nhà cung cấp" name="supplier">
                     <Select
+                        showSearch
+                        filterOption={(input, option) => (option?.label ?? '').toLowerCase().includes(input.toLowerCase())}
                         disabled
                         placeholder="Chọn nhà cung cấp"
                         options={suppliersData?.data?.map((item) => ({ value: item._id, label: item.name }))}

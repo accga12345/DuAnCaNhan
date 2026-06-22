@@ -442,6 +442,8 @@ function ProductListPage() {
                         <Col span={6}>
                             <Form.Item label="Danh mục" name="category" rules={[{ required: true, message: 'Vui lòng chọn danh mục' }]}>
                                 <Select
+                                    showSearch
+                                    filterOption={(input, option) => (option?.label ?? '').toLowerCase().includes(input.toLowerCase())}
                                     disabled
                                     placeholder="Chọn danh mục"
                                     options={categoriesData?.data?.map((item) => ({
@@ -454,6 +456,8 @@ function ProductListPage() {
                         <Col span={6}>
                             <Form.Item label="Thương hiệu" name="brand" rules={[{ required: true, message: 'Vui lòng chọn thương hiệu' }]}>
                                 <Select
+                                    showSearch
+                                    filterOption={(input, option) => (option?.label ?? '').toLowerCase().includes(input.toLowerCase())}
                                     disabled
                                     placeholder="Chọn thương hiệu"
                                     options={selectedCategoryBrands.map((brand) => ({

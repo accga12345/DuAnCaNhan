@@ -313,16 +313,22 @@ function WarehouseListPage() {
                     </Form.Item>
                     <Form.Item label="Danh mục" name="category">
                         <Select
+                            showSearch
+                            filterOption={(input, option) => (option?.label ?? '').toLowerCase().includes(input.toLowerCase())}
                             options={categoriesData?.data?.map(c => ({ value: c._id, label: c.name }))}
                         />
                     </Form.Item>
                     <Form.Item label="Thương hiệu" name="brand">
                         <Select
+                            showSearch
+                            filterOption={(input, option) => (option?.label ?? '').toLowerCase().includes(input.toLowerCase())}
                             options={brandsData?.data?.map(b => ({ value: b.name, label: b.name }))}
                         />
                     </Form.Item>
                     <Form.Item label="Nhà cung cấp" name="supplier">
                         <Select
+                            showSearch
+                            filterOption={(input, option) => (option?.label ?? '').toLowerCase().includes(input.toLowerCase())}
                             options={suppliersData?.data?.map(s => ({ value: s._id, label: s.name }))}
                         />
                     </Form.Item>

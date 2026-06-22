@@ -117,6 +117,8 @@ function CategoryAddPage() {
                 >
                     <Select
                         mode="multiple"
+                        showSearch
+                        filterOption={(input, option) => (option?.label ?? '').toLowerCase().includes(input.toLowerCase())}
                         style={{ width: '100%' }}
                         placeholder="Chọn hãng sản xuất"
                         options={brandsData?.data?.map((brand) => ({

@@ -72,6 +72,8 @@ function WarehouseAddPage() {
                     rules={[{ required: true, message: 'Vui lòng chọn danh mục!' }]}
                 >
                     <Select
+                        showSearch
+                        filterOption={(input, option) => (option?.label ?? '').toLowerCase().includes(input.toLowerCase())}
                         placeholder="Chọn danh mục"
                         options={categoriesData?.data?.map((item) => ({
                             value: item._id,
@@ -91,6 +93,8 @@ function WarehouseAddPage() {
                     rules={[{ required: true, message: 'Vui lòng chọn thương hiệu!' }]}
                 >
                     <Select
+                        showSearch
+                        filterOption={(input, option) => (option?.label ?? '').toLowerCase().includes(input.toLowerCase())}
                         placeholder="Chọn hãng"
                         options={selectedCategoryBrands.map((brand) => ({
                             value: typeof brand === 'string' ? brand : brand?.name,
@@ -105,6 +109,8 @@ function WarehouseAddPage() {
                     name="supplier"
                 >
                     <Select
+                        showSearch
+                        filterOption={(input, option) => (option?.label ?? '').toLowerCase().includes(input.toLowerCase())}
                         placeholder="Chọn nhà cung cấp"
                         options={suppliersData?.data?.map((item) => ({
                             value: item._id,
