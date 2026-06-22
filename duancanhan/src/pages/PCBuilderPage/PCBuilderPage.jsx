@@ -197,7 +197,11 @@ const PCBuilderPage = () => {
 
         const missing = requiredCats.filter(cat => !config.selection[cat]);
         if (missing.length > 0) {
-            message.showError(`Vui lòng chọn đầy đủ các linh kiện bắt buộc: ${missing.join(', ')}`);
+            if (vgaRequired && missing.length === 1 && missing[0] === 'VGA') {
+                message.showError('CPU bạn chọn không có card đồ họa tích hợp (iGPU). Vui lòng chọn thêm VGA rời!');
+            } else {
+                message.showError(`Vui lòng chọn đầy đủ các linh kiện bắt buộc: ${missing.join(', ')}`);
+            }
             return;
         }
         
