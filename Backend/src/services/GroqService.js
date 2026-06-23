@@ -221,6 +221,16 @@ Tên chuẩn: CPU, Mainboard, RAM, VGA, SSD, PSU, Case, Cooling, Monitor, Keyboa
 "mua cpu" → [{"category":"CPU","keyword":""}]
 KHÔNG để requirements là mảng string.
 
+## COMPONENT_REQUIREMENTS (CHỈ dùng cho build_pc)
+Khi người dùng yêu cầu build PC và nói rõ hãng/model/thông số cho linh kiện cụ thể, hãy trích xuất thành mảng:
+[{"component":"<tên chuẩn>","brand":"<hãng nếu có>","keyword":"<từ khóa model nếu có>"}]
+Tên chuẩn: CPU, Mainboard, RAM, VGA, SSD, PSU, Case, Cooling.
+Ví dụ:
+- "build PC gaming chip AMD Ryzen 7 tầm 20 triệu" → "component_requirements": [{"component":"CPU","brand":"AMD","keyword":"Ryzen 7"}]
+- "rap bo mainboard ASUS, VGA NVIDIA, 32GB RAM" → "component_requirements": [{"component":"Mainboard","brand":"ASUS"},{"component":"VGA","brand":"NVIDIA"},{"component":"RAM","keyword":"32GB"}]
+- "build PC chơi game 15 triệu" → "component_requirements": []
+NẾU không có yêu cầu cụ thể cho component nào → để mảng rỗng.
+
 ## EXAMPLES (FEW-SHOT LEARNING)
 - "Build cho mình bộ PC gaming tầm 20 triệu" -> {"intent":"build_pc", "purpose":"gaming", "budget":20000000}
 - "Tìm giúp con chuột gaming" -> {"intent":"buy_single", "requirements":[{"category":"Chuột","keyword":"gaming"}]}
@@ -235,7 +245,7 @@ KHÔNG để requirements là mảng string.
 
 ## OUTPUT
 
-{"intent":"...","budget":0,"purpose":"","is_action":false,"requirements":[],"specs_filter":[],"brand_preference":[],"reply":""}`;
+{"intent":"...","budget":0,"purpose":"","is_action":false,"requirements":[],"specs_filter":[],"brand_preference":[],"component_requirements":[],"reply":""}`;
 
     const messages = [
         { role: "system", content: systemContent },
@@ -261,6 +271,9 @@ KHÔNG để requirements là mảng string.
 
         // 2. Normalize requirements
         raw.requirements = normalizeRequirements(raw.requirements);
+
+        // 2b. Normalize component_requirements (build_pc)
+        if (!Array.isArray(raw.component_requirements)) raw.component_requirements = [];
 
         // 3. SAFEGUARD: reset budget khi intent đổi loại
         //    Model đôi khi vẫn kế thừa budget dù đã dặn trong prompt
@@ -294,7 +307,7 @@ KHÔNG để requirements là mảng string.
         console.error("❌ Lỗi NLU Groq:", e.message);
         return {
             intent: 'chat', budget: 0, purpose: '', is_action: false,
-            requirements: [], brand_preference: [],
+            requirements: [], brand_preference: [], component_requirements: [],
             reply: 'Dạ hệ thống đang bận, bạn có thể nói lại nhu cầu được không ạ?'
         };
     }

@@ -34,25 +34,25 @@ const applyPreferences = (query, brandPreference) => {
     return query;
 };
 
-const findBestComponent = async (categoryName, budgetAllowed, extraQuery = {}) => {
+const findBestComponent = async (categoryName, budgetAllowed, extraQuery = {}, hardFilter = {}) => {
     const cat = await CategoryModel.findOne({ name: new RegExp(`^${categoryName}$`, 'i') });
     if (!cat) return null;
 
-    const strictQuery = { category: cat._id, ...extraQuery };
-    const universalQuery = { category: cat._id };
+    const softQuery = { category: cat._id, ...extraQuery, ...hardFilter };
+    const hardQuery = { category: cat._id, ...hardFilter };
 
     if (budgetAllowed > 0) {
-        const itemBest = await ProductModel.findOne({ ...strictQuery, price: { $lte: budgetAllowed } }).populate('category').sort({ price: -1 });
+        const itemBest = await ProductModel.findOne({ ...softQuery, price: { $lte: budgetAllowed } }).populate('category').sort({ price: -1 });
         if (itemBest) return itemBest;
     }
 
     if (budgetAllowed > 0) {
-        const itemUniversal = await ProductModel.findOne({ ...universalQuery, price: { $lte: budgetAllowed } }).populate('category').sort({ rating: -1, selled: -1 });
+        const itemUniversal = await ProductModel.findOne({ ...hardQuery, price: { $lte: budgetAllowed } }).populate('category').sort({ rating: -1, selled: -1 });
         if (itemUniversal) return itemUniversal;
     }
 
-    const itemStrictCheapest = await ProductModel.findOne(strictQuery).populate('category').sort({ price: 1 });
-    const itemUnivCheapest = await ProductModel.findOne(universalQuery).populate('category').sort({ price: 1 });
+    const itemStrictCheapest = await ProductModel.findOne(softQuery).populate('category').sort({ price: 1 });
+    const itemUnivCheapest = await ProductModel.findOne(hardQuery).populate('category').sort({ price: 1 });
 
     if (itemStrictCheapest && itemUnivCheapest) {
         return itemStrictCheapest.price <= itemUnivCheapest.price ? itemStrictCheapest : itemUnivCheapest;
@@ -80,7 +80,7 @@ const handleChat = async (req, res) => {
     try {
         const nluResult = await GroqService.askGroq(message, history || [], '');
         ({ intent } = nluResult);
-        let { budget, purpose, requirements, brand_preference, reply, specs_filter } = nluResult;
+        let { budget, purpose, requirements, brand_preference, reply, specs_filter, component_requirements } = nluResult;
 
         // --- ĐOẠN LOG ĐỂ BẠN LÀM BÁO CÁO (TRACE AI DECISION) ---
         console.log('\n==================================================');
@@ -90,6 +90,7 @@ const handleChat = async (req, res) => {
         if (purpose) console.log(`- Mục đích (Purpose): ${purpose}`);
         if (requirements && requirements.length > 0) console.log(`- Yêu cầu linh kiện :`, JSON.stringify(requirements));
         if (specs_filter && specs_filter.length > 0) console.log(`- Bộ lọc Thông số   :`, JSON.stringify(specs_filter));
+        if (component_requirements && component_requirements.length > 0) console.log(`- Yêu cầu component  :`, JSON.stringify(component_requirements));
         console.log('==================================================\n');
 
         const isMissingBudget = budget <= 0 && intent !== 'research';
@@ -210,6 +211,27 @@ const handleChat = async (req, res) => {
                 const compBudget = budget * ratio[comp];
                 const query = { ...prefQuery };
 
+                // Hard filter từ yêu cầu cụ thể của người dùng (luôn áp dụng, kể cả fallback)
+                let hardFilter = {};
+
+                // Component-specific requirement từ NLU (ví dụ: "chip AMD Ryzen 7")
+                const compReq = (component_requirements || []).find(
+                    r => r.component?.toLowerCase() === comp.toLowerCase()
+                );
+                if (compReq) {
+                    if (compReq.brand) {
+                        hardFilter.brand = { $regex: new RegExp(compReq.brand.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i') };
+                    }
+                    if (compReq.keyword) {
+                        hardFilter.name = { $regex: new RegExp(compReq.keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i') };
+                    }
+                }
+
+                // Nếu build không có VGA (office), CPU phải có iGPU
+                if (comp === 'CPU' && (ratio.VGA === 0 || !ratio.VGA)) {
+                    hardFilter.has_igpu = true;
+                }
+
                 // Logic tương thích (Cross-component compatibility)
                 if (comp !== 'CPU') {
                     if (build.CPU) {
@@ -239,7 +261,7 @@ const handleChat = async (req, res) => {
                     }
                 }
 
-                build[comp] = await findBestComponent(comp, compBudget, query);
+                build[comp] = await findBestComponent(comp, compBudget, query, hardFilter);
             }
 
             suggestedProducts = Object.values(build).filter(Boolean);
