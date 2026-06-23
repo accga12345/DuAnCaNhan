@@ -243,6 +243,8 @@ const PCBuilderPage = () => {
                                             style={{ width: '100%' }} 
                                             placeholder={`Chọn ${cat.name}`}
                                             allowClear
+                                            showSearch
+                                            optionFilterProp="children"
                                             value={config.selection[cat.name]?._id}
                                             onChange={(val) => {
                                                 const prod = products[cat.name]?.find(p => p._id === val);
